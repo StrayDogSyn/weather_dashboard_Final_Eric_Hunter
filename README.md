@@ -2,27 +2,81 @@
 
 > **JTC Capstone Project** - A comprehensive weather dashboard utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
 
+# ☁️ Weather Dashboard 2.0 — TRAE Edition
+
+> A modern, glassmorphic weather app powered by AI agents and built with TRAE 2.0 IDE.
+
+---
+
+<div align="center">
+
+### 🧰 Tech Stack
+
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-
-![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-green.svg)
-
 ![Framework](https://img.shields.io/badge/Framework-Tkinter-000000.svg)
+![GUI](https://img.shields.io/badge/GUI-CustomTkinter-green.svg)
+![Image](https://img.shields.io/badge/Image-Pillow-ff69b4.svg)
 
-![Pillow](https://img.shields.io/badge/Image-Pillow-ff69b4.svg)
+### 🤖 AI & IDE Integration
 
 ![AI](https://img.shields.io/badge/AI-Google%20Gemini-orange.svg)
-
 ![LangChain](https://img.shields.io/badge/LLM-LangChain-purple.svg)
-
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-
 ![TRAE IDE](https://img.shields.io/badge/Built%20with-TRAE%202.0-brightgreen.svg)
 
+### ✅ Quality & Testing
+
 ![Pytest](https://img.shields.io/badge/Tested%20with-pytest-9cf.svg)
-
 ![Lint](https://img.shields.io/badge/linting-flake8-yellowgreen.svg)
-
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+
+### 📄 Meta & Status
+
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Status](https://img.shields.io/badge/status-in%20development-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-desktop-lightblue.svg)
+![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
+
+</div>
+
+---
+
+## 🖼️ UI Preview
+
+> *(Insert a screenshot here)*  
+> `![UI Preview](./screenshots/glass_ui_preview.png)` *(update with your actual path)*
+
+---
+
+## ✨ Features
+
+- 🌐 Real-time weather via OpenWeatherMap API
+- 🔮 Glassmorphic & 3D button design with `CustomTkinter`
+- 🤖 Agent-powered UI and code generation via TRAE IDE
+- 🧪 Unit tested with `pytest` and linted using `flake8`
+- 🔧 Modular and scalable architecture
+
+---
+
+## 🧠 Powered by TRAE Agents
+
+| Agent Name         | Function                                        |
+|--------------------|-------------------------------------------------|
+| `@UIStylistAgent`  | Generates glassmorphic layouts from tokens      |
+| `@CodeArchitect`   | Reviews and refactors logic, enforces style     |
+| `@FeaturePipeline` | End-to-end task breakdown, test generation      |
+
+See `.rules` and `.mcp.json` for configurations. Agents run directly inside TRAE IDE with MCP-connected tools.
+
+---
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter.git
+cd weather_dashboard_Final_Eric_Hunter
+pip install -r requirements.txt
+python app.py
+
 
 ## 🌟 Overview
 
