@@ -388,47 +388,310 @@ class HunterDashboardUI:
         self.create_placeholder_tabs()
     
     def create_team_collaboration_tab(self):
-        """Create team collaboration interface"""
+        """Create team collaboration interface with real export data"""
         team_tab = self.tabview.tab("Team Collaboration")
         
-        # Container
-        team_frame = HunterGlassFrame(team_tab)
-        team_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Main container with scrollable frame
+        main_frame = HunterGlassFrame(team_tab)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Create scrollable frame
+        scrollable_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            fg_color=("#F0F8FF", "#1E1E1E"),
+            corner_radius=15
+        )
+        scrollable_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Title
         title_label = HunterGlassLabel(
-            team_frame,
+            scrollable_frame,
             text="👥 Team Weather Collaboration",
+            font=("Segoe UI", 18, "bold")
+        )
+        title_label.pack(pady=(15, 10))
+        
+        # GitHub status and refresh button
+        status_frame = HunterGlassFrame(scrollable_frame)
+        status_frame.pack(fill="x", padx=10, pady=5)
+        
+        github_service = getattr(self, 'github_service', None)
+        if github_service:
+            github_status = "🟢 GitHub Connected - Export Data Available"
+        else:
+            github_status = "🟡 GitHub Service Not Available"
+            
+        self.github_status_label = HunterGlassLabel(
+            status_frame, 
+            text=github_status,
+            font=("Segoe UI", 12, "normal")
+        )
+        self.github_status_label.pack(side="left", padx=10, pady=10)
+        
+        # Refresh button
+        refresh_button = HunterGlassButton(
+            status_frame,
+            text="🔄 Refresh Data",
+            width=120,
+            command=self.refresh_team_data
+        )
+        refresh_button.pack(side="right", padx=10, pady=10)
+        
+        # Team Statistics Section
+        stats_frame = HunterGlassFrame(scrollable_frame)
+        stats_frame.pack(fill="x", padx=10, pady=10)
+        
+        stats_title = HunterGlassLabel(
+            stats_frame,
+            text="📊 Team Statistics",
             font=("Segoe UI", 16, "bold")
         )
-        title_label.pack(pady=(10, 15))
+        stats_title.pack(pady=(10, 5))
         
-        # GitHub status
-        github_status = "🟢 GitHub Ready" if hasattr(self, 'github_service') else "🟡 GitHub Not Configured"
-        status_label = HunterGlassLabel(team_frame, text=github_status)
-        status_label.pack(pady=10)
+        # Statistics grid
+        self.stats_grid = HunterGlassFrame(stats_frame)
+        self.stats_grid.pack(fill="x", padx=10, pady=10)
         
-        # Feature description
-        desc_text = """Share weather data with your team through GitHub integration.
-Compare conditions across different locations.
-Collaborate on weather-based planning."""
+        # City Comparison Section
+        comparison_frame = HunterGlassFrame(scrollable_frame)
+        comparison_frame.pack(fill="x", padx=10, pady=10)
         
-        desc_label = HunterGlassLabel(
-            team_frame,
-            text=desc_text,
-            wraplength=500,
-            font=("Segoe UI", 11, "normal")
+        comparison_title = HunterGlassLabel(
+            comparison_frame,
+            text="🌍 City Comparisons",
+            font=("Segoe UI", 16, "bold")
         )
-        desc_label.pack(pady=20)
+        comparison_title.pack(pady=(10, 5))
         
-        # Coming soon
-        coming_label = HunterGlassLabel(
-            team_frame,
-            text="🚀 Advanced features coming soon!",
-            font=("Segoe UI", 14, "bold"),
-            text_color="#355E3B"
+        # Comparison content
+        self.comparison_content = HunterGlassFrame(comparison_frame)
+        self.comparison_content.pack(fill="x", padx=10, pady=10)
+        
+        # Recent Activity Section
+        activity_frame = HunterGlassFrame(scrollable_frame)
+        activity_frame.pack(fill="x", padx=10, pady=10)
+        
+        activity_title = HunterGlassLabel(
+            activity_frame,
+            text="📈 Recent Team Activity",
+            font=("Segoe UI", 16, "bold")
         )
-        coming_label.pack(pady=20)
+        activity_title.pack(pady=(10, 5))
+        
+        # Activity content
+        self.activity_content = HunterGlassFrame(activity_frame)
+        self.activity_content.pack(fill="x", padx=10, pady=10)
+        
+        # Load initial data
+        self.load_team_collaboration_data()
+    
+    def refresh_team_data(self):
+        """Refresh team collaboration data"""
+        try:
+            github_service = getattr(self, 'github_service', None)
+            if github_service:
+                # Force refresh export data
+                export_data = github_service.fetch_export_data(force_refresh=True)
+                if export_data:
+                    self.github_status_label.configure(text="🟢 Data Refreshed Successfully")
+                    self.load_team_collaboration_data()
+                else:
+                    self.github_status_label.configure(text="🔴 Failed to Refresh Data")
+            else:
+                self.github_status_label.configure(text="🟡 GitHub Service Not Available")
+        except Exception as e:
+            print(f"Error refreshing team data: {e}")
+            self.github_status_label.configure(text="🔴 Error Refreshing Data")
+    
+    def load_team_collaboration_data(self):
+        """Load and display team collaboration data"""
+        try:
+            github_service = getattr(self, 'github_service', None)
+            if not github_service:
+                self._show_no_github_message()
+                return
+            
+            # Get export data
+            export_data = github_service.get_export_data()
+            if not export_data:
+                self._show_no_data_message()
+                return
+            
+            # Update statistics
+            self._update_team_statistics(export_data.team_summary)
+            
+            # Update city comparisons
+            self._update_city_comparisons(export_data.cities_analysis)
+            
+            # Update recent activity
+            self._update_recent_activity(export_data)
+            
+        except Exception as e:
+            print(f"Error loading team collaboration data: {e}")
+            self._show_error_message(str(e))
+    
+    def _show_no_github_message(self):
+        """Show message when GitHub service is not available"""
+        # Clear existing content
+        for widget in self.stats_grid.winfo_children():
+            widget.destroy()
+        for widget in self.comparison_content.winfo_children():
+            widget.destroy()
+        for widget in self.activity_content.winfo_children():
+            widget.destroy()
+        
+        # Show message
+        message = HunterGlassLabel(
+            self.stats_grid,
+            text="GitHub service not configured.\nPlease check your configuration.",
+            font=("Segoe UI", 12, "normal"),
+            text_color="#FF6B6B"
+        )
+        message.pack(pady=20)
+    
+    def _show_no_data_message(self):
+        """Show message when no export data is available"""
+        # Clear existing content
+        for widget in self.stats_grid.winfo_children():
+            widget.destroy()
+        for widget in self.comparison_content.winfo_children():
+            widget.destroy()
+        for widget in self.activity_content.winfo_children():
+            widget.destroy()
+        
+        # Show message
+        message = HunterGlassLabel(
+            self.stats_grid,
+            text="No export data available.\nTrying to fetch data...",
+            font=("Segoe UI", 12, "normal"),
+            text_color="#FFA500"
+        )
+        message.pack(pady=20)
+    
+    def _show_error_message(self, error: str):
+        """Show error message"""
+        # Clear existing content
+        for widget in self.stats_grid.winfo_children():
+            widget.destroy()
+        
+        # Show error
+        message = HunterGlassLabel(
+            self.stats_grid,
+            text=f"Error loading data: {error}",
+            font=("Segoe UI", 12, "normal"),
+            text_color="#FF6B6B"
+        )
+        message.pack(pady=20)
+    
+    def _update_team_statistics(self, team_summary):
+        """Update team statistics display"""
+        # Clear existing stats
+        for widget in self.stats_grid.winfo_children():
+            widget.destroy()
+        
+        if not team_summary:
+            return
+        
+        # Create stats grid
+        stats_data = [
+            ("👥 Total Members", str(team_summary.total_members)),
+            ("🌍 Cities Tracked", str(team_summary.total_cities)),
+            ("📊 Total Records", str(team_summary.total_records)),
+            ("🌡️ Avg Temperature", f"{team_summary.temperature_stats.get('average', 0):.1f}°C"),
+            ("💧 Avg Humidity", f"{team_summary.humidity_stats.get('average', 0):.1f}%"),
+            ("💨 Avg Wind Speed", f"{team_summary.wind_stats.get('average', 0):.1f} m/s")
+        ]
+        
+        # Create 2x3 grid
+        for i, (label, value) in enumerate(stats_data):
+            row = i // 2
+            col = i % 2
+            
+            stat_frame = HunterGlassFrame(self.stats_grid)
+            stat_frame.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            
+            label_widget = HunterGlassLabel(
+                stat_frame,
+                text=label,
+                font=("Segoe UI", 10, "normal")
+            )
+            label_widget.pack(pady=(5, 0))
+            
+            value_widget = HunterGlassLabel(
+                stat_frame,
+                text=value,
+                font=("Segoe UI", 14, "bold"),
+                text_color="#355E3B"
+            )
+            value_widget.pack(pady=(0, 5))
+        
+        # Configure grid weights
+        self.stats_grid.grid_columnconfigure(0, weight=1)
+        self.stats_grid.grid_columnconfigure(1, weight=1)
+    
+    def _update_city_comparisons(self, cities_analysis):
+        """Update city comparisons display"""
+        # Clear existing comparisons
+        for widget in self.comparison_content.winfo_children():
+            widget.destroy()
+        
+        if not cities_analysis:
+            return
+        
+        # Show top cities by records
+        sorted_cities = sorted(
+            cities_analysis.items(),
+            key=lambda x: x[1].get('records', 0),
+            reverse=True
+        )[:5]  # Top 5 cities
+        
+        for city_name, city_data in sorted_cities:
+            city_frame = HunterGlassFrame(self.comparison_content)
+            city_frame.pack(fill="x", padx=5, pady=2)
+            
+            # City info
+            city_info = f"🌍 {city_name} - {city_data.get('records', 0)} records"
+            temp_info = f"🌡️ {city_data.get('temperature', {}).get('average', 0):.1f}°C"
+            humidity_info = f"💧 {city_data.get('humidity', {}).get('average', 0):.1f}%"
+            
+            info_text = f"{city_info} | {temp_info} | {humidity_info}"
+            
+            city_label = HunterGlassLabel(
+                city_frame,
+                text=info_text,
+                font=("Segoe UI", 10, "normal")
+            )
+            city_label.pack(pady=5, padx=10, anchor="w")
+    
+    def _update_recent_activity(self, export_data):
+        """Update recent activity display"""
+        # Clear existing activity
+        for widget in self.activity_content.winfo_children():
+            widget.destroy()
+        
+        if not export_data:
+            return
+        
+        # Show export info
+        export_info = export_data.export_info
+        last_updated = export_info.get('export_date', 'Unknown')
+        total_records = export_info.get('total_records', 0)
+        
+        activity_text = f"📅 Last Updated: {last_updated}\n📊 Total Records: {total_records}"
+        
+        if export_data.team_summary and export_data.team_summary.members:
+            members_text = f"\n👥 Active Members: {', '.join(export_data.team_summary.members[:5])}"
+            if len(export_data.team_summary.members) > 5:
+                members_text += f" and {len(export_data.team_summary.members) - 5} more"
+            activity_text += members_text
+        
+        activity_label = HunterGlassLabel(
+            self.activity_content,
+            text=activity_text,
+            font=("Segoe UI", 11, "normal"),
+            justify="left"
+        )
+        activity_label.pack(pady=10, padx=10, anchor="w")
     
     def create_placeholder_tabs(self):
         """Add placeholder content for remaining tabs"""

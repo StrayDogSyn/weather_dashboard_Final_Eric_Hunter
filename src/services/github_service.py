@@ -7,8 +7,12 @@ between team members, enabling collaborative weather analysis and data sharing.
 import json
 import logging
 import os
+import urllib.request
+import urllib.error
+import threading
+import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Callable
 from dataclasses import dataclass, asdict
 from github import Github, GithubException
 from github.Repository import Repository
@@ -66,6 +70,43 @@ class TeamComparison:
     is_public: bool = True
 
 
+@dataclass
+class ExportCityStats:
+    """Statistics for a city from export data."""
+    records: int
+    temperature: Dict[str, Optional[float]]
+    humidity: Dict[str, Optional[float]]
+    wind: Dict[str, Optional[float]]
+    weather_conditions: List[str]
+    members: List[str]
+
+
+@dataclass
+class ExportTeamSummary:
+    """Team summary from export data."""
+    total_members: int
+    total_cities: int
+    total_records: int
+    temperature_stats: Dict[str, float]
+    humidity_stats: Dict[str, float]
+    wind_stats: Dict[str, float]
+    weather_conditions: List[str]
+    countries: List[str]
+    cities: List[str]
+    members: List[str]
+
+
+@dataclass
+class ExportData:
+    """Complete export data structure."""
+    cities_analysis: Dict[str, Any]
+    team_summary: ExportTeamSummary
+    export_info: Dict[str, Any]
+    raw_csv_data: Optional[List[Dict[str, Any]]] = None
+    last_updated: str = ""
+    fetch_timestamp: str = ""
+
+
 class GitHubService(LoggerMixin):
     """GitHub service for team collaboration."""
 
@@ -81,9 +122,22 @@ class GitHubService(LoggerMixin):
         self.repo = None
         self.team_repo_url = "https://github.com/StrayDogSyn/New_Team_Dashboard"
         self.data_branch = "weather-data"
+        
+        # Export data configuration
+        self.export_base_url = "https://raw.githubusercontent.com/StrayDogSyn/New_Team_Dashboard/main/exports"
+        self.export_data: Optional[ExportData] = None
+        self.last_export_fetch = None
+        self.export_refresh_interval = 300  # 5 minutes
+        self.auto_refresh_enabled = True
+        self.refresh_thread = None
+        self.refresh_callbacks: List[Callable[[ExportData], None]] = []
+        self._stop_refresh = threading.Event()
 
         # Initialize GitHub client
         self._initialize_github()
+        
+        # Start automatic export data fetching
+        self._start_export_refresh()
 
     def _initialize_github(self):
         """Initialize GitHub client and repository."""
@@ -563,6 +617,291 @@ class GitHubService(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Error creating data branch: {e}")
             return False
+
+    # Export Data Fetching Methods
+    
+    def fetch_export_data(self, force_refresh: bool = False) -> Optional[ExportData]:
+        """Fetch export data from the team dashboard repository.
+        
+        Args:
+            force_refresh: Force refresh even if data is recent
+            
+        Returns:
+            Optional[ExportData]: Export data if successful, None otherwise
+        """
+        # Check if we need to refresh
+        if not force_refresh and self.export_data and self.last_export_fetch:
+            time_since_fetch = datetime.now() - self.last_export_fetch
+            if time_since_fetch.total_seconds() < self.export_refresh_interval:
+                return self.export_data
+        
+        try:
+            # Fetch JSON comparison data
+            json_data = self._fetch_latest_json_export()
+            if not json_data:
+                return None
+                
+            # Fetch CSV raw data
+            csv_data = self._fetch_latest_csv_export()
+            
+            # Parse and create ExportData
+            export_data = self._parse_export_data(json_data, csv_data)
+            
+            if export_data:
+                self.export_data = export_data
+                self.last_export_fetch = datetime.now()
+                self.export_data.fetch_timestamp = self.last_export_fetch.isoformat()
+                
+                # Notify callbacks
+                self._notify_refresh_callbacks(export_data)
+                
+                self.logger.info("Successfully fetched export data")
+                return export_data
+                
+        except Exception as e:
+            self.logger.error(f"Error fetching export data: {e}")
+            
+        return None
+    
+    def _fetch_latest_json_export(self) -> Optional[Dict[str, Any]]:
+        """Fetch the latest JSON export file.
+        
+        Returns:
+            Optional[Dict[str, Any]]: JSON data if successful, None otherwise
+        """
+        try:
+            # Try to find the latest export file
+            # For now, use the known filename, but this could be enhanced to find the latest
+            json_url = f"{self.export_base_url}/team_compare_cities_data_20250717_204218.json"
+            
+            with urllib.request.urlopen(json_url, timeout=30) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+                    self.logger.debug(f"Fetched JSON export from: {json_url}")
+                    return data
+                    
+        except urllib.error.URLError as e:
+            self.logger.error(f"URL error fetching JSON export: {e}")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON decode error: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error fetching JSON export: {e}")
+            
+        return None
+    
+    def _fetch_latest_csv_export(self) -> Optional[List[Dict[str, Any]]]:
+        """Fetch the latest CSV export file.
+        
+        Returns:
+            Optional[List[Dict[str, Any]]]: CSV data as list of dicts if successful, None otherwise
+        """
+        try:
+            # Try to find the latest CSV export file
+            csv_url = f"{self.export_base_url}/team_weather_data_20250717_204218.csv"
+            
+            with urllib.request.urlopen(csv_url, timeout=30) as response:
+                if response.status == 200:
+                    csv_content = response.read().decode('utf-8')
+                    
+                    # Parse CSV manually (simple implementation)
+                    lines = csv_content.strip().split('\n')
+                    if len(lines) < 2:
+                        return None
+                        
+                    headers = [h.strip() for h in lines[0].split(',')]
+                    data = []
+                    
+                    for line in lines[1:]:
+                        if line.strip():
+                            values = [v.strip() for v in line.split(',')]
+                            if len(values) == len(headers):
+                                row = dict(zip(headers, values))
+                                data.append(row)
+                    
+                    self.logger.debug(f"Fetched CSV export with {len(data)} records from: {csv_url}")
+                    return data
+                    
+        except urllib.error.URLError as e:
+            self.logger.error(f"URL error fetching CSV export: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error fetching CSV export: {e}")
+            
+        return None
+    
+    def _parse_export_data(self, json_data: Dict[str, Any], csv_data: Optional[List[Dict[str, Any]]]) -> Optional[ExportData]:
+        """Parse raw export data into structured format.
+        
+        Args:
+            json_data: Raw JSON data
+            csv_data: Raw CSV data
+            
+        Returns:
+            Optional[ExportData]: Parsed export data if successful, None otherwise
+        """
+        try:
+            # Parse team summary
+            team_summary_raw = json_data.get('team_summary', {})
+            team_summary = ExportTeamSummary(
+                total_members=team_summary_raw.get('total_members', 0),
+                total_cities=team_summary_raw.get('total_cities', 0),
+                total_records=team_summary_raw.get('total_records', 0),
+                temperature_stats=team_summary_raw.get('temperature_stats', {}),
+                humidity_stats=team_summary_raw.get('humidity_stats', {}),
+                wind_stats=team_summary_raw.get('wind_stats', {}),
+                weather_conditions=team_summary_raw.get('weather_conditions', []),
+                countries=team_summary_raw.get('countries', []),
+                cities=team_summary_raw.get('cities', []),
+                members=team_summary_raw.get('members', [])
+            )
+            
+            # Create export data
+            export_data = ExportData(
+                cities_analysis=json_data.get('cities_analysis', {}),
+                team_summary=team_summary,
+                export_info=json_data.get('export_info', {}),
+                raw_csv_data=csv_data,
+                last_updated=json_data.get('export_info', {}).get('export_date', ''),
+                fetch_timestamp=datetime.now().isoformat()
+            )
+            
+            return export_data
+            
+        except Exception as e:
+            self.logger.error(f"Error parsing export data: {e}")
+            return None
+    
+    def _start_export_refresh(self):
+        """Start the automatic export data refresh thread."""
+        if not self.auto_refresh_enabled or self.refresh_thread:
+            return
+            
+        def refresh_worker():
+            """Worker function for automatic refresh."""
+            while not self._stop_refresh.is_set():
+                try:
+                    # Initial fetch
+                    self.fetch_export_data()
+                    
+                    # Wait for next refresh or stop signal
+                    if self._stop_refresh.wait(self.export_refresh_interval):
+                        break
+                        
+                except Exception as e:
+                    self.logger.error(f"Error in export refresh worker: {e}")
+                    # Wait a bit before retrying
+                    if self._stop_refresh.wait(60):
+                        break
+        
+        self.refresh_thread = threading.Thread(target=refresh_worker, daemon=True)
+        self.refresh_thread.start()
+        self.logger.info("Started export data auto-refresh")
+    
+    def stop_export_refresh(self):
+        """Stop the automatic export data refresh."""
+        if self.refresh_thread:
+            self._stop_refresh.set()
+            self.refresh_thread.join(timeout=5)
+            self.refresh_thread = None
+            self.logger.info("Stopped export data auto-refresh")
+    
+    def add_refresh_callback(self, callback: Callable[[ExportData], None]):
+        """Add a callback to be notified when export data is refreshed.
+        
+        Args:
+            callback: Function to call with new export data
+        """
+        self.refresh_callbacks.append(callback)
+    
+    def remove_refresh_callback(self, callback: Callable[[ExportData], None]):
+        """Remove a refresh callback.
+        
+        Args:
+            callback: Function to remove
+        """
+        if callback in self.refresh_callbacks:
+            self.refresh_callbacks.remove(callback)
+    
+    def _notify_refresh_callbacks(self, export_data: ExportData):
+        """Notify all registered callbacks of new export data.
+        
+        Args:
+            export_data: New export data
+        """
+        for callback in self.refresh_callbacks:
+            try:
+                callback(export_data)
+            except Exception as e:
+                self.logger.error(f"Error in refresh callback: {e}")
+    
+    def get_export_data(self) -> Optional[ExportData]:
+        """Get the current export data.
+        
+        Returns:
+            Optional[ExportData]: Current export data if available, None otherwise
+        """
+        if not self.export_data:
+            # Try to fetch if not available
+            return self.fetch_export_data()
+        return self.export_data
+    
+    def get_city_comparison_data(self) -> Dict[str, Any]:
+        """Get city comparison data from exports.
+        
+        Returns:
+            Dict[str, Any]: City comparison data
+        """
+        export_data = self.get_export_data()
+        if export_data:
+            return export_data.cities_analysis
+        return {}
+    
+    def get_team_statistics(self) -> Optional[ExportTeamSummary]:
+        """Get team statistics from exports.
+        
+        Returns:
+            Optional[ExportTeamSummary]: Team statistics if available, None otherwise
+        """
+        export_data = self.get_export_data()
+        if export_data:
+            return export_data.team_summary
+        return None
+    
+    def get_raw_weather_records(self) -> List[Dict[str, Any]]:
+        """Get raw weather records from CSV export.
+        
+        Returns:
+            List[Dict[str, Any]]: Raw weather records
+        """
+        export_data = self.get_export_data()
+        if export_data and export_data.raw_csv_data:
+            return export_data.raw_csv_data
+        return []
+    
+    def set_refresh_interval(self, seconds: int):
+        """Set the export data refresh interval.
+        
+        Args:
+            seconds: Refresh interval in seconds
+        """
+        self.export_refresh_interval = max(60, seconds)  # Minimum 1 minute
+        self.logger.info(f"Set export refresh interval to {self.export_refresh_interval} seconds")
+    
+    def enable_auto_refresh(self, enabled: bool = True):
+        """Enable or disable automatic export data refresh.
+        
+        Args:
+            enabled: Whether to enable auto-refresh
+        """
+        if enabled and not self.auto_refresh_enabled:
+            self.auto_refresh_enabled = True
+            self._start_export_refresh()
+        elif not enabled and self.auto_refresh_enabled:
+            self.auto_refresh_enabled = False
+            self.stop_export_refresh()
+    
+    def cleanup(self):
+        """Cleanup resources when service is destroyed."""
+        self.stop_export_refresh()
 
 
 def create_github_service(config_manager: ConfigManager) -> GitHubService:

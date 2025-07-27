@@ -198,6 +198,154 @@ cython_debug/
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
+
+# Weather Dashboard Application Specific
+# =====================================
+
+# Environment and Configuration
+.env.local
+.env.production
+.env.development
+config/local_settings.py
+config/production_settings.py
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+weather_dashboard.db
+
+# Log files
+logs/
+*.log
+*.log.*
+app.log
+weather.log
+error.log
+debug.log
+
+# API Keys and Secrets
+api_keys.json
+secrets.json
+credentials.json
+.secrets
+.api_keys
+
+# Weather data cache
+cache/
+weather_cache/
+*.cache
+temp_data/
+
+# Screenshots and generated images
+assets/screenshots/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+!assets/images/Hunter.png
+!assets/images/HunterGlass.png
+!assets/images/Phase3C.png
+!assets/images/ProtoMain.png
+!assets/images/TTKBootstrap.png
+
+# Audio files (except samples)
+assets/sounds/*.mp3
+assets/sounds/*.wav
+assets/sounds/*.ogg
+!assets/sounds/sample*
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# IDE and Editor specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Application runtime
+pid.txt
+*.pid
+app.pid
+
+# User data and preferences
+user_data/
+preferences.json
+user_settings.json
+
+# Third-party service configs
+spotify_cache/
+github_cache/
+gemini_cache/
+
+# Development and testing
+test_data/
+test_results/
+.coverage_html/
+.pytest_cache/
+.tox/
+
+# Documentation builds
+docs/build/
+docs/_build/
+
+# Package builds
+build/
+dist/
+*.egg-info/
+
+# Virtual environments (additional patterns)
+.conda/
+conda-meta/
+.python-version
+
+# Jupyter notebooks (if any)
+.ipynb_checkpoints/
+*.ipynb
+
+# Local development
+local/
+dev/
+development/
+
+# Performance and profiling
+*.prof
+*.profile
+profile_results/
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 .cursorignore
 .cursorindexingignore
 
