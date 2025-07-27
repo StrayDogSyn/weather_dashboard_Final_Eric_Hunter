@@ -47,6 +47,9 @@ from src.ui.dashboard_ui import HunterDashboardUI
 # Import utilities
 from src.utils.logger import setup_logging
 
+# Brand constant
+BRAND_NAME = "CodeFront Weather Capstone"
+
 # Configure logging
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -160,13 +163,15 @@ class WeatherDashboardApp:
 
             # Create main window
             self.root = tk.Tk()
-            self.root.title("Hunter Weather Dashboard")
+            self.root.title(BRAND_NAME)
             self.root.geometry("1200x800")
 
             # Create Hunter dashboard UI
             self.dashboard_ui = HunterDashboardUI(
                 self.root,
-                weather_callback=self._handle_weather_request
+                self.weather_service,
+                self.database,
+                self.settings
             )
 
             # Setup event handlers

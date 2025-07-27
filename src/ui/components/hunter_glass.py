@@ -1,225 +1,141 @@
-import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
 from typing import Optional, Callable, Dict, Any
 
-class HunterGlassButton(tk.Button):
-    """3D Glass button with Hunter theme styling and elevation effects"""
+# Configure CustomTkinter
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
+class HunterGlassButton(ctk.CTkButton):
+    """CustomTkinter button with Hunter glassmorphic theme"""
     
-    def __init__(self, parent, text="", command=None, width=120, height=40, **kwargs):
-        # Initialize with Hunter theme colors
-        super().__init__(
-            parent,
-            text=text,
-            command=command,
-            width=width//8,  # Tkinter uses character width
-            height=height//20,  # Tkinter uses character height
-            bg=HunterColors.HUNTER_SILVER,
-            fg=HunterColors.HUNTER_BLACK,
-            font=('Segoe UI', 10, 'bold'),
-            relief='raised',
-            bd=2,
-            cursor='hand2',
-            **kwargs
-        )
+    def __init__(self, parent, text: str = "", command: Optional[Callable] = None, **kwargs):
+        # Hunter theme defaults for CustomTkinter
+        hunter_defaults = {
+            "fg_color": "#355E3B",              # Hunter green
+            "hover_color": "#4A7C59",           # Lighter hunter green
+            "text_color": "#C0C0C0",            # Hunter silver
+            "corner_radius": 12,                # Glassmorphic corners
+            "border_width": 2,
+            "border_color": ("#C0C0C0", "#808080"),  # Silver with dark variant
+            "font": ("Segoe UI", 12, "normal"),
+            "height": 35,
+            "width": 120
+        }
         
-        self.default_bg = HunterColors.HUNTER_SILVER
-        self.hover_bg = HunterColors.HUNTER_GREEN
-        self.pressed_bg = HunterColors.HUNTER_DARK_SLATE
+        # Merge user parameters with defaults
+        final_kwargs = {**hunter_defaults, **kwargs}
         
-        self._setup_3d_effects()
+        # Initialize as CustomTkinter button
+        super().__init__(parent, text=text, command=command, **final_kwargs)
+        
+        # Add glassmorphic hover effects
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
     
-    def _setup_3d_effects(self):
-        """Setup 3D visual effects and hover animations"""
-        # Bind hover events
-        self.bind('<Enter>', self._on_hover_enter)
-        self.bind('<Leave>', self._on_hover_leave)
-        self.bind('<Button-1>', self._on_press)
-        self.bind('<ButtonRelease-1>', self._on_release)
+    def _on_enter(self, event=None):
+        """Enhanced hover with full opacity border"""
+        self.configure(border_color="#C0C0C0", fg_color="#4A7C59")
     
-    def _on_hover_enter(self, event):
-        """Handle mouse enter - elevation effect"""
-        self.configure(
-            bg=self.hover_bg,
-            fg=HunterColors.HUNTER_SILVER,
-            relief='raised',
-            bd=3
-        )
-    
-    def _on_hover_leave(self, event):
-        """Handle mouse leave - return to normal"""
-        self.configure(
-            bg=self.default_bg,
-            fg=HunterColors.HUNTER_BLACK,
-            relief='raised',
-            bd=2
-        )
-    
-    def _on_press(self, event):
-        """Handle button press - pressed state"""
-        self.configure(
-            bg=self.pressed_bg,
-            fg=HunterColors.HUNTER_SILVER,
-            relief='sunken',
-            bd=1
-        )
-    
-    def _on_release(self, event):
-        """Handle button release - return to hover state"""
-        self.configure(
-            bg=self.hover_bg,
-            fg=HunterColors.HUNTER_SILVER,
-            relief='raised',
-            bd=3
-        )
+    def _on_leave(self, event=None):
+        """Return to semi-transparent state"""
+        self.configure(border_color=("#C0C0C0", "#808080"), fg_color="#355E3B")
     
     def add_3d_effects(self):
         """Add enhanced 3D effects (placeholder for future enhancements)"""
         # This method can be extended for more complex 3D effects
         pass
 
-class HunterGlassPanel(tk.Frame):
-    """Glassmorphic panel with frosted blur effects and Hunter theme"""
+class HunterGlassFrame(ctk.CTkFrame):
+    """CustomTkinter frame with Hunter glassmorphic styling"""
     
+    def __init__(self, parent, **kwargs):
+        hunter_defaults = {
+            "fg_color": ("#355E3B", "#2F4F2F"),  # Hunter green with dark variant
+            "corner_radius": 16,
+            "border_width": 1,
+            "border_color": ("#C0C0C0", "#808080")  # Silver with dark variant
+        }
+        
+        final_kwargs = {**hunter_defaults, **kwargs}
+        super().__init__(parent, **final_kwargs)
+
+# Alias for backward compatibility
+class HunterGlassPanel(HunterGlassFrame):
+    """Alias for HunterGlassFrame to maintain backward compatibility"""
     def __init__(self, parent, glass_opacity=0.3, **kwargs):
-        # Calculate glass color with opacity
-        glass_color = HunterColors.GLASS_HUNTER_PRIMARY
-        
-        super().__init__(
-            parent,
-            bg=glass_color,
-            relief='flat',
-            bd=1,
-            highlightbackground=HunterColors.HUNTER_SILVER,
-            highlightthickness=1,
-            **kwargs
-        )
-        
-        self.glass_opacity = glass_opacity
-        self._setup_glass_effects()
-    
-    def _setup_glass_effects(self):
-        """Setup glassmorphic visual effects"""
-        # Add subtle border for glass effect
-        self.configure(
-            relief='ridge',
-            bd=2,
-            highlightbackground=HunterColors.HUNTER_SILVER,
-            highlightcolor=HunterColors.HUNTER_GREEN
-        )
+        # Ignore glass_opacity parameter for now, use default styling
+        super().__init__(parent, **kwargs)
     
     def add_glass_effect(self):
         """Add enhanced glass effects (placeholder for future enhancements)"""
         # This method can be extended for more complex glass effects
         pass
 
-class HunterGlassLabel(tk.Label):
-    """Glass-styled label with Hunter theme"""
+class HunterGlassLabel(ctk.CTkLabel):
+    """CustomTkinter label with Hunter theme"""
     
-    def __init__(self, parent, text="", style='primary', **kwargs):
-        # Set colors based on style
-        if style == 'primary':
-            fg_color = HunterColors.HUNTER_SILVER
+    def __init__(self, parent, text: str = "", **kwargs):
+        hunter_defaults = {
+            "text_color": "#C0C0C0",            # Hunter silver
+            "font": ("Segoe UI", 12, "normal")
+        }
+        
+        # Handle style variations
+        style = kwargs.pop('style', 'primary')
+        if style == 'secondary':
+            hunter_defaults["text_color"] = ("#C0C0C0", "#999999")
         elif style == 'accent':
-            fg_color = HunterColors.HUNTER_GREEN
-        elif style == 'secondary':
-            fg_color = HunterColors.HUNTER_DARK_SLATE
-        else:
-            fg_color = HunterColors.HUNTER_SILVER
+            hunter_defaults["text_color"] = "#355E3B"
+        elif style == 'header':
+            hunter_defaults["font"] = ("Segoe UI", 24, "bold")
         
-        # Get parent background color safely
-        try:
-            parent_bg = parent.cget('bg')
-        except:
-            parent_bg = HunterColors.HUNTER_BLACK
-        
-        # Set default font if not provided
-        if 'font' not in kwargs:
-            kwargs['font'] = ('Segoe UI', 11)
-        
-        super().__init__(
-            parent,
-            text=text,
-            fg=fg_color,
-            bg=parent_bg,
-            **kwargs
-        )
+        final_kwargs = {**hunter_defaults, **kwargs}
+        super().__init__(parent, text=text, **final_kwargs)
 
-class HunterGlassEntry(tk.Entry):
-    """Glass-styled entry widget with Hunter theme"""
+class HunterGlassEntry(ctk.CTkEntry):
+    """CustomTkinter entry with Hunter glassmorphic styling"""
     
-    def __init__(self, parent, placeholder="", width=20, **kwargs):
-        super().__init__(
-            parent,
-            width=width,
-            bg=HunterColors.GLASS_HUNTER_ACCENT,
-            fg=HunterColors.HUNTER_BLACK,
-            font=('Segoe UI', 10),
-            relief='ridge',
-            bd=2,
-            highlightbackground=HunterColors.HUNTER_SILVER,
-            highlightcolor=HunterColors.HUNTER_GREEN,
-            insertbackground=HunterColors.HUNTER_GREEN,
-            **kwargs
-        )
+    def __init__(self, parent, **kwargs):
+        hunter_defaults = {
+            "fg_color": ("#2F4F4F", "#1C1C1C"),  # Dark slate with darker variant
+            "text_color": "#C0C0C0",
+            "placeholder_text_color": ("#C0C0C0", "#808080"),
+            "border_color": ("#C0C0C0", "#808080"),
+            "corner_radius": 8,
+            "border_width": 1,
+            "font": ("Segoe UI", 12, "normal"),
+            "height": 32
+        }
         
-        self.placeholder = placeholder
-        self._setup_placeholder()
-        self._setup_glass_effects()
-    
-    def _setup_placeholder(self):
-        """Setup placeholder text functionality"""
-        if self.placeholder:
-            self.insert(0, self.placeholder)
-            self.configure(fg='gray')
-            
-            self.bind('<FocusIn>', self._on_focus_in)
-            self.bind('<FocusOut>', self._on_focus_out)
-    
-    def _on_focus_in(self, event):
-        """Handle focus in - remove placeholder"""
-        if self.get() == self.placeholder:
-            self.delete(0, tk.END)
-            self.configure(fg=HunterColors.HUNTER_BLACK)
-    
-    def _on_focus_out(self, event):
-        """Handle focus out - restore placeholder if empty"""
-        if not self.get():
-            self.insert(0, self.placeholder)
-            self.configure(fg='gray')
-    
-    def _setup_glass_effects(self):
-        """Setup glass visual effects"""
-        self.bind('<Enter>', self._on_hover_enter)
-        self.bind('<Leave>', self._on_hover_leave)
-    
-    def _on_hover_enter(self, event):
-        """Handle mouse enter - highlight effect"""
-        self.configure(
-            highlightbackground=HunterColors.HUNTER_GREEN,
-            highlightthickness=2
-        )
-    
-    def _on_hover_leave(self, event):
-        """Handle mouse leave - return to normal"""
-        self.configure(
-            highlightbackground=HunterColors.HUNTER_SILVER,
-            highlightthickness=1
-        )
-    
-    def get(self):
-        """Get entry value, excluding placeholder"""
-        value = super().get()
-        return "" if value == self.placeholder else value
+        final_kwargs = {**hunter_defaults, **kwargs}
+        super().__init__(parent, **final_kwargs)
+        
+        # Focus effects
+        self.bind("<FocusIn>", lambda e: self.configure(border_color="#355E3B"))
+        self.bind("<FocusOut>", lambda e: self.configure(border_color=("#C0C0C0", "#808080")))
 
 class HunterColors:
-    """Hunter theme color constants for backward compatibility"""
-    HUNTER_BLACK = "#1C1C1C"
-    HUNTER_DARK_SLATE = "#2F4F4F"
-    HUNTER_GREEN = "#355E3B"
-    HUNTER_SILVER = "#C0C0C0"
-    GLASS_HUNTER_PRIMARY = "#2F4F4F"
-    GLASS_HUNTER_ACCENT = "#C0C0C0"
-    GLASS_HUNTER_HOVER = "#355E3B"
+    """Hunter theme color constants with glassmorphic variants"""
+    # Base Hunter colors
+    BLACK = "#1C1C1C"
+    DARK_SLATE = "#2F4F4F"
+    GREEN = "#355E3B"
+    SILVER = "#C0C0C0"
+    
+    # Glassmorphic variants
+    GLASS_PRIMARY = "#355E3B40"
+    GLASS_SECONDARY = "#2F4F4F60"
+    GLASS_ACCENT = ("#C0C0C0", "#808080")
+    GLASS_HOVER = "#4A7C59"
+    
+    # Backward compatibility
+    HUNTER_BLACK = BLACK
+    HUNTER_DARK_SLATE = DARK_SLATE
+    HUNTER_GREEN = GREEN
+    HUNTER_SILVER = SILVER
+    GLASS_HUNTER_PRIMARY = DARK_SLATE
+    GLASS_HUNTER_ACCENT = SILVER
+    GLASS_HUNTER_HOVER = GREEN
 
 class AnimationManager:
     """Simple animation manager for smooth transitions"""
