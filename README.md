@@ -36,7 +36,7 @@
 
 ## 🖼️ UI Preview
 
-> `![UI Preview](assets/images/ProtoMain.png)`
+> ![UI Preview](assets/images/ProtoMain.png)
 >> ---
 
 ## ✨ Key Features
