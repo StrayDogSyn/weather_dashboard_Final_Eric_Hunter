@@ -7,9 +7,11 @@ Glasmorphic weather dashboard with Hunter theme styling,
 import tkinter as tk
 from tkinter import ttk
 from typing import Dict, Any, Optional, Callable
-import os
-
 from .themes.hunter_glass import HunterGlassTheme
+from .components.hunter_glass import (
+    HunterGlassButton, HunterGlassPanel, HunterGlassLabel, 
+    HunterGlassEntry, HunterColors, AnimationManager
+)
 
 class HunterDashboardUI:
     """
@@ -56,395 +58,122 @@ class HunterDashboardUI:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
     
     def _create_main_layout(self):
-        """Create the main layout structure."""
-        # Create main container
-        self.main_frame = tk.Frame(
+        """Create the main layout structure with Hunter glass components"""
+        # Create main container with glass panel
+        self.main_frame = HunterGlassPanel(
             self.root,
-            bg=self.theme.HUNTER_BLACK
+            glass_opacity=0.2
         )
         self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Create title
-        title_label = tk.Label(
+        # Create title with glass label
+        title_label = HunterGlassLabel(
             self.main_frame,
             text="Hunter Weather Dashboard",
-            font=("Arial", 24, "bold"),
-            fg=self.theme.HUNTER_SILVER,
-            bg=self.theme.HUNTER_BLACK
+            font=("Arial", 24, "bold")
         )
         title_label.pack(pady=(0, 20))
     
     def _create_weather_panel(self):
-        """Create weather display panel."""
-        # Weather frame
-        weather_frame = tk.Frame(
+        """Create weather information display panel with Hunter glass components"""
+        # Weather info frame with glass effect
+        weather_frame = HunterGlassPanel(
             self.main_frame,
-            bg=self.theme.HUNTER_DARK_SLATE,
-            relief="raised",
-            bd=2
+            glass_opacity=0.3
         )
-        weather_frame.pack(fill="both", expand=True, pady=(0, 10))
+        weather_frame.pack(fill="both", expand=True, pady=(0, 20))
         
-        # Weather title
-        weather_title = tk.Label(
+        # Weather display label with glass styling
+        self.weather_label = HunterGlassLabel(
             weather_frame,
-            text="Current Weather",
-            font=("Arial", 18, "bold"),
-            fg=self.theme.HUNTER_GREEN,
-            bg=self.theme.HUNTER_DARK_SLATE
+            text="🌤️ Weather data will appear here",
+            font=("Arial", 14),
+            style='primary'
         )
-        weather_title.pack(pady=10)
+        self.weather_label.pack(pady=20)
         
-        # Location input
-        location_frame = tk.Frame(weather_frame, bg=self.theme.HUNTER_DARK_SLATE)
-        location_frame.pack(pady=10)
+        # Location input frame
+        input_frame = HunterGlassPanel(
+            weather_frame,
+            glass_opacity=0.4
+        )
+        input_frame.pack(pady=10, padx=20, fill='x')
         
-        tk.Label(
-            location_frame,
-            text="Location:",
-            fg=self.theme.HUNTER_SILVER,
-            bg=self.theme.HUNTER_DARK_SLATE
-        ).pack(side="left", padx=(0, 10))
+        # Location entry with glass styling
+        HunterGlassLabel(
+            input_frame,
+            text="📍 Location:",
+            font=("Arial", 12),
+            style='accent'
+        ).pack(side="left", padx=(10, 10))
         
-        self.location_entry = tk.Entry(
-            location_frame,
-            bg=self.theme.HUNTER_BLACK,
-            fg=self.theme.HUNTER_SILVER,
-            insertbackground=self.theme.HUNTER_SILVER
+        self.location_entry = HunterGlassEntry(
+            input_frame,
+            placeholder="Enter city name...",
+            width=25
         )
         self.location_entry.pack(side="left", padx=(0, 10))
         
-        update_btn = tk.Button(
-            location_frame,
-            text="Update",
+        # Update button with 3D glass effects
+        update_btn = HunterGlassButton(
+            input_frame,
+            text="🔄 Update Weather",
             command=self._update_weather,
-            bg=self.theme.HUNTER_GREEN,
-            fg=self.theme.HUNTER_BLACK,
-            font=("Arial", 10, "bold")
+            width=140,
+            height=35
         )
-        update_btn.pack(side="left")
+        update_btn.pack(side="left", padx=5)
+        update_btn.add_3d_effects()
         
         # Weather display
-        self.weather_display = tk.Label(
+        self.weather_display = HunterGlassLabel(
             weather_frame,
             text="No weather data",
             font=("Arial", 14),
-            fg=self.theme.HUNTER_SILVER,
-            bg=self.theme.HUNTER_DARK_SLATE
+            style='secondary'
         )
         self.weather_display.pack(pady=20)
     
     def _create_navigation_panel(self):
-        """Create navigation panel."""
-        nav_frame = tk.Frame(
+        """Create navigation panel with Hunter glass components"""
+        nav_frame = HunterGlassPanel(
             self.main_frame,
-            bg=self.theme.HUNTER_DARK_SLATE,
-            relief="raised",
-            bd=2
+            glass_opacity=0.4
         )
         nav_frame.pack(fill="x", pady=10)
         
-        nav_title = tk.Label(
+        nav_title = HunterGlassLabel(
             nav_frame,
-            text="Navigation",
+            text="🌦️ Hunter Weather Dashboard",
             font=("Arial", 16, "bold"),
-            fg=self.theme.HUNTER_GREEN,
-            bg=self.theme.HUNTER_DARK_SLATE
+            style='primary'
         )
         nav_title.pack(pady=10)
         
-        # Navigation buttons
-        button_frame = tk.Frame(nav_frame, bg=self.theme.HUNTER_DARK_SLATE)
-        button_frame.pack(pady=10)
-        
-        buttons = ["Weather", "Settings", "About"]
-        for btn_text in buttons:
-            btn = tk.Button(
-                button_frame,
-                text=btn_text,
-                bg=self.theme.HUNTER_GREEN,
-                fg=self.theme.HUNTER_BLACK,
-                font=("Arial", 10, "bold"),
-                width=10
-            )
-            btn.pack(side="left", padx=5)
-    
-    def _create_navigation(self):
-        """Create navigation with 3D glass buttons"""
-        nav_frame = tk.Frame(self.header_frame, bg=HunterColors.GLASS_HUNTER_PRIMARY)
-        nav_frame.pack(fill='x', padx=15, pady=10)
-        
-        # Title
-        title_label = HunterGlassLabel(
+        # Navigation buttons with 3D glass effects
+        button_frame = HunterGlassPanel(
             nav_frame,
-            text="🌦️ Hunter Weather Dashboard",
-            style='primary'
+            glass_opacity=0.2
         )
-        title_label.configure(font=('Segoe UI', 16, 'bold'))
-        title_label.pack(side='left')
+        button_frame.pack(fill='x', padx=20, pady=10)
         
-        # Navigation buttons
-        button_frame = tk.Frame(nav_frame, bg=HunterColors.GLASS_HUNTER_PRIMARY)
-        button_frame.pack(side='right')
-        
-        self.nav_buttons = {}
-        nav_items = [
-            ("Weather", "weather", "🌤️"),
-            ("Journal", "journal", "📝"),
-            ("Activities", "activities", "🎯"),
-            ("Team", "team", "👥"),
-            ("Settings", "settings", "⚙️")
+        buttons = [
+            ("🌤️ Weather", lambda: print("Weather clicked")),
+            ("⚙️ Settings", lambda: print("Settings clicked")),
+            ("ℹ️ About", lambda: print("About clicked"))
         ]
-        
-        for text, tab_id, icon in nav_items:
+        for text, command in buttons:
             btn = HunterGlassButton(
                 button_frame,
-                text=f"{icon} {text}",
-                command=lambda t=tab_id: self._switch_tab(t)
+                text=text,
+                command=command,
+                width=120,
+                height=40
             )
-            btn.pack(side='left', padx=5)
-            self.nav_buttons[tab_id] = btn
-            
-            # Add animation manager
-            self.animation_managers[f"nav_{tab_id}"] = AnimationManager(btn)
+            btn.pack(side="left", padx=5)
+            btn.add_3d_effects()
     
-    def _create_content_panels(self):
-        """Create content panels for different tabs"""
-        self.content_panels = {}
-        
-        # Weather panel
-        self.content_panels['weather'] = self._create_weather_panel()
-        
-        # Journal panel
-        self.content_panels['journal'] = self._create_journal_panel()
-        
-        # Activities panel
-        self.content_panels['activities'] = self._create_activities_panel()
-        
-        # Team panel
-        self.content_panels['team'] = self._create_team_panel()
-        
-        # Settings panel
-        self.content_panels['settings'] = self._create_settings_panel()
-        
-        # Show default panel
-        self._switch_tab('weather')
-    
-    def _create_weather_panel(self) -> HunterGlassPanel:
-        """Create weather information panel"""
-        panel = HunterGlassPanel(self.content_frame, glass_opacity=0.3)
-        
-        # Current weather section
-        current_frame = HunterGlassPanel(panel, glass_opacity=0.4)
-        current_frame.pack(fill='x', padx=20, pady=10)
-        current_frame.add_glass_effect()
-        
-        # Weather display
-        self.weather_display = HunterGlassLabel(
-            current_frame,
-            text="🌤️ Loading weather data...",
-            style='primary'
-        )
-        self.weather_display.configure(font=('Segoe UI', 14))
-        self.weather_display.pack(pady=20)
-        
-        # Location input
-        location_frame = tk.Frame(current_frame, bg=HunterColors.GLASS_HUNTER_PRIMARY)
-        location_frame.pack(pady=10)
-        
-        HunterGlassLabel(
-            location_frame,
-            text="📍 Location:",
-            style='accent'
-        ).pack(side='left', padx=(0, 10))
-        
-        self.location_entry = HunterGlassEntry(location_frame, width=30)
-        self.location_entry.pack(side='left', padx=(0, 10))
-        
-        update_btn = HunterGlassButton(
-            location_frame,
-            text="🔄 Update",
-            command=self._update_weather
-        )
-        update_btn.pack(side='left')
-        
-        # Weather details grid
-        details_frame = HunterGlassPanel(panel, glass_opacity=0.35)
-        details_frame.pack(fill='both', expand=True, padx=20, pady=10)
-        details_frame.add_glass_effect()
-        
-        self.weather_details = {}
-        detail_items = [
-            ("Temperature", "temp", "🌡️"),
-            ("Humidity", "humidity", "💧"),
-            ("Wind Speed", "wind", "💨"),
-            ("Pressure", "pressure", "📊")
-        ]
-        
-        for i, (label, key, icon) in enumerate(detail_items):
-            row = i // 2
-            col = i % 2
-            
-            detail_frame = tk.Frame(details_frame, bg=HunterColors.GLASS_HUNTER_ACCENT)
-            detail_frame.grid(row=row, column=col, padx=10, pady=10, sticky='ew')
-            
-            HunterGlassLabel(
-                detail_frame,
-                text=f"{icon} {label}:",
-                style='accent'
-            ).pack(anchor='w')
-            
-            self.weather_details[key] = HunterGlassLabel(
-                detail_frame,
-                text="--",
-                style='primary'
-            )
-            self.weather_details[key].pack(anchor='w')
-        
-        details_frame.grid_columnconfigure(0, weight=1)
-        details_frame.grid_columnconfigure(1, weight=1)
-        
-        return panel
-    
-    def _create_journal_panel(self) -> HunterGlassPanel:
-        """Create weather journal panel"""
-        panel = HunterGlassPanel(self.content_frame, glass_opacity=0.3)
-        
-        HunterGlassLabel(
-            panel,
-            text="📝 Weather Journal",
-            style='primary'
-        ).pack(pady=20)
-        
-        HunterGlassLabel(
-            panel,
-            text="Journal functionality coming soon...",
-            style='accent'
-        ).pack(pady=10)
-        
-        return panel
-    
-    def _create_activities_panel(self) -> HunterGlassPanel:
-        """Create activities suggestion panel"""
-        panel = HunterGlassPanel(self.content_frame, glass_opacity=0.3)
-        
-        HunterGlassLabel(
-            panel,
-            text="🎯 Activity Suggestions",
-            style='primary'
-        ).pack(pady=20)
-        
-        HunterGlassLabel(
-            panel,
-            text="AI-powered activity suggestions coming soon...",
-            style='accent'
-        ).pack(pady=10)
-        
-        return panel
-    
-    def _create_team_panel(self) -> HunterGlassPanel:
-        """Create team collaboration panel"""
-        panel = HunterGlassPanel(self.content_frame, glass_opacity=0.3)
-        
-        HunterGlassLabel(
-            panel,
-            text="👥 Team Collaboration",
-            style='primary'
-        ).pack(pady=20)
-        
-        HunterGlassLabel(
-            panel,
-            text="Team features coming soon...",
-            style='accent'
-        ).pack(pady=10)
-        
-        return panel
-    
-    def _create_settings_panel(self) -> HunterGlassPanel:
-        """Create settings panel"""
-        panel = HunterGlassPanel(self.content_frame, glass_opacity=0.3)
-        
-        HunterGlassLabel(
-            panel,
-            text="⚙️ Settings",
-            style='primary'
-        ).pack(pady=20)
-        
-        HunterGlassLabel(
-            panel,
-            text="Configuration options coming soon...",
-            style='accent'
-        ).pack(pady=10)
-        
-        return panel
-    
-    def _switch_tab(self, tab_id: str):
-        """Switch between content tabs with animation"""
-        # Hide current panel
-        if self.current_tab in self.content_panels:
-            self.content_panels[self.current_tab].pack_forget()
-        
-        # Show new panel
-        if tab_id in self.content_panels:
-            self.content_panels[tab_id].pack(fill='both', expand=True, padx=20, pady=20)
-            self.current_tab = tab_id
-        
-        # Update button states
-        for btn_id, btn in self.nav_buttons.items():
-            if btn_id == tab_id:
-                btn.configure(bg=HunterColors.HUNTER_GREEN)
-            else:
-                btn._apply_raised_state()
-    
-    def _update_weather(self):
-        """Update weather data"""
-        location = self.location_entry.get().strip()
-        if location and self.weather_callback:
-            self.weather_callback(location)
-    
-    def update_weather_display(self, weather_data: Dict[str, Any]):
-        """Update weather display with new data"""
-        self.weather_data = weather_data
-        
-        # Update main display
-        condition = weather_data.get('condition', 'Unknown')
-        location = weather_data.get('location', 'Unknown')
-        self.weather_display.configure(
-            text=f"🌤️ {condition} in {location}"
-        )
-        
-        # Update details
-        detail_mapping = {
-            'temp': f"{weather_data.get('temperature', '--')}°C",
-            'humidity': f"{weather_data.get('humidity', '--')}%",
-            'wind': f"{weather_data.get('wind_speed', '--')} km/h",
-            'pressure': f"{weather_data.get('pressure', '--')} hPa"
-        }
-        
-        for key, value in detail_mapping.items():
-            if key in self.weather_details:
-                self.weather_details[key].configure(text=value)
-        
-        # Update background gradient
-        self._update_background_gradient()
-    
-    def _apply_hunter_theme(self):
-        """Apply Hunter theme styling to all components"""
-        # Configure ttk styles
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Configure custom styles
-        style.configure(
-            'Hunter.TFrame',
-            background=HunterColors.GLASS_HUNTER_PRIMARY,
-            borderwidth=1,
-            relief='flat'
-        )
-    
-    def _on_canvas_resize(self, event):
-        """Handle canvas resize events"""
-        self.root.after_idle(self._update_background_gradient)
+
     
     def _update_weather(self):
         """Update weather data."""
