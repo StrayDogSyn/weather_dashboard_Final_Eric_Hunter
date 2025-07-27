@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
 """
-Weather Dashboard - Professional Capstone Project
+Weather Dashboard Application - Main Entry Point
 
-A modern glassmorphic weather dashboard demonstrating advanced Python development
-practices, API integration, and professional UI design patterns.
+A comprehensive weather dashboard application built with CustomTkinter,
+integrating multiple weather data sources, AI-powered insights, and
+collaborative features using clean architecture principles.
+
+Features:
+- Real-time weather data from OpenWeatherMap
+- Temperature trend visualization
+- Weather journal with personal notes
+- AI-powered activity suggestions via Gemini AI
+- Music recommendations via Spotify
+- Team collaboration via GitHub integration
+- Modern, responsive UI with CustomTkinter
+- Clean architecture with separated concerns
+
+This is the single application entry point that integrates all services
+and UI components using the clean architecture pattern.
 
 Author: Eric Hunter
-Project: Python Bootcamp Capstone - Weather Dashboard
-Tech Stack: Python, CustomTkinter, OpenWeatherMap API, SQLite, GitHub API
+Version: 2.0.0 (Clean Architecture)
 """
 
 import sys
@@ -16,28 +29,27 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import logging
 
-# Add src directory to path for imports
-src_path = Path(__file__).parent / "src"
-sys.path.insert(0, str(src_path))
-
 # Core imports
 import customtkinter as ctk
 from tkinter import messagebox
 
-# Core application components
-from src.core.config_manager import ConfigManager
-from src.core.database_manager import DatabaseManager
-from src.utils.logger import setup_logging
+# Import clean architecture services
+from config.settings import Settings
+from data.database import Database
+from services.weather_service import WeatherService
+from services.gemini_service import GeminiService
+from services.github_service import GitHubService
+from services.spotify_service import SpotifyService
 
-# Services
-from src.services.weather_service import SyncWeatherService
-from src.services.github_service import GitHubService
+# Import UI components
+from ui.dashboard_ui import DashboardUI
+from ui.widgets.temperature_graph_widget import TemperatureGraphWidget
+from ui.widgets.weather_journal_widget import WeatherJournalWidget
+from ui.widgets.activity_suggester_widget import ActivitySuggesterWidget
+from ui.widgets.team_collaboration_widget import TeamCollaborationWidget
 
-# Feature widgets
-from src.features.temperature_graph import TemperatureGraphWidget
-from src.features.weather_journal import WeatherJournalWidget
-from src.features.activity_suggester import ActivitySuggesterWidget
-from src.features.team_collaboration import TeamCollaborationWidget
+# Import utilities
+from utils.logging_config import setup_logging
 
 # Configure logging
 setup_logging()
@@ -58,10 +70,13 @@ class WeatherDashboardApp:
 
     def __init__(self):
         """Initialize the weather dashboard application."""
-        self.config_manager: Optional[ConfigManager] = None
-        self.weather_service: Optional[SyncWeatherService] = None
-        self.database: Optional[DatabaseManager] = None
+        # Core services (clean architecture)
+        self.settings: Optional[Settings] = None
+        self.database: Optional[Database] = None
+        self.weather_service: Optional[WeatherService] = None
+        self.gemini_service: Optional[GeminiService] = None
         self.github_service: Optional[GitHubService] = None
+        self.spotify_service: Optional[SpotifyService] = None
 
         # UI components
         self.root: Optional[ctk.CTk] = None
@@ -80,36 +95,68 @@ class WeatherDashboardApp:
 
     def initialize_services(self) -> bool:
         """
-        Initialize all application services with proper error handling.
+        Initialize all core services.
 
         Returns:
-            bool: True if all services initialized successfully
+            bool: True if all services initialized successfully, False otherwise
         """
         try:
-            # Initialize configuration manager
-            self.config_manager = ConfigManager()
-            logger.info(f"Configuration manager initialized")
+            logger.info("Initializing core services...")
+
+            # Initialize settings
+            self.settings = Settings()
+            logger.info("Settings loaded successfully")
 
             # Initialize database
-            self.database = DatabaseManager()
+            self.database = Database(self.settings.DATABASE_PATH)
+            self.database.initialize()
+            logger.info("Database initialized successfully")
 
             # Initialize weather service
-            self.weather_service = SyncWeatherService(self.config_manager)
+            self.weather_service = WeatherService(
+                api_key=self.settings.OPENWEATHER_API_KEY,
+                database=self.database
+            )
+            logger.info("Weather service initialized")
 
-            # Initialize GitHub service (optional)
-            api_config = self.config_manager.get_api_config()
-            github_token = api_config.github_token
-            if github_token:
+            # Initialize optional services
+            # Gemini AI service
+            if self.settings.GEMINI_API_KEY:
                 try:
-                    self.github_service = GitHubService(github_token)
-                    logger.info("GitHub service initialized for team collaboration")
+                    self.gemini_service = GeminiService(self.settings.GEMINI_API_KEY)
+                    logger.info("Gemini AI service initialized")
                 except Exception as e:
-                    logger.warning(f"Failed to initialize GitHub service: {e}")
-                    # GitHub service is optional, so we continue
+                    logger.warning(f"Gemini AI service initialization failed: {e}")
+                    self.gemini_service = None
             else:
-                logger.warning("GitHub token not configured - team features disabled")
+                logger.info("Gemini API key not provided, skipping Gemini service")
 
-            logger.info("All services initialized successfully")
+            # GitHub service
+            if self.settings.GITHUB_TOKEN:
+                try:
+                    self.github_service = GitHubService(self.settings.GITHUB_TOKEN)
+                    logger.info("GitHub service initialized")
+                except Exception as e:
+                    logger.warning(f"GitHub service initialization failed: {e}")
+                    self.github_service = None
+            else:
+                logger.info("GitHub token not provided, skipping GitHub service")
+
+            # Spotify service
+            if self.settings.SPOTIFY_CLIENT_ID and self.settings.SPOTIFY_CLIENT_SECRET:
+                try:
+                    self.spotify_service = SpotifyService(
+                        client_id=self.settings.SPOTIFY_CLIENT_ID,
+                        client_secret=self.settings.SPOTIFY_CLIENT_SECRET
+                    )
+                    logger.info("Spotify service initialized")
+                except Exception as e:
+                    logger.warning(f"Spotify service initialization failed: {e}")
+                    self.spotify_service = None
+            else:
+                logger.info("Spotify credentials not provided, skipping Spotify service")
+
+            logger.info("Core services initialized successfully")
             return True
 
         except Exception as e:
@@ -118,32 +165,26 @@ class WeatherDashboardApp:
 
     def create_ui(self) -> bool:
         """
-        Create and configure the main UI components.
+        Create and setup the main UI.
 
         Returns:
-            bool: True if UI created successfully
+            bool: True if UI created successfully, False otherwise
         """
         try:
-            # Configure CustomTkinter
-            ctk.set_appearance_mode("dark")
-            ctk.set_default_color_theme("blue")
+            logger.info("Creating main UI...")
 
             # Create main window
             self.root = ctk.CTk()
-            self.root.title("Weather Dashboard v1.0")
-            self.root.geometry("1400x900")
-            self.root.minsize(1200, 800)
+            self.root.title("CodeFront Dashboard")
+            self.root.geometry("1200x800")
 
-            # Set window icon (if available)
-            try:
-                icon_path = Path("assets/icon.ico")
-                if icon_path.exists():
-                    self.root.iconbitmap(str(icon_path))
-            except Exception:
-                pass  # Icon not critical
-
-            # Create a simple dashboard layout
-            self._create_dashboard_layout()
+            # Create dashboard UI with new services
+            self.dashboard_ui = DashboardUI(
+                parent=self.root,
+                weather_service=self.weather_service,
+                database=self.database,
+                settings=self.settings
+            )
 
             # Initialize feature widgets
             self._initialize_feature_widgets()
@@ -151,7 +192,7 @@ class WeatherDashboardApp:
             # Setup event handlers
             self._setup_event_handlers()
 
-            logger.info("UI components created successfully")
+            logger.info("Main UI created successfully")
             return True
 
         except Exception as e:
@@ -208,28 +249,23 @@ class WeatherDashboardApp:
             temp_tab = tabview.tab("Temperature Graph")
             self.temperature_graph = TemperatureGraphWidget(
                 parent=temp_tab,
-                database_manager=self.database
+                database=self.database
             )
 
             # Weather Journal Widget
             journal_tab = tabview.tab("Weather Journal")
             self.weather_journal = WeatherJournalWidget(
                 parent=journal_tab,
-                database_manager=self.database
+                database=self.database
             )
 
             # Activity Suggester Widget
             activity_tab = tabview.tab("Activity Suggester")
-            api_config = self.config_manager.get_api_config()
             self.activity_suggester = ActivitySuggesterWidget(
                 parent=activity_tab,
-                database_manager=self.database
-            )
-            # Configure API keys for AI and Spotify integration
-            self.activity_suggester.configure_api_keys(
-                gemini_api_key=api_config.gemini_api_key,
-                spotify_client_id=api_config.spotify_client_id,
-                spotify_client_secret=api_config.spotify_client_secret
+                database=self.database,
+                gemini_service=self.gemini_service,
+                spotify_service=self.spotify_service
             )
 
             # Team Collaboration Widget (if GitHub available)
@@ -373,10 +409,6 @@ class WeatherDashboardApp:
         """Handle application closing."""
         try:
             logger.info("Application closing initiated")
-
-            # Save current configuration
-            if self.config_manager:
-                pass  # Configuration saving handled by ConfigManager
 
             # Stop background updates
             self.is_running = False
