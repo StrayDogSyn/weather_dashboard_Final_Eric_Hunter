@@ -1,83 +1,39 @@
-# Weather Dashboard Application Dependencies
+# Weather Dashboard - Essential Dependencies
+# ==========================================
 
-# Core GUI Framework
-customtkinter>=5.2.0
-Pillow>=10.0.1
-tkinter-tooltip>=2.1.0
+# Core Dependencies
+requests>=2.31.0              # HTTP client for weather API
+python-dotenv>=1.0.0          # Environment variables for API keys
+pydantic>=2.0.0               # Data validation for weather models
+pyyaml>=6.0.0                 # YAML parsing for configuration files
 
-# Weather APIs
-requests>=2.31.0
-python-dotenv>=1.0.0
-urllib3>=2.0.0
+# Database & Storage
+sqlalchemy>=2.0.0             # ORM for database operations
+aiosqlite>=0.19.0             # Async SQLite database operations
+redis>=5.0.0                  # Redis caching and session storage
+aiohttp>=3.9.0                # Async HTTP client for API requests
 
-# Data Visualization and Analysis
-matplotlib>=3.7.2
-numpy>=1.24.3
-pandas>=2.0.3
-seaborn>=0.12.0
-scipy>=1.11.0
+# Data Science & Visualization
+matplotlib>=3.7.0             # Charts and graphs
+numpy>=1.24.0                 # Numerical operations
+pandas>=2.0.0                 # Data manipulation and analysis
+seaborn>=0.12.0               # Statistical data visualization
 
-# AI Integration
-google-generativeai>=0.3.0
-google-auth>=2.17.0
-google-auth-oauthlib>=1.0.0
-spotipy>=2.23.0
+# Machine Learning (Optional)
+scikit-learn>=1.3.0           # ML algorithms and utilities
+joblib>=1.3.0                 # Model persistence
 
-# Database and ORM
-# sqlite3 is built-in with Python
-sqlalchemy>=2.0.0
+# Enhanced UI (Optional)
+ttkbootstrap>=1.10.1          # Bootstrap-inspired styling for Tkinter
 
-# GitHub Integration
-PyGithub>=1.59.1
+# AI & Natural Language Processing
+openai>=1.0.0                 # OpenAI API for AI-powered poetry generation
+google-generativeai>=0.8.0    # Google Gemini Pro API for AI content generation
 
-# Date and Time Handling
-python-dateutil>=2.8.0
-pytz>=2023.3
+# Development & Code Quality
+flake8>=6.0.0                  # Code linting for Python standards
+black>=23.0.0                  # Code formatting
+isort>=5.12.0                  # Import sorting
 
-# Configuration Management
-pyyaml>=6.0
-
-# Async Support
-aiohttp>=3.8.0
-aiofiles>=23.0.0
-
-# Enhanced Logging
-loguru>=0.7.0
-
-# Data Validation
-pydantic>=2.0.0
-
-# JSON Processing
-orjson>=3.9.0
-
-# Caching
-cachetools>=5.3.0
-
-# File System Monitoring
-watchdog>=3.0.0
-
-# System Information
-psutil>=5.9.0
-
-# Progress Bars
-tqdm>=4.66.0
-
-# Security
-cryptography>=41.0.0
-
-# Utilities
-more-itertools>=10.0.0
-click>=8.1.0
-
-# Development Dependencies (Optional)
-# Uncomment for development environment
-# pytest>=7.4.0
-# pytest-asyncio>=0.21.0
-# pytest-cov>=4.1.0
-# black>=23.0.0
-# flake8>=6.0.0
-# mypy>=1.5.0
-
-# Built-in Python modules (no installation needed)
-# datetime, json, tkinter, threading, logging, os, sys, platform
-# functools, collections, itertools, colorsys
+# Note: TKinter is included with Python by default
+# SQLite is built into Python standard library
