@@ -121,6 +121,7 @@ class HunterDashboardUI:
         self.tabview.add("Team Collaboration")
         
         self.create_weather_tab()
+        self.create_temperature_graph_tab()
         self.create_placeholder_tabs()
     
     def create_weather_tab(self):
@@ -195,10 +196,54 @@ class HunterDashboardUI:
         )
         self.condition_label.pack(pady=5)
     
+    def create_temperature_graph_tab(self):
+        """Create temperature visualization with matplotlib"""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        from datetime import datetime, timedelta
+        import random
+        
+        temp_tab = self.tabview.tab("Temperature Graph")
+        
+        # Graph container
+        graph_frame = HunterGlassFrame(temp_tab)
+        graph_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Create matplotlib figure with Hunter theme
+        fig, ax = plt.subplots(figsize=(8, 5), facecolor='#2F4F4F')
+        ax.set_facecolor('#1C1C1C')
+        
+        # Generate sample 24-hour temperature data
+        hours = [datetime.now() - timedelta(hours=i) for i in range(24, 0, -1)]
+        temps = [20 + random.uniform(-5, 10) for _ in range(24)]
+        
+        # Plot with Hunter theme colors
+        ax.plot(hours, temps, color='#355E3B', linewidth=3, marker='o',
+                markersize=4, markerfacecolor='#C0C0C0')
+        
+        # Style with Hunter colors
+        ax.set_title('24-Hour Temperature Trend', color='#C0C0C0', fontsize=14)
+        ax.set_ylabel('Temperature (°C)', color='#C0C0C0')
+        ax.grid(True, alpha=0.3, color='#C0C0C080')
+        ax.tick_params(colors='#C0C0C0')
+        
+        # Format time axis
+        import matplotlib.dates as mdates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Embed in CustomTkinter
+        canvas = FigureCanvasTkAgg(fig, graph_frame)
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Store for updates
+        self.temp_graph_canvas = canvas
+        self.temp_graph_ax = ax
+    
     def create_placeholder_tabs(self):
         """Add placeholder content for feature tabs"""
         tabs_content = {
-            "Temperature Graph": "📊 Temperature Graph\n(Coming in Phase 3C)",
             "Weather Journal": "📝 Weather Journal\n(Coming in Phase 3C)",
             "Activity Suggester": "🤖 Activity Suggester\n(Coming in Phase 3C)",
             "Team Collaboration": "👥 Team Collaboration\n(Coming in Phase 3C)"
