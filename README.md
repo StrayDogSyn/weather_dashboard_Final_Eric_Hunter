@@ -2,41 +2,37 @@
 
 > **JTC Capstone Project** - A comprehensive weather dashboard utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
 
-# ☁️ Weather Dashboard 2.0 — TRAE Edition
+## ☁️ Weather Dashboard 2.0 — TRAE Edition
 
 > A modern, glassmorphic weather app powered by AI agents and built with TRAE 2.0 IDE.
 
 ---
 
-<div align="center">
-
-### 🧰 Tech Stack
+## 🧰 Tech Stack
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Framework](https://img.shields.io/badge/Framework-Tkinter-000000.svg)
 ![GUI](https://img.shields.io/badge/GUI-CustomTkinter-green.svg)
 ![Image](https://img.shields.io/badge/Image-Pillow-ff69b4.svg)
 
-### 🤖 AI & IDE Integration
+## 🤖 AI & IDE Integration
 
 ![AI](https://img.shields.io/badge/AI-Google%20Gemini-orange.svg)
 ![LangChain](https://img.shields.io/badge/LLM-LangChain-purple.svg)
 ![TRAE IDE](https://img.shields.io/badge/Built%20with-TRAE%202.0-brightgreen.svg)
 
-### ✅ Quality & Testing
+## ✅ Quality & Testing
 
 ![Pytest](https://img.shields.io/badge/Tested%20with-pytest-9cf.svg)
 ![Lint](https://img.shields.io/badge/linting-flake8-yellowgreen.svg)
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 
-### 📄 Meta & Status
+## 📄 Meta & Status
 
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Status](https://img.shields.io/badge/status-in%20development-lightgrey.svg)
 ![Platform](https://img.shields.io/badge/platform-desktop-lightblue.svg)
 ![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
-
-</div>
 
 ---
 
@@ -57,15 +53,16 @@
 
 ---
 
-## 🧠 Powered by TRAE Agents
+## 🧠 Powered by TRAE AI Agents
 
-| Agent Name         | Function                                        |
-|--------------------|-------------------------------------------------|
-| `@UIStylistAgent`  | Generates glassmorphic layouts from tokens      |
-| `@CodeArchitect`   | Reviews and refactors logic, enforces style     |
-| `@FeaturePipeline` | End-to-end task breakdown, test generation      |
+| Agent Type | Function | Implementation |
+|------------|----------|----------------|
+| **Cortana Builder** | Conversational AI implementation expert | Bot Framework SDK, Azure Cognitive Services integration |
+| **Code Assistant** | Real-time code analysis and refactoring | Python architecture optimization, clean code patterns |
+| **UI/UX Agent** | Modern interface design and accessibility | CustomTkinter glassmorphic themes, responsive layouts |
+| **API Integration** | External service orchestration | Weather APIs, Gemini AI, Spotify, GitHub connectivity |
 
-See `.rules` and `.mcp.json` for configurations. Agents run directly inside TRAE IDE with MCP-connected tools.
+Built with TRAE IDE's advanced AI-powered development environment featuring real-time code assistance, intelligent refactoring, and seamless API integrations.
 
 ---
 
@@ -75,12 +72,11 @@ See `.rules` and `.mcp.json` for configurations. Agents run directly inside TRAE
 git clone https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter.git
 cd weather_dashboard_Final_Eric_Hunter
 pip install -r requirements.txt
-python app.py
-
+python main.py
+```
 
 ## 🌟 Overview
 
-<<<<<<< HEAD
 A sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies using clean architecture principles, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
 
 **Single Entry Point:** `main.py`
@@ -88,9 +84,6 @@ A sophisticated, AI-powered desktop application that transforms weather data int
 ```bash
 python main.py
 ```
-=======
-The CodeFront Dashboard is a sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
->>>>>>> 9f1b06fba318a127ad48551321ba8da96ccdd2aa
 
 ## ✨ Key Features
 
@@ -151,6 +144,7 @@ The CodeFront Dashboard is a sophisticated, AI-powered desktop application that 
 ### Setup
 
 1. **Clone and setup:**
+
    ```bash
    git clone https://github.com/yourusername/weather_dashboard_Final_Eric_Hunter.git
    cd weather_dashboard_Final_Eric_Hunter
@@ -160,6 +154,7 @@ The CodeFront Dashboard is a sophisticated, AI-powered desktop application that 
    ```
 
 2. **Configure environment variables:**
+
    ```bash
    # Copy template and edit with your API keys
    copy .env.example .env
@@ -167,6 +162,7 @@ The CodeFront Dashboard is a sophisticated, AI-powered desktop application that 
    ```
 
 3. **Run:**
+
    ```bash
    python main.py
    ```
@@ -175,17 +171,19 @@ The CodeFront Dashboard is a sophisticated, AI-powered desktop application that 
 
 ### Quick Setup
 
-**Option 1: Interactive Setup (Recommended)**
+#### Option 1: Interactive Setup (Recommended)
+
 ```bash
 python setup_config.py
 ```
 
-**Option 2: Demo Mode (No API Keys Required)**
+#### Option 2: Demo Mode (No API Keys Required)
+
 ```bash
 python setup_config.py --demo
 ```
 
-**Option 3: Manual Setup**
+#### Option 3: Manual Setup
 
 1. Copy `.env.example` to `.env`
 2. Edit `.env` with your API keys
@@ -211,8 +209,9 @@ python setup_config.py --demo
 
 - Create an app at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 - Required for music recommendations
-- Add to `.env`: 
-  ```
+- Add to `.env`:
+
+  ```env
   SPOTIFY_CLIENT_ID=your_client_id_here
   SPOTIFY_CLIENT_SECRET=your_client_secret_here
   ```
@@ -330,21 +329,25 @@ auto_save_interval: 30  # seconds
 ### Common Issues
 
 **Application won't start:**
+
 - Check Python version (3.8+ required)
 - Verify dependencies: `pip install -r requirements.txt`
 - Ensure `.env` file exists with API keys
 
 **Weather data not loading:**
+
 - Verify internet connection and API key validity
 - Check API rate limits
 
 **UI issues:**
+
 - Update CustomTkinter: `pip install --upgrade customtkinter`
 - Check display scaling settings
 
 ### Debug Mode
 
 Enable detailed logging:
+
 ```env
 DEBUG_MODE=true
 ```
@@ -354,12 +357,14 @@ DEBUG_MODE=true
 ### System Requirements
 
 **Minimum:**
+
 - Python 3.8+
 - 4GB RAM
 - 100MB disk space
 - Internet connection
 
 **Recommended:**
+
 - Python 3.10+
 - 8GB RAM
 - Stable broadband connection
@@ -373,11 +378,13 @@ DEBUG_MODE=true
 ## 🔒 Security
 
 ### API Key Management
+
 - Store API keys in `.env` file (never commit to git)
 - Use environment variables for production
 - Rotate API keys regularly
 
 ### Data Privacy
+
 - Weather data cached locally for performance
 - No personal data transmitted to third parties
 - Location data only used for weather queries
@@ -396,7 +403,14 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-<div align="center">
-  <p><strong>Built with ❤️ for weather enthusiasts and developers</strong></p>
-  <p>⭐ Star this repo if you find it helpful!</p>
-</div>
+## 🌟 Built with Code, Coffee, and a Dash of Weather Magic ☕
+
+*"If it challenges me, it excites me!"* - This project embodies that spirit, blending modern web technologies with AI innovation to create something truly special for weather enthusiasts and developers alike.
+
+🚀 **Ready to explore?** Dive into the code, customize it to your heart's content, and let's make weather data beautiful together!
+
+⭐ **Found this helpful?** Give it a star and join the journey of turning meteorological data into meaningful experiences!
+
+---
+
+*Crafted with passion by a developer who believes that great software should be as dynamic and unpredictable as the weather itself* 🌦️✨
