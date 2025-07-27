@@ -9,23 +9,32 @@
 
 ## 🌟 Overview
 
-The Weather Dashboard is a sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
+A sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies using clean architecture principles, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
+
+**Single Entry Point:** `main.py`
+
+```bash
+python main.py
+```
 
 ## ✨ Key Features
 
 ### 🌡️ **Real-Time Weather Monitoring**
+
 - Live weather data from multiple API sources
 - Interactive temperature graphs and trends
 - Historical weather data analysis
 - Multi-city weather comparison
 
 ### 📊 **Advanced Data Visualization**
+
 - Interactive temperature trend graphs
 - Weather pattern analysis
 - Customizable chart types and time ranges
 - Export capabilities (PNG, PDF, CSV)
 
 ### 📝 **Smart Weather Journal**
+
 - AI-powered mood tracking based on weather
 - Rich text editor with markdown support
 - Weather correlation insights
@@ -33,6 +42,7 @@ The Weather Dashboard is a sophisticated, AI-powered desktop application that tr
 - Auto-save functionality
 
 ### 🎯 **AI Activity Suggestions**
+
 - Google Gemini AI-powered recommendations
 - Weather-appropriate activity suggestions
 - Spotify music integration for mood-based playlists
@@ -40,6 +50,7 @@ The Weather Dashboard is a sophisticated, AI-powered desktop application that tr
 - Personal preference learning
 
 ### 👥 **Team Collaboration**
+
 - GitHub integration for team weather sharing
 - Collaborative city comparisons
 - Team activity tracking
@@ -47,13 +58,14 @@ The Weather Dashboard is a sophisticated, AI-powered desktop application that tr
 - Export and import capabilities
 
 ### 🎨 **Modern UI/UX**
+
 - Glassmorphic design with CustomTkinter
 - Dark/Light theme support
 - Responsive layout
 - Accessibility features
 - Professional animations and transitions
 
-## 🚀 Quick Start
+## 🚀 Installation
 
 ### Prerequisites
 
@@ -61,45 +73,25 @@ The Weather Dashboard is a sophisticated, AI-powered desktop application that tr
 - Windows 10/11 (primary support)
 - Internet connection for weather data and AI features
 
-### Installation
+### Setup
 
-1. **Clone the repository:**
+1. **Clone and setup:**
    ```bash
    git clone https://github.com/yourusername/weather_dashboard_Final_Eric_Hunter.git
    cd weather_dashboard_Final_Eric_Hunter
-   ```
-
-2. **Create a virtual environment:**
-   ```bash
    python -m venv weather_env
    weather_env\Scripts\activate  # Windows
-   # source weather_env/bin/activate  # macOS/Linux
-   ```
-
-3. **Install dependencies:**
-   ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables:**
-   Create a `.env` file in the root directory:
-   ```env
-   # Weather API (choose one)
-   OPENWEATHER_API_KEY=your_openweather_api_key
-   WEATHERAPI_KEY=your_weatherapi_key
-   
-   # AI Integration
-   GEMINI_API_KEY=your_google_gemini_api_key
-   
-   # Spotify Integration (optional)
-   SPOTIFY_CLIENT_ID=your_spotify_client_id
-   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-   
-   # GitHub Integration (optional)
-   GITHUB_TOKEN=your_github_personal_access_token
+2. **Configure environment variables:**
+   ```bash
+   # Copy template and edit with your API keys
+   copy .env.example .env
+   # Edit .env with your API keys
    ```
 
-5. **Run the application:**
+3. **Run:**
    ```bash
    python main.py
    ```
@@ -119,12 +111,14 @@ python setup_config.py --demo
 ```
 
 **Option 3: Manual Setup**
+
 1. Copy `.env.example` to `.env`
 2. Edit `.env` with your API keys
 
 ### API Keys Setup
 
 #### Weather API (Required for Live Data)
+
 - **OpenWeatherMap**: Get your free API key at [openweathermap.org](https://openweathermap.org/api)
   - Free tier: 1,000 calls/day
   - Add to `.env`: `OPENWEATHER_API_KEY=your_key_here`
@@ -133,11 +127,13 @@ python setup_config.py --demo
   - Add to `.env`: `WEATHER_API_KEY=your_key_here`
 
 #### Google Gemini AI (Optional)
+
 - Get your API key at [Google AI Studio](https://makersuite.google.com/app/apikey)
 - Required for AI activity suggestions
 - Add to `.env`: `GEMINI_API_KEY=your_key_here`
 
 #### Spotify (Optional)
+
 - Create an app at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 - Required for music recommendations
 - Add to `.env`: 
@@ -147,6 +143,7 @@ python setup_config.py --demo
   ```
 
 #### GitHub (Optional)
+
 - Generate a Personal Access Token at [GitHub Settings](https://github.com/settings/tokens)
 - Required for team collaboration features
 - Add to `.env`: `GITHUB_TOKEN=your_token_here`
@@ -176,12 +173,14 @@ auto_save_interval: 30  # seconds
 ### Feature Walkthroughs
 
 #### Temperature Graphs
+
 - View real-time and historical temperature data
 - Switch between different time ranges (24h, 7d, 30d)
 - Export graphs as images or data files
 - Compare multiple cities
 
 #### Weather Journal
+
 - Create entries with weather context
 - Use markdown formatting for rich text
 - Add tags and mood indicators
@@ -189,6 +188,7 @@ auto_save_interval: 30  # seconds
 - View weather correlations
 
 #### Activity Suggestions
+
 - Get AI-powered activity recommendations
 - Filter by category, difficulty, and duration
 - Save favorites and mark completed activities
@@ -196,6 +196,7 @@ auto_save_interval: 30  # seconds
 - Rate activities to improve suggestions
 
 #### Team Collaboration
+
 - Connect your GitHub account
 - Share weather data with team members
 - Create collaborative city comparisons
@@ -203,84 +204,43 @@ auto_save_interval: 30  # seconds
 
 ## 🏗️ Architecture
 
-### Project Structure
+**Clean Architecture Principles** with clear separation of concerns:
 
-```
-weather_dashboard_Final_Eric_Hunter/
-├── main.py                 # Application entry point
-├── requirements.txt        # Python dependencies
-├── .env                   # Environment variables (create this)
-├── README.md              # This file
-├── LICENSE                # MIT License
-├── .gitignore            # Git ignore rules
-│
-├── src/
-│   ├── core/             # Core application logic
-│   │   ├── app_controller.py
-│   │   ├── config_manager.py
-│   │   └── database_manager.py
-│   │
-│   ├── features/         # Feature implementations
-│   │   ├── temperature_graph.py
-│   │   ├── weather_journal.py
-│   │   ├── activity_suggester.py
-│   │   └── team_collaboration.py
-│   │
-│   ├── services/         # External service integrations
-│   │   ├── weather_service.py
-│   │   └── github_service.py
-│   │
-│   ├── ui/              # User interface components
-│   │   ├── dashboard_ui.py
-│   │   ├── theme_manager.py
-│   │   └── components/
-│   │
-│   └── utils/           # Utility functions
-│       └── logger.py
-│
-├── assets/              # Static assets
-│   ├── images/
-│   └── sounds/
-│
-├── docs/               # Documentation
-└── tests/              # Unit tests
-```
+- **`main.py`** - Single application entry point and UI orchestration
+- **`config/settings.py`** - Configuration management with environment variables
+- **`services/`** - External API integrations (Weather, Gemini AI, GitHub, Spotify)
+- **`data/database.py`** - SQLite database operations
+- **`ui/`** - User interface components
+- **`.env.example`** - Template for required environment variables
 
 ### Technology Stack
 
 - **GUI Framework**: CustomTkinter (modern, themed Tkinter)
-- **Data Processing**: Pandas, NumPy, Matplotlib
 - **AI Integration**: Google Gemini API
-- **Database**: SQLite with SQLAlchemy ORM
-- **APIs**: Weather APIs, Spotify Web API, GitHub API
-- **Configuration**: YAML, python-dotenv
-- **Async Support**: aiohttp, asyncio
+- **Database**: SQLite
+- **APIs**: OpenWeatherMap, Spotify Web API, GitHub API
+- **Configuration**: python-dotenv
 
 ## 🧪 Development
 
-### Setting Up Development Environment
+### Environment Variables
 
-1. **Install development dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   # Uncomment dev dependencies in requirements.txt
-   ```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENWEATHER_API_KEY` | Yes | OpenWeatherMap API key |
+| `GEMINI_API_KEY` | No | Google Gemini AI API key |
+| `SPOTIFY_CLIENT_ID` | No | Spotify application client ID |
+| `SPOTIFY_CLIENT_SECRET` | No | Spotify application client secret |
+| `GITHUB_TOKEN` | No | GitHub personal access token |
+| `DATABASE_PATH` | No | Custom database file path |
+| `DEBUG_MODE` | No | Enable debug logging (true/false) |
 
-2. **Run tests:**
-   ```bash
-   pytest tests/
-   ```
+### Adding Features
 
-3. **Code formatting:**
-   ```bash
-   black src/
-   flake8 src/
-   ```
-
-4. **Type checking:**
-   ```bash
-   mypy src/
-   ```
+1. Create feature branch: `git checkout -b feature/new-feature`
+2. Implement in appropriate service/module
+3. Test functionality
+4. Submit pull request
 
 ### Contributing
 
@@ -290,98 +250,78 @@ weather_dashboard_Final_Eric_Hunter/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Code Style
-
-- Follow PEP 8 guidelines
-- Use type hints for function signatures
-- Write docstrings for all public methods
-- Maintain test coverage above 80%
-
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-#### "Module not found" errors
-```bash
-# Ensure virtual environment is activated
-weather_env\Scripts\activate
-pip install -r requirements.txt
-```
+**Application won't start:**
+- Check Python version (3.8+ required)
+- Verify dependencies: `pip install -r requirements.txt`
+- Ensure `.env` file exists with API keys
 
-#### Weather data not loading
-- Check your internet connection
-- Verify API keys in `.env` file
+**Weather data not loading:**
+- Verify internet connection and API key validity
 - Check API rate limits
 
-#### AI suggestions not working
-- Ensure Gemini API key is valid
-- Check Google AI Studio quota
-- Verify internet connectivity
-
-#### UI not displaying correctly
+**UI issues:**
 - Update CustomTkinter: `pip install --upgrade customtkinter`
-- Check system compatibility
-- Try different theme settings
+- Check display scaling settings
 
-### Logging
+### Debug Mode
 
-Logs are stored in `~/.weather_dashboard/logs/`:
-- `app.log` - General application logs
-- `error.log` - Error-specific logs
-- `debug.log` - Detailed debug information
+Enable detailed logging:
+```env
+DEBUG_MODE=true
+```
 
 ## 📊 Performance
 
 ### System Requirements
 
-- **Minimum**: 4GB RAM, 1GB storage, Python 3.8+
-- **Recommended**: 8GB RAM, 2GB storage, Python 3.10+
-- **Network**: Broadband internet for real-time features
+**Minimum:**
+- Python 3.8+
+- 4GB RAM
+- 100MB disk space
+- Internet connection
 
-### Optimization Tips
+**Recommended:**
+- Python 3.10+
+- 8GB RAM
+- Stable broadband connection
 
-- Enable caching for better performance
-- Adjust update intervals based on usage
-- Use local database for offline functionality
-- Optimize image assets for faster loading
+### Optimization
+
+- Increase weather update intervals to reduce API calls
+- Enable data caching for better performance
+- Disable animations if experiencing UI lag
 
 ## 🔒 Security
 
+### API Key Management
+- Store API keys in `.env` file (never commit to git)
+- Use environment variables for production
+- Rotate API keys regularly
+
 ### Data Privacy
-
-- All API keys are stored locally in `.env` file
-- Weather data is cached locally for offline access
-- No personal data is transmitted without consent
-- GitHub integration uses secure OAuth flow
-
-### Best Practices
-
-- Never commit API keys to version control
-- Use environment variables for sensitive data
-- Regularly update dependencies for security patches
-- Enable two-factor authentication for connected services
+- Weather data cached locally for performance
+- No personal data transmitted to third parties
+- Location data only used for weather queries
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **JTC Tech Pathways / AI Edge 2025 Cohort** for the educational foundation
-- **OpenWeatherMap** and **WeatherAPI** for weather data
-- **Google** for Gemini AI capabilities
-- **Spotify** for music integration
-- **GitHub** for collaboration features
-- **CustomTkinter** community for the modern GUI framework
-
-## 📞 Support
-
-For support, questions, or feature requests:
-
-- 📧 Email: [your-email@example.com]
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/weather_dashboard_Final_Eric_Hunter/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/weather_dashboard_Final_Eric_Hunter/discussions)
+- [OpenWeatherMap](https://openweathermap.org/) - Weather data
+- [Google Gemini](https://ai.google.dev/) - AI capabilities
+- [Spotify Web API](https://developer.spotify.com/) - Music recommendations
+- [GitHub API](https://docs.github.com/en/rest) - Code collaboration
+- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) - Modern UI framework
 
 ---
 
-**Built with ❤️ by Eric Hunter as part of the JTC Tech Pathways / AI Edge 2025 Capstone Project**
+<div align="center">
+  <p><strong>Built with ❤️ for weather enthusiasts and developers</strong></p>
+  <p>⭐ Star this repo if you find it helpful!</p>
+</div>
