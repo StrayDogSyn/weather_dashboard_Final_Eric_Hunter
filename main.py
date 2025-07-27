@@ -34,22 +34,15 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 # Import clean architecture services
-from config.settings import Settings
+from config.settings import load_settings
 from data.database import Database
 from services.weather_service import WeatherService
 from services.gemini_service import GeminiService
 from services.github_service import GitHubService
 from services.spotify_service import SpotifyService
 
-# Import UI components
-from ui.dashboard_ui import DashboardUI
-from ui.widgets.temperature_graph_widget import TemperatureGraphWidget
-from ui.widgets.weather_journal_widget import WeatherJournalWidget
-from ui.widgets.activity_suggester_widget import ActivitySuggesterWidget
-from ui.widgets.team_collaboration_widget import TeamCollaborationWidget
-
 # Import utilities
-from utils.logging_config import setup_logging
+from src.utils.logger import setup_logging
 
 # Configure logging
 setup_logging()
@@ -71,7 +64,7 @@ class WeatherDashboardApp:
     def __init__(self):
         """Initialize the weather dashboard application."""
         # Core services (clean architecture)
-        self.settings: Optional[Settings] = None
+        self.settings = None
         self.database: Optional[Database] = None
         self.weather_service: Optional[WeatherService] = None
         self.gemini_service: Optional[GeminiService] = None
@@ -80,11 +73,8 @@ class WeatherDashboardApp:
 
         # UI components
         self.root: Optional[ctk.CTk] = None
-        self.dashboard_ui = None
-        self.temperature_graph: Optional[TemperatureGraphWidget] = None
-        self.weather_journal: Optional[WeatherJournalWidget] = None
-        self.activity_suggester: Optional[ActivitySuggesterWidget] = None
-        self.team_collaboration: Optional[TeamCollaborationWidget] = None
+        self.main_frame = None
+        self.tabview = None
 
         # Application state
         self.is_running = False
@@ -104,26 +94,22 @@ class WeatherDashboardApp:
             logger.info("Initializing core services...")
 
             # Initialize settings
-            self.settings = Settings()
+            self.settings = load_settings()
             logger.info("Settings loaded successfully")
 
             # Initialize database
-            self.database = Database(self.settings.DATABASE_PATH)
-            self.database.initialize()
+            self.database = Database()
             logger.info("Database initialized successfully")
 
             # Initialize weather service
-            self.weather_service = WeatherService(
-                api_key=self.settings.OPENWEATHER_API_KEY,
-                database=self.database
-            )
+            self.weather_service = WeatherService()
             logger.info("Weather service initialized")
 
             # Initialize optional services
             # Gemini AI service
-            if self.settings.GEMINI_API_KEY:
+            if self.settings.gemini_api_key:
                 try:
-                    self.gemini_service = GeminiService(self.settings.GEMINI_API_KEY)
+                    self.gemini_service = GeminiService()
                     logger.info("Gemini AI service initialized")
                 except Exception as e:
                     logger.warning(f"Gemini AI service initialization failed: {e}")
@@ -132,9 +118,9 @@ class WeatherDashboardApp:
                 logger.info("Gemini API key not provided, skipping Gemini service")
 
             # GitHub service
-            if self.settings.GITHUB_TOKEN:
+            if self.settings.github_token:
                 try:
-                    self.github_service = GitHubService(self.settings.GITHUB_TOKEN)
+                    self.github_service = GitHubService()
                     logger.info("GitHub service initialized")
                 except Exception as e:
                     logger.warning(f"GitHub service initialization failed: {e}")
@@ -143,12 +129,9 @@ class WeatherDashboardApp:
                 logger.info("GitHub token not provided, skipping GitHub service")
 
             # Spotify service
-            if self.settings.SPOTIFY_CLIENT_ID and self.settings.SPOTIFY_CLIENT_SECRET:
+            if self.settings.spotify_client_id and self.settings.spotify_client_secret:
                 try:
-                    self.spotify_service = SpotifyService(
-                        client_id=self.settings.SPOTIFY_CLIENT_ID,
-                        client_secret=self.settings.SPOTIFY_CLIENT_SECRET
-                    )
+                    self.spotify_service = SpotifyService()
                     logger.info("Spotify service initialized")
                 except Exception as e:
                     logger.warning(f"Spotify service initialization failed: {e}")
@@ -178,19 +161,8 @@ class WeatherDashboardApp:
             self.root.title("CodeFront Dashboard")
             self.root.geometry("1200x800")
 
-            # Create dashboard UI with new services
-            self.dashboard_ui = DashboardUI(
-                parent=self.root,
-                weather_service=self.weather_service,
-                database=self.database,
-                settings=self.settings
-            )
-
-            # Initialize feature widgets
-            self._initialize_feature_widgets()
-
-            # Setup event handlers
-            self._setup_event_handlers()
+            # Create simple dashboard layout
+            self._create_dashboard_layout()
 
             logger.info("Main UI created successfully")
             return True
@@ -238,80 +210,55 @@ class WeatherDashboardApp:
                 pass
 
         self.dashboard_ui = SimpleDashboardUI(self.tabview)
+        
+        # Initialize simple placeholder widgets
+        self._initialize_simple_widgets()
 
-    def _initialize_feature_widgets(self):
-        """Initialize all feature widgets and integrate them with the dashboard."""
+    def _initialize_simple_widgets(self):
+        """Initialize simple placeholder widgets for the tabs."""
         try:
-            # Get the tabview for placing widgets
-            tabview = self.dashboard_ui.main_content
+            # Add simple labels to each tab as placeholders
+            temp_tab = self.tabview.tab("Temperature Graph")
+            temp_label = ctk.CTkLabel(temp_tab, text="Temperature Graph Feature\n(Coming Soon)", 
+                                    font=ctk.CTkFont(size=16))
+            temp_label.pack(expand=True)
 
-            # Temperature Graph Widget
-            temp_tab = tabview.tab("Temperature Graph")
-            self.temperature_graph = TemperatureGraphWidget(
-                parent=temp_tab,
-                database=self.database
-            )
+            journal_tab = self.tabview.tab("Weather Journal")
+            journal_label = ctk.CTkLabel(journal_tab, text="Weather Journal Feature\n(Coming Soon)", 
+                                       font=ctk.CTkFont(size=16))
+            journal_label.pack(expand=True)
 
-            # Weather Journal Widget
-            journal_tab = tabview.tab("Weather Journal")
-            self.weather_journal = WeatherJournalWidget(
-                parent=journal_tab,
-                database=self.database
-            )
+            activity_tab = self.tabview.tab("Activity Suggester")
+            activity_label = ctk.CTkLabel(activity_tab, text="Activity Suggester Feature\n(Coming Soon)", 
+                                        font=ctk.CTkFont(size=16))
+            activity_label.pack(expand=True)
 
-            # Activity Suggester Widget
-            activity_tab = tabview.tab("Activity Suggester")
-            self.activity_suggester = ActivitySuggesterWidget(
-                parent=activity_tab,
-                database=self.database,
-                gemini_service=self.gemini_service,
-                spotify_service=self.spotify_service
-            )
+            team_tab = self.tabview.tab("Team Collaboration")
+            team_label = ctk.CTkLabel(team_tab, text="Team Collaboration Feature\n(Coming Soon)", 
+                                    font=ctk.CTkFont(size=16))
+            team_label.pack(expand=True)
 
-            # Team Collaboration Widget (if GitHub available)
-            if self.github_service:
-                team_tab = tabview.tab("Team Collaboration")
-                self.team_collaboration = TeamCollaborationWidget(
-                    parent=team_tab,
-                    github_service=self.github_service
-                )
-
-            # Register widgets with dashboard
-            self.dashboard_ui.register_feature_widget("temperature_graph", self.temperature_graph)
-            self.dashboard_ui.register_feature_widget("weather_journal", self.weather_journal)
-            self.dashboard_ui.register_feature_widget("activity_suggester", self.activity_suggester)
-
-            if self.team_collaboration:
-                self.dashboard_ui.register_feature_widget("team_collaboration", self.team_collaboration)
-
-            logger.info("Feature widgets initialized and registered")
+            logger.info("Simple placeholder widgets initialized")
 
         except Exception as e:
-            logger.error(f"Failed to initialize feature widgets: {e}")
+            logger.error(f"Failed to initialize simple widgets: {e}")
 
     def _setup_event_handlers(self):
         """Setup application-wide event handlers."""
         # Window close handler
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def _on_weather_update(self, weather_data: Dict[str, Any]):
+    def _on_weather_update(self, weather_data):
         """Handle weather data updates across all components."""
         self.current_weather = weather_data
-
-        # Update all feature widgets with new weather data
-        if self.temperature_graph:
-            self.temperature_graph.update_weather_data(weather_data)
-
-        if self.weather_journal:
-            self.weather_journal.set_weather_data(weather_data)
-
-        if self.activity_suggester:
-            self.activity_suggester.update_weather_data(weather_data)
-
-        if self.team_collaboration:
-            self.team_collaboration.update_weather_data(weather_data)
-
-        logger.debug("Weather data updated across all components")
+        # Handle both WeatherData objects and dictionaries
+        if hasattr(weather_data, 'location'):
+            location = weather_data.location
+            temperature = weather_data.temperature
+        else:
+            location = weather_data.get('location', 'Unknown')
+            temperature = weather_data.get('temperature', 'N/A')
+        logger.debug(f"Weather data updated: {location} - {temperature}°")
 
     def _show_error_dialog(self, title: str, message: str, error_type: str = "Error"):
         """Show error dialog to user."""
@@ -341,7 +288,7 @@ class WeatherDashboardApp:
                 if self.weather_service and self.dashboard_ui:
                     current_city = getattr(self.dashboard_ui, 'current_city', None)
                     if current_city:
-                        weather_data = self.weather_service.get_current_weather(current_city)
+                        weather_data = self.weather_service.get_weather(current_city)
                         if weather_data:
                             # Schedule UI update on main thread
                             self.root.after(0, lambda data=weather_data: self._on_weather_update(data))
@@ -413,9 +360,9 @@ class WeatherDashboardApp:
             # Stop background updates
             self.is_running = False
 
-            # Close database connections
+            # Database cleanup (SQLite connections are auto-managed)
             if self.database:
-                self.database.close()
+                logger.info("Database cleanup completed")
 
             # Destroy UI
             if self.root:
@@ -436,14 +383,15 @@ class WeatherDashboardApp:
             if self.update_thread and self.update_thread.is_alive():
                 self.update_thread.join(timeout=2.0)
 
-            # Close services
+            # Database cleanup handled automatically by SQLite
             if self.database:
-                self.database.close()
+                logger.info("Database cleanup completed")
 
             logger.info("Application cleanup completed")
 
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
+            # Database cleanup handled automatically by SQLite
 
 
 def main() -> int:

@@ -12,20 +12,21 @@ from typing import List, Optional
 
 from .models import (
     ActivitySuggestion, ActivityCategory, DifficultyLevel, 
-    WeatherSuitability, UserPreferences, WeatherData
+    WeatherSuitability, UserPreferences
 )
+from ...services.weather_service import WeatherData
 from .database import ActivityDatabase
 from .ai_service import AIActivityGenerator
 from .spotify_service import SpotifyIntegration
 from .ui_components import ActivityUIComponents
 from .activity_controller import ActivityController
 from .utils import ActivityUtils
-from ..shared.glassmorphic_components import (
+from ...ui.components.base_components import (
     GlassFrame, GlassLabel, GlassButton
 )
-from ..shared.logger_mixin import LoggerMixin
-from ..shared.theme_manager import ThemeManager
-from ..shared.database_manager import DatabaseManager
+from ...utils.logger import LoggerMixin
+from ...ui.theme_manager import ThemeManager
+from ...core.database_manager import DatabaseManager
 
 
 class ActivitySuggesterWidget(GlassFrame, LoggerMixin):
