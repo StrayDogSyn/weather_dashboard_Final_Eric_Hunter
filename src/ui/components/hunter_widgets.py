@@ -208,3 +208,50 @@ class HunterGlassEntry(tk.Entry):
             highlightbackground=HunterColors.HUNTER_DARK_SLATE,
             bg=HunterColors.GLASS_HUNTER_PRIMARY
         )
+
+# Hunter3D Classes - Enhanced 3D versions
+class Hunter3DButton(HunterGlassButton):
+    """Enhanced 3D button with deeper shadows and effects"""
+    
+    def __init__(self, parent, text: str = "", command: Optional[Callable] = None, **kwargs):
+        super().__init__(parent, text=text, command=command, **kwargs)
+        self._enhance_3d_effects()
+    
+    def _enhance_3d_effects(self):
+        """Apply enhanced 3D styling"""
+        self.configure(
+            relief='raised',
+            borderwidth=3,  # Thicker border for more depth
+            bg=HunterColors.BUTTON_RAISED[0],  # Silver base
+            activebackground=HunterColors.BUTTON_RAISED[1]  # Green on hover
+        )
+
+class Hunter3DEntry(HunterGlassEntry):
+    """Enhanced 3D entry with sunken appearance"""
+    
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self._enhance_3d_effects()
+    
+    def _enhance_3d_effects(self):
+        """Apply enhanced 3D styling"""
+        self.configure(
+            relief='sunken',
+            borderwidth=3,  # Deeper sunken effect
+            highlightthickness=2
+        )
+
+class Hunter3DFrame(HunterGlassPanel):
+    """Enhanced 3D frame with groove styling"""
+    
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self._enhance_3d_effects()
+    
+    def _enhance_3d_effects(self):
+        """Apply enhanced 3D styling"""
+        self.configure(
+            relief='groove',
+            borderwidth=4,  # Deeper groove effect
+            bg=HunterColors.GLASS_HUNTER_PRIMARY
+        )
