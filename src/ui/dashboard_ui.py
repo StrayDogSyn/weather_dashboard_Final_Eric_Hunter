@@ -122,6 +122,7 @@ class HunterDashboardUI:
         
         self.create_weather_tab()
         self.create_temperature_graph_tab()
+        self.create_weather_journal_tab()
         self.create_placeholder_tabs()
     
     def create_weather_tab(self):
@@ -241,10 +242,75 @@ class HunterDashboardUI:
         self.temp_graph_canvas = canvas
         self.temp_graph_ax = ax
     
+    def create_weather_journal_tab(self):
+        """Create weather journal with text editing"""
+        import tkinter as tk
+        from datetime import datetime
+        
+        journal_tab = self.tabview.tab("Weather Journal")
+        
+        # Journal container
+        journal_frame = HunterGlassFrame(journal_tab)
+        journal_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Title
+        title_label = HunterGlassLabel(
+            journal_frame,
+            text="📝 Weather Journal",
+            font=("Segoe UI", 16, "bold")
+        )
+        title_label.pack(pady=(10, 15))
+        
+        # Current entry info
+        if hasattr(self, 'current_weather_data') and self.current_weather_data:
+            weather_info = f"Today: {self.current_weather_data.get('temperature', 'N/A')}°C"
+        else:
+            weather_info = f"Today: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            
+        info_label = HunterGlassLabel(journal_frame, text=weather_info)
+        info_label.pack(pady=5)
+        
+        # Text area
+        text_frame = tk.Frame(journal_frame, bg='#2F4F4F')
+        text_frame.pack(fill="both", expand=True, padx=15, pady=10)
+        
+        self.journal_text = tk.Text(
+            text_frame,
+            bg='#1C1C1C',
+            fg='#C0C0C0',
+            insertbackground='#C0C0C0',
+            font=('Segoe UI', 11),
+            wrap='word',
+            height=12
+        )
+        self.journal_text.pack(side="left", fill="both", expand=True)
+        
+        # Scrollbar
+        scrollbar = tk.Scrollbar(text_frame, bg='#355E3B')
+        scrollbar.pack(side="right", fill="y")
+        self.journal_text.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.journal_text.yview)
+        
+        # Save button
+        save_btn = HunterGlassButton(
+            journal_frame,
+            text="💾 Save Entry",
+            command=self.save_journal_entry
+        )
+        save_btn.pack(pady=10)
+    
+    def save_journal_entry(self):
+        """Save journal entry"""
+        content = self.journal_text.get("1.0", "end-1c")
+        if content.strip():
+            print(f"Saving journal entry: {content[:50]}...")
+            # TODO: Save to database
+        else:
+            print("No content to save")
+    
     def create_placeholder_tabs(self):
         """Add placeholder content for feature tabs"""
         tabs_content = {
-            "Weather Journal": "📝 Weather Journal\n(Coming in Phase 3C)",
             "Activity Suggester": "🤖 Activity Suggester\n(Coming in Phase 3C)",
             "Team Collaboration": "👥 Team Collaboration\n(Coming in Phase 3C)"
         }
