@@ -30,7 +30,7 @@ from typing import Optional, Dict, Any
 import logging
 
 # Core imports
-import customtkinter as ctk
+import tkinter as tk
 from tkinter import messagebox
 
 # Import clean architecture services
@@ -40,6 +40,9 @@ from services.weather_service import WeatherService
 from services.gemini_service import GeminiService
 from services.github_service import GitHubService
 from services.spotify_service import SpotifyService
+
+# Import Hunter theme UI
+from src.ui.dashboard_ui import HunterDashboardUI
 
 # Import utilities
 from src.utils.logger import setup_logging
@@ -72,9 +75,8 @@ class WeatherDashboardApp:
         self.spotify_service: Optional[SpotifyService] = None
 
         # UI components
-        self.root: Optional[ctk.CTk] = None
-        self.main_frame = None
-        self.tabview = None
+        self.root: Optional[tk.Tk] = None
+        self.dashboard_ui: Optional[HunterDashboardUI] = None
 
         # Application state
         self.is_running = False
@@ -148,117 +150,98 @@ class WeatherDashboardApp:
 
     def create_ui(self) -> bool:
         """
-        Create and setup the main UI.
+        Create and setup the Hunter theme UI.
 
         Returns:
             bool: True if UI created successfully, False otherwise
         """
         try:
-            logger.info("Creating main UI...")
+            logger.info("Creating Hunter theme UI...")
 
             # Create main window
-            self.root = ctk.CTk()
-            self.root.title("CodeFront Dashboard")
+            self.root = tk.Tk()
+            self.root.title("Hunter Weather Dashboard")
             self.root.geometry("1200x800")
 
-            # Create simple dashboard layout
-            self._create_dashboard_layout()
+            # Create Hunter dashboard UI
+            self.dashboard_ui = HunterDashboardUI(
+                self.root,
+                weather_callback=self._handle_weather_request
+            )
 
-            logger.info("Main UI created successfully")
+            # Setup event handlers
+            self._setup_event_handlers()
+
+            logger.info("Hunter theme UI created successfully")
             return True
 
         except Exception as e:
             logger.error(f"Failed to create UI: {e}")
             return False
 
-    def _create_dashboard_layout(self):
+    def _handle_weather_request(self, location: str):
         """
-        Create the main dashboard layout with tabs for different features.
-        """
-        # Create main container
-        self.main_frame = ctk.CTkFrame(self.root)
-        self.main_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Create title
-        title_label = ctk.CTkLabel(
-            self.main_frame,
-            text="Weather Dashboard",
-            font=ctk.CTkFont(size=24, weight="bold")
-        )
-        title_label.pack(pady=(10, 20))
-
-        # Create tabview for different features
-        self.tabview = ctk.CTkTabview(self.main_frame)
-        self.tabview.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Add tabs
-        self.tabview.add("Temperature Graph")
-        self.tabview.add("Weather Journal")
-        self.tabview.add("Activity Suggester")
-        self.tabview.add("Team Collaboration")
-
-        # Create a simple dashboard UI object to maintain compatibility
-        class SimpleDashboardUI:
-            def __init__(self, tabview):
-                self.main_content = tabview
-                self.current_city = "New York"
-
-            def register_feature_widget(self, name, widget):
-                pass
-
-            def update_status(self, message):
-                pass
-
-        self.dashboard_ui = SimpleDashboardUI(self.tabview)
+        Handle weather data request from the UI.
         
-        # Initialize simple placeholder widgets
-        self._initialize_simple_widgets()
-
-    def _initialize_simple_widgets(self):
-        """Initialize simple placeholder widgets for the tabs."""
+        Args:
+            location: The location to get weather data for
+        """
         try:
-            # Add simple labels to each tab as placeholders
-            temp_tab = self.tabview.tab("Temperature Graph")
-            temp_label = ctk.CTkLabel(temp_tab, text="Temperature Graph Feature\n(Coming Soon)", 
-                                    font=ctk.CTkFont(size=16))
-            temp_label.pack(expand=True)
-
-            journal_tab = self.tabview.tab("Weather Journal")
-            journal_label = ctk.CTkLabel(journal_tab, text="Weather Journal Feature\n(Coming Soon)", 
-                                       font=ctk.CTkFont(size=16))
-            journal_label.pack(expand=True)
-
-            activity_tab = self.tabview.tab("Activity Suggester")
-            activity_label = ctk.CTkLabel(activity_tab, text="Activity Suggester Feature\n(Coming Soon)", 
-                                        font=ctk.CTkFont(size=16))
-            activity_label.pack(expand=True)
-
-            team_tab = self.tabview.tab("Team Collaboration")
-            team_label = ctk.CTkLabel(team_tab, text="Team Collaboration Feature\n(Coming Soon)", 
-                                    font=ctk.CTkFont(size=16))
-            team_label.pack(expand=True)
-
-            logger.info("Simple placeholder widgets initialized")
-
+            if self.weather_service:
+                weather_data = self.weather_service.get_weather(location)
+                if weather_data and self.dashboard_ui:
+                    # Convert weather data to dictionary format
+                    weather_dict = {
+                        'location': getattr(weather_data, 'location', location),
+                        'temperature': getattr(weather_data, 'temperature', 'N/A'),
+                        'condition': getattr(weather_data, 'condition', 'Unknown'),
+                        'humidity': getattr(weather_data, 'humidity', 'N/A'),
+                        'wind_speed': getattr(weather_data, 'wind_speed', 'N/A'),
+                        'pressure': getattr(weather_data, 'pressure', 'N/A')
+                    }
+                    self.dashboard_ui.update_weather_display(weather_dict)
+                    self.current_weather = weather_data
+                    logger.info(f"Weather data updated for {location}")
+                else:
+                    logger.warning(f"Failed to get weather data for {location}")
+            else:
+                logger.error("Weather service not available")
         except Exception as e:
-            logger.error(f"Failed to initialize simple widgets: {e}")
+            logger.error(f"Error handling weather request: {e}")
 
     def _setup_event_handlers(self):
         """Setup application-wide event handlers."""
-        # Window close handler
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        try:
+            # Setup window close event
+            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            
+            # Setup initial weather data
+            if self.weather_service:
+                initial_weather = self.weather_service.get_weather("New York")
+                if initial_weather:
+                    self._on_weather_update(initial_weather)
+            
+            logger.info("Event handlers setup completed")
+        except Exception as e:
+            logger.error(f"Failed to setup event handlers: {e}")
 
     def _on_weather_update(self, weather_data):
         """Handle weather data updates across all components."""
         self.current_weather = weather_data
-        # Handle both WeatherData objects and dictionaries
-        if hasattr(weather_data, 'location'):
-            location = weather_data.location
-            temperature = weather_data.temperature
-        else:
-            location = weather_data.get('location', 'Unknown')
-            temperature = weather_data.get('temperature', 'N/A')
-        logger.debug(f"Weather data updated: {location} - {temperature}°")
+        
+        if self.dashboard_ui:
+            # Convert weather data to dictionary format for UI
+            weather_dict = {
+                'location': getattr(weather_data, 'location', 'Unknown'),
+                'temperature': getattr(weather_data, 'temperature', 'N/A'),
+                'condition': getattr(weather_data, 'condition', 'Unknown'),
+                'humidity': getattr(weather_data, 'humidity', 'N/A'),
+                'wind_speed': getattr(weather_data, 'wind_speed', 'N/A'),
+                'pressure': getattr(weather_data, 'pressure', 'N/A')
+            }
+            self.dashboard_ui.update_weather_display(weather_dict)
+        
+        logger.debug(f"Weather data updated: {getattr(weather_data, 'location', 'Unknown')} - {getattr(weather_data, 'temperature', 'N/A')}°")
 
     def _show_error_dialog(self, title: str, message: str, error_type: str = "Error"):
         """Show error dialog to user."""
@@ -285,13 +268,13 @@ class WeatherDashboardApp:
         while self.is_running:
             try:
                 # Update weather data every 10 minutes
-                if self.weather_service and self.dashboard_ui:
-                    current_city = getattr(self.dashboard_ui, 'current_city', None)
-                    if current_city:
-                        weather_data = self.weather_service.get_weather(current_city)
-                        if weather_data:
-                            # Schedule UI update on main thread
-                            self.root.after(0, lambda data=weather_data: self._on_weather_update(data))
+                if self.weather_service and self.dashboard_ui and self.current_weather:
+                    # Get location from current weather data
+                    location = getattr(self.current_weather, 'location', 'New York')
+                    weather_data = self.weather_service.get_weather(location)
+                    if weather_data:
+                        # Schedule UI update on main thread
+                        self.root.after(0, lambda data=weather_data: self._on_weather_update(data))
 
                 # Sleep for update interval (10 minutes)
                 time.sleep(10 * 60)  # Convert minutes to seconds
@@ -364,6 +347,10 @@ class WeatherDashboardApp:
             if self.database:
                 logger.info("Database cleanup completed")
 
+            # Cleanup UI
+            if self.dashboard_ui:
+                self.dashboard_ui.cleanup()
+            
             # Destroy UI
             if self.root:
                 self.root.destroy()

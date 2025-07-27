@@ -1,0 +1,99 @@
+"""Hunter Theme Glassmorphic UI System
+
+Defines the Hunter theme color palette, 3D styling constants, and utility functions
+for creating glassmorphic effects with dark slate, hunter green, and silver accents.
+"""
+
+from typing import List, Tuple
+import tkinter as tk
+from PIL import Image, ImageFilter
+
+# Hunter Theme Color Palette
+class HunterColors:
+    """Hunter theme color constants"""
+    
+    # Base colors
+    HUNTER_DARK_SLATE = "#2F4F4F"
+    HUNTER_BLACK = "#1C1C1C"
+    HUNTER_GREEN = "#355E3B"
+    HUNTER_SILVER = "#C0C0C0"
+    
+    # Glass overlays - using RGB with alpha values for transparency
+GLASS_HUNTER_PRIMARY = "#2F4F4F"      # Dark slate (use with alpha in code)
+GLASS_HUNTER_ACCENT = "#C0C0C0"       # Silver (use with alpha in code)
+GLASS_HUNTER_HOVER = "#355E3B"        # Hunter green (use with alpha in code)
+
+# Alpha values for transparency effects
+ALPHA_LIGHT = 0.2   # 20% opacity
+ALPHA_MEDIUM = 0.4  # 40% opacity
+ALPHA_HEAVY = 0.5   # 50% opacity
+    
+    # 3D Button gradients
+    BUTTON_RAISED = ["#C0C0C0", "#355E3B", "#2F4F4F"]  # Silver→Green→Slate
+    BUTTON_PRESSED = ["#2F4F4F", "#355E3B", "#1C1C1C"] # Inverted for depth
+    
+    # Drop shadows (multi-layer for 3D depth)
+    DROP_SHADOW_LIGHT = "#C0C0C040"   # Silver highlight
+    DROP_SHADOW_DARK = "#1C1C1C80"    # Black depth shadow
+    DROP_SHADOW_INNER = "#355E3B60"   # Inner glow
+
+class HunterStyling:
+    """3D styling and animation constants"""
+    
+    # Corner radius
+    CORNER_RADIUS = 12
+    
+    # Shadow depths
+    SHADOW_NORMAL = 2
+    SHADOW_HOVER = 6
+    SHADOW_PRESSED = 1
+    
+    # Blur effects
+    GLASS_BLUR_RADIUS = 15
+    PANEL_OPACITY = 0.35
+    
+    # Animation timing
+    HOVER_DURATION = 150  # milliseconds
+    PRESS_DURATION = 100
+    
+    # Border widths
+    SILVER_BORDER = 1
+    GLASS_BORDER = 2
+
+class BlurEffects:
+    """Utility functions for blur and glass effects"""
+    
+    @staticmethod
+    def create_gaussian_blur(image: Image.Image, radius: int = 15) -> Image.Image:
+        """Apply Gaussian blur to create frosted glass effect"""
+        return image.filter(ImageFilter.GaussianBlur(radius=radius))
+    
+    @staticmethod
+    def create_glass_overlay(width: int, height: int, color: str, opacity: float = 0.35) -> str:
+        """Generate CSS-like color string for glass overlay"""
+        # Convert hex to RGBA
+        hex_color = color.lstrip('#')
+        rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        return f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})"
+    
+    @staticmethod
+    def get_gradient_stops(colors: List[str], steps: int = 3) -> List[Tuple[float, str]]:
+        """Generate gradient stops for smooth color transitions"""
+        stops = []
+        for i, color in enumerate(colors):
+            position = i / (len(colors) - 1) if len(colors) > 1 else 0
+            stops.append((position, color))
+        return stops
+
+class HunterAnimations:
+    """Animation and transition utilities"""
+    
+    @staticmethod
+    def ease_out_cubic(t: float) -> float:
+        """Cubic ease-out animation curve"""
+        return 1 - pow(1 - t, 3)
+    
+    @staticmethod
+    def ease_in_out_quad(t: float) -> float:
+        """Quadratic ease-in-out animation curve"""
+        return 2 * t * t if t < 0.5 else 1 - pow(-2 * t + 2, 2) / 2
