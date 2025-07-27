@@ -1,8 +1,6 @@
-# CodeFront - AI-Powered Weather Intelligence Platform
+# CodeFront Weather Capstone
 
-> **JTC Capstone Project** - A comprehensive weather dashboard utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
-
-## ☁️ Weather Dashboard 2.0 — TRAE Edition
+> **JTC Capstone Project** - A comprehensive AI-powered weather intelligence platform utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
 
 > A modern, glassmorphic weather app powered by AI agents and built with TRAE 2.0 IDE.
 
@@ -43,13 +41,32 @@
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- 🌐 Real-time weather via OpenWeatherMap API
-- 🔮 Glassmorphic & 3D button design with `CustomTkinter`
-- 🤖 Agent-powered UI and code generation via TRAE IDE
-- 🧪 Unit tested with `pytest` and linted using `flake8`
-- 🔧 Modular and scalable architecture
+### 🌡️ **Real-Time Weather Intelligence**
+- Live weather data from multiple API sources (OpenWeatherMap, WeatherAPI)
+- Interactive temperature graphs and historical analysis
+- Multi-city weather comparison and tracking
+
+### 🤖 **AI-Powered Insights**
+- Google Gemini AI activity suggestions based on weather conditions
+- Smart weather journal with mood tracking and correlations
+- Spotify music integration for weather-appropriate playlists
+
+### 👥 **Collaborative Features**
+- GitHub integration for team weather sharing
+- Real-time data synchronization and export capabilities
+- Team activity tracking and collaborative comparisons
+
+### 🎨 **Modern UI/UX**
+- Glassmorphic design with CustomTkinter framework
+- Dark/Light theme support with responsive layouts
+- Professional animations and accessibility features
+
+### 🔧 **Technical Excellence**
+- Agent-powered development via TRAE IDE
+- Unit tested with `pytest` and linted using `flake8`
+- Modular, scalable architecture with clean code principles
 
 ---
 
@@ -66,72 +83,15 @@ Built with TRAE IDE's advanced AI-powered development environment featuring real
 
 ---
 
-## ⚙️ Installation
-
-```bash
-git clone https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter.git
-cd weather_dashboard_Final_Eric_Hunter
-pip install -r requirements.txt
-python main.py
-```
-
 ## 🌟 Overview
 
-A sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies using clean architecture principles, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
+CodeFront Weather Capstone is a sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies using clean architecture principles, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
 
 **Single Entry Point:** `main.py`
 
 ```bash
 python main.py
 ```
-
-## ✨ Key Features
-
-### 🌡️ **Real-Time Weather Monitoring**
-
-- Live weather data from multiple API sources
-- Interactive temperature graphs and trends
-- Historical weather data analysis
-- Multi-city weather comparison
-
-### 📊 **Advanced Data Visualization**
-
-- Interactive temperature trend graphs
-- Weather pattern analysis
-- Customizable chart types and time ranges
-- Export capabilities (PNG, PDF, CSV)
-
-### 📝 **Smart Weather Journal**
-
-- AI-powered mood tracking based on weather
-- Rich text editor with markdown support
-- Weather correlation insights
-- Searchable entries with tags and filters
-- Auto-save functionality
-
-### 🎯 **AI Activity Suggestions**
-
-- Google Gemini AI-powered recommendations
-- Weather-appropriate activity suggestions
-- Spotify music integration for mood-based playlists
-- Difficulty and duration filtering
-- Personal preference learning
-
-### 👥 **Team Collaboration**
-
-- GitHub integration for team weather sharing
-- Collaborative city comparisons
-- Team activity tracking
-- Real-time synchronization
-- Export and import capabilities
-
-### 🎨 **Modern UI/UX**
-
-- Glassmorphic design with CustomTkinter
-- Dark/Light theme support
-- Responsive layout
-- Accessibility features
-- Professional animations and transitions
 
 ## 🚀 Installation
 
@@ -146,8 +106,8 @@ python main.py
 1. **Clone and setup:**
 
    ```bash
-   git clone https://github.com/yourusername/weather_dashboard_Final_Eric_Hunter.git
-   cd weather_dashboard_Final_Eric_Hunter
+   git clone https://github.com/yourusername/CodeFront-Weather-Capstone.git
+   cd CodeFront-Weather-Capstone
    python -m venv weather_env
    weather_env\Scripts\activate  # Windows
    pip install -r requirements.txt
@@ -224,10 +184,10 @@ python setup_config.py --demo
 
 ### Application Settings
 
-The application creates a configuration file at `~/.weather_dashboard/config.yaml` with customizable settings:
+The application creates a configuration file at `~/.codefront_weather/config.yaml` with customizable settings:
 
 ```yaml
-app_name: "Weather Dashboard"
+app_name: "CodeFront Weather Capstone"
 version: "1.0.0"
 theme: "dark"  # or "light"
 update_interval: 10  # minutes
