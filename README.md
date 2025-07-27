@@ -2,15 +2,14 @@
 
 > **JTC Capstone Project** - A comprehensive weather dashboard utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-green.svg)
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg) \n
+![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-green.svg) \n
 ![Framework](https://img.shields.io/badge/Framework-Tkinter-000000.svg)
 ![Pillow](https://img.shields.io/badge/Image-Pillow-ff69b4.svg)
 ![AI](https://img.shields.io/badge/AI-Google%20Gemini-orange.svg)
 ![LangChain](https://img.shields.io/badge/LLM-LangChain-purple.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![TRAE IDE](https://img.shields.io/badge/Built%20with-TRAE%202.0-brightgreen.svg)
-![CI](https://github.com/yourusername/yourrepo/workflows/CI/badge.svg)
 ![Pytest](https://img.shields.io/badge/Tested%20with-pytest-9cf.svg)
 ![Lint](https://img.shields.io/badge/linting-flake8-yellowgreen.svg)
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
