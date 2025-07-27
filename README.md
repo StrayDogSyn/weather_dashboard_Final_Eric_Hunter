@@ -36,10 +36,8 @@
 
 ## 🖼️ UI Preview
 
-> *(Insert a screenshot here)*  
-> `![UI Preview](./screenshots/glass_ui_preview.png)` *(update with your actual path)*
-
----
+> `![UI Preview](assets/images/ProtoMain.png)`
+>> ---
 
 ## ✨ Key Features
 
