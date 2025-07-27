@@ -1,0 +1,83 @@
+# Weather Dashboard Application Dependencies
+
+# Core GUI Framework
+customtkinter>=5.2.0
+Pillow>=10.0.1
+tkinter-tooltip>=2.1.0
+
+# Weather APIs
+requests>=2.31.0
+python-dotenv>=1.0.0
+urllib3>=2.0.0
+
+# Data Visualization and Analysis
+matplotlib>=3.7.2
+numpy>=1.24.3
+pandas>=2.0.3
+seaborn>=0.12.0
+scipy>=1.11.0
+
+# AI Integration
+google-generativeai>=0.3.0
+google-auth>=2.17.0
+google-auth-oauthlib>=1.0.0
+spotipy>=2.23.0
+
+# Database and ORM
+# sqlite3 is built-in with Python
+sqlalchemy>=2.0.0
+
+# GitHub Integration
+PyGithub>=1.59.1
+
+# Date and Time Handling
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Configuration Management
+pyyaml>=6.0
+
+# Async Support
+aiohttp>=3.8.0
+aiofiles>=23.0.0
+
+# Enhanced Logging
+loguru>=0.7.0
+
+# Data Validation
+pydantic>=2.0.0
+
+# JSON Processing
+orjson>=3.9.0
+
+# Caching
+cachetools>=5.3.0
+
+# File System Monitoring
+watchdog>=3.0.0
+
+# System Information
+psutil>=5.9.0
+
+# Progress Bars
+tqdm>=4.66.0
+
+# Security
+cryptography>=41.0.0
+
+# Utilities
+more-itertools>=10.0.0
+click>=8.1.0
+
+# Development Dependencies (Optional)
+# Uncomment for development environment
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0
+# pytest-cov>=4.1.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+
+# Built-in Python modules (no installation needed)
+# datetime, json, tkinter, threading, logging, os, sys, platform
+# functools, collections, itertools, colorsys
