@@ -16,7 +16,7 @@ from .models import (
     ActivitySuggestion, ActivityCategory, DifficultyLevel, 
     WeatherSuitability, UserPreferences
 )
-from ..shared.glassmorphic_components import (
+from ...ui.components.base_components import (
     GlassFrame, GlassLabel, GlassButton
 )
 

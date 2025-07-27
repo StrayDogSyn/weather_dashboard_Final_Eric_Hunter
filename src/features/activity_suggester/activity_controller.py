@@ -14,12 +14,13 @@ from datetime import datetime
 
 from .models import (
     ActivitySuggestion, ActivityCategory, DifficultyLevel, 
-    WeatherSuitability, UserPreferences, WeatherData
+    WeatherSuitability, UserPreferences
 )
+from ...services.weather_service import WeatherData
 from .database import ActivityDatabase
 from .ai_service import AIActivityGenerator
 from .spotify_service import SpotifyIntegration
-from ..shared.logger_mixin import LoggerMixin
+from ...utils.logger import LoggerMixin
 
 
 class ActivityController(LoggerMixin):

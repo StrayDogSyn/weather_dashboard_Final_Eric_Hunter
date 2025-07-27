@@ -9,10 +9,10 @@ from tkinter import messagebox
 import customtkinter as ctk
 from typing import Optional, Callable, List, Dict, Any
 
-from ..ui.components.base_components import (
+from ...ui.components.base_components import (
     GlassFrame, GlassButton, GlassLabel, GlassEntry, GlassProgressBar
 )
-from ..utils.logger import LoggerMixin
+from ...utils.logger import LoggerMixin
 from .models import CollaborationConfig
 from .collaboration_controller import CollaborationController
 

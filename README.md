@@ -1,7 +1,7 @@
 # CodeFront Weather Capstone
 
 > **JTC Capstone Project** - A comprehensive AI-powered weather intelligence platform utilizing all technologies and fundamentals learned in Tech Pathways / AI Edge 2025 cohort.
-
+>
 > A modern, glassmorphic weather app powered by AI agents and built with TRAE 2.0 IDE.
 
 ---
@@ -44,26 +44,31 @@
 ## ✨ Key Features
 
 ### 🌡️ **Real-Time Weather Intelligence**
+
 - Live weather data from multiple API sources (OpenWeatherMap, WeatherAPI)
 - Interactive temperature graphs and historical analysis
 - Multi-city weather comparison and tracking
 
 ### 🤖 **AI-Powered Insights**
+
 - Google Gemini AI activity suggestions based on weather conditions
 - Smart weather journal with mood tracking and correlations
 - Spotify music integration for weather-appropriate playlists
 
 ### 👥 **Collaborative Features**
+
 - GitHub integration for team weather sharing
 - Real-time data synchronization and export capabilities
 - Team activity tracking and collaborative comparisons
 
 ### 🎨 **Modern UI/UX**
+
 - Glassmorphic design with CustomTkinter framework
 - Dark/Light theme support with responsive layouts
 - Professional animations and accessibility features
 
 ### 🔧 **Technical Excellence**
+
 - Agent-powered development via TRAE IDE
 - Unit tested with `pytest` and linted using `flake8`
 - Modular, scalable architecture with clean code principles
@@ -363,7 +368,7 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🌟 Built with Code, Coffee, and a Dash of Weather Magic ☕
+## 🌟 Built with Code, Caffeine, and a Dash of Collaborative Magic ☕
 
 *"If it challenges me, it excites me!"* - This project embodies that spirit, blending modern web technologies with AI innovation to create something truly special for weather enthusiasts and developers alike.
 
