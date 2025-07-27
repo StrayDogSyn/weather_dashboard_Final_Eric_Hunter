@@ -27,14 +27,13 @@ import sys
 import threading
 from pathlib import Path
 from typing import Optional, Dict, Any
-import logging
 
 # Core imports
 import tkinter as tk
 from tkinter import messagebox
 
 # Import clean architecture services
-from config.settings import load_settings
+from config.settings import get_settings
 from data.database import Database
 from services.weather_service import WeatherService
 from services.gemini_service import GeminiService
@@ -45,14 +44,14 @@ from services.spotify_service import SpotifyService
 from src.ui.dashboard_ui import HunterDashboardUI
 
 # Import utilities
-from src.utils.logger import setup_logging
+from config.logging_config import setup_logging, get_logger
 
 # Brand constant
 BRAND_NAME = "CodeFront Weather Capstone"
 
-# Configure logging
-setup_logging()
-logger = logging.getLogger(__name__)
+# Setup clean logging
+setup_logging(level="INFO", log_file="logs/weather_dashboard.log")
+logger = get_logger(__name__)
 
 
 class WeatherDashboardApp:
@@ -99,7 +98,7 @@ class WeatherDashboardApp:
             logger.info("Initializing core services...")
 
             # Initialize settings
-            self.settings = load_settings()
+            self.settings = get_settings()
             logger.info("Settings loaded successfully")
 
             # Initialize database
@@ -110,39 +109,42 @@ class WeatherDashboardApp:
             self.weather_service = WeatherService()
             logger.info("Weather service initialized")
 
-            # Initialize optional services
+            # Initialize optional services with clean error handling
             # Gemini AI service
-            if self.settings.gemini_api_key:
-                try:
-                    self.gemini_service = GeminiService()
+            try:
+                self.gemini_service = GeminiService()
+                if self.gemini_service.is_available():
                     logger.info("Gemini AI service initialized")
-                except Exception as e:
-                    logger.warning(f"Gemini AI service initialization failed: {e}")
+                else:
+                    logger.info("Gemini AI service skipped - not configured")
                     self.gemini_service = None
-            else:
-                logger.info("Gemini API key not provided, skipping Gemini service")
+            except Exception as e:
+                logger.warning(f"Gemini AI service initialization failed: {e}")
+                self.gemini_service = None
 
             # GitHub service
-            if self.settings.github_token:
-                try:
-                    self.github_service = GitHubService()
+            try:
+                self.github_service = GitHubService()
+                if self.github_service.is_available():
                     logger.info("GitHub service initialized")
-                except Exception as e:
-                    logger.warning(f"GitHub service initialization failed: {e}")
+                else:
+                    logger.info("GitHub service skipped - not configured")
                     self.github_service = None
-            else:
-                logger.info("GitHub token not provided, skipping GitHub service")
+            except Exception as e:
+                logger.warning(f"GitHub service initialization failed: {e}")
+                self.github_service = None
 
             # Spotify service
-            if self.settings.spotify_client_id and self.settings.spotify_client_secret:
-                try:
-                    self.spotify_service = SpotifyService()
+            try:
+                self.spotify_service = SpotifyService()
+                if self.spotify_service.is_available():
                     logger.info("Spotify service initialized")
-                except Exception as e:
-                    logger.warning(f"Spotify service initialization failed: {e}")
+                else:
+                    logger.info("Spotify service skipped - not configured")
                     self.spotify_service = None
-            else:
-                logger.info("Spotify credentials not provided, skipping Spotify service")
+            except Exception as e:
+                logger.warning(f"Spotify service initialization failed: {e}")
+                self.spotify_service = None
 
             logger.info("Core services initialized successfully")
             return True

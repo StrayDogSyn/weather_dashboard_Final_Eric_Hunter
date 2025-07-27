@@ -1,56 +1,65 @@
-"""Configuration management with environment variable loading and validation."""
+"""Clean configuration management with environment variable loading."""
 
 import os
 from dataclasses import dataclass
 from typing import Optional
 from pathlib import Path
 
-# Load environment variables from .env file if it exists
+# Load environment variables from .env file if available
 try:
     from dotenv import load_dotenv
     env_path = Path(__file__).parent.parent / '.env'
-    load_dotenv(env_path)
+    if env_path.exists():
+        load_dotenv(env_path)
 except ImportError:
-    print("Warning: python-dotenv not installed. Using system environment variables only.")
+    pass  # Continue without dotenv if not installed
 
 
-@dataclass
+@dataclass(frozen=True)
 class Settings:
-    """Application configuration settings."""
+    """Immutable application configuration settings."""
     
-    # Weather API
+    # Required settings
     openweather_api_key: str
     
-    # AI Services
+    # Optional service integrations
     gemini_api_key: Optional[str] = None
-    
-    # GitHub Integration
     github_token: Optional[str] = None
-    
-    # Spotify Integration
     spotify_client_id: Optional[str] = None
     spotify_client_secret: Optional[str] = None
     
-    # Database
+    # Application settings
     database_path: str = "data/weather_dashboard.db"
-    
-    # Application
     debug_mode: bool = False
+    
+    def __post_init__(self) -> None:
+        """Validate required settings after initialization."""
+        if not self.openweather_api_key:
+            raise ValueError(
+                "OPENWEATHER_API_KEY is required. "
+                "Please set it in your .env file or environment variables."
+            )
+    
+    @property
+    def has_gemini(self) -> bool:
+        """Check if Gemini AI is configured."""
+        return bool(self.gemini_api_key)
+    
+    @property
+    def has_github(self) -> bool:
+        """Check if GitHub integration is configured."""
+        return bool(self.github_token)
+    
+    @property
+    def has_spotify(self) -> bool:
+        """Check if Spotify integration is configured."""
+        return bool(self.spotify_client_id and self.spotify_client_secret)
 
 
 def load_settings() -> Settings:
-    """Load and validate configuration settings."""
-    
-    # Required settings
-    openweather_key = os.getenv('OPENWEATHER_API_KEY')
-    if not openweather_key:
-        raise ValueError(
-            "OPENWEATHER_API_KEY is required. "
-            "Please set it in your .env file or environment variables."
-        )
-    
+    """Load and validate configuration settings from environment."""
     return Settings(
-        openweather_api_key=openweather_key,
+        openweather_api_key=os.getenv('OPENWEATHER_API_KEY', ''),
         gemini_api_key=os.getenv('GEMINI_API_KEY'),
         github_token=os.getenv('GITHUB_TOKEN'),
         spotify_client_id=os.getenv('SPOTIFY_CLIENT_ID'),
@@ -60,5 +69,13 @@ def load_settings() -> Settings:
     )
 
 
-# Global settings instance
-settings = load_settings()
+# Global settings instance - lazy loaded
+_settings: Optional[Settings] = None
+
+
+def get_settings() -> Settings:
+    """Get global settings instance (lazy loaded)."""
+    global _settings
+    if _settings is None:
+        _settings = load_settings()
+    return _settings

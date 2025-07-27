@@ -119,11 +119,10 @@ class HunterDashboardUI:
         self.tabview.add("Weather Journal")
         self.tabview.add("Activity Suggester")
         self.tabview.add("Team Collaboration")
+        self.tabview.add("Settings")
         
         self.create_weather_tab()
-        self.create_temperature_graph_tab()
-        self.create_weather_journal_tab()
-        self.create_placeholder_tabs()
+        self.initialize_feature_tabs()
     
     def create_weather_tab(self):
         """Create main weather tab"""
@@ -299,6 +298,78 @@ class HunterDashboardUI:
         )
         save_btn.pack(pady=10)
     
+    def create_activity_suggester_tab(self):
+        """Create AI activity suggestions"""
+        activity_tab = self.tabview.tab("Activity Suggester")
+        
+        # Container
+        suggester_frame = HunterGlassFrame(activity_tab)
+        suggester_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Title
+        title_label = HunterGlassLabel(
+            suggester_frame,
+            text="🤖 Activity Suggester",
+            font=("Segoe UI", 16, "bold")
+        )
+        title_label.pack(pady=(10, 15))
+        
+        # Generate suggestions based on current weather
+        suggestions = self.generate_activity_suggestions()
+        
+        # Suggestions container
+        suggestions_frame = HunterGlassFrame(suggester_frame)
+        suggestions_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Display suggestions
+        for i, suggestion in enumerate(suggestions[:4]):
+            suggestion_frame = HunterGlassFrame(suggestions_frame)
+            suggestion_frame.pack(fill="x", pady=5, padx=5)
+            
+            suggestion_label = HunterGlassLabel(
+                suggestion_frame,
+                text=f"💡 {suggestion}",
+                font=("Segoe UI", 12, "normal"),
+                wraplength=400
+            )
+            suggestion_label.pack(padx=10, pady=8)
+        
+        # Refresh button
+        refresh_btn = HunterGlassButton(
+            suggester_frame,
+            text="🔄 Get New Suggestions",
+            command=self.refresh_suggestions
+        )
+        refresh_btn.pack(pady=10)
+    
+    def generate_activity_suggestions(self):
+        """Generate weather-based activity suggestions"""
+        if hasattr(self, 'current_weather_data') and self.current_weather_data:
+            temp = self.current_weather_data.get('temperature', 20)
+            condition = self.current_weather_data.get('description', 'clear').lower()
+        else:
+            temp = 25  # Default
+            condition = 'clear'
+        
+        suggestions = []
+        if temp > 25:
+            suggestions.extend(["Go for a swim", "Have a picnic", "Outdoor BBQ"])
+        elif temp > 15:
+            suggestions.extend(["Take a walk", "Go cycling", "Visit a park"])
+        else:
+            suggestions.extend(["Visit a museum", "Read a book", "Indoor activities"])
+        
+        if 'rain' in condition:
+            suggestions.extend(["Try a new recipe", "Watch movies", "Board games"])
+        elif 'clear' in condition:
+            suggestions.extend(["Go hiking", "Photography walk", "Outdoor yoga"])
+        
+        return suggestions[:6]
+    
+    def refresh_suggestions(self):
+        """Refresh activity suggestions"""
+        self.create_activity_suggester_tab()
+    
     def save_journal_entry(self):
         """Save journal entry"""
         content = self.journal_text.get("1.0", "end-1c")
@@ -308,15 +379,64 @@ class HunterDashboardUI:
         else:
             print("No content to save")
     
-    def create_placeholder_tabs(self):
-        """Add placeholder content for feature tabs"""
-        tabs_content = {
-            "Activity Suggester": "🤖 Activity Suggester\n(Coming in Phase 3C)",
-            "Team Collaboration": "👥 Team Collaboration\n(Coming in Phase 3C)"
-        }
+    def initialize_feature_tabs(self):
+        """Initialize all feature tab content"""
+        self.create_temperature_graph_tab()
+        self.create_weather_journal_tab()
+        self.create_activity_suggester_tab()
+        self.create_team_collaboration_tab()
+        self.create_placeholder_tabs()
+    
+    def create_team_collaboration_tab(self):
+        """Create team collaboration interface"""
+        team_tab = self.tabview.tab("Team Collaboration")
         
-        for tab_name, content_text in tabs_content.items():
+        # Container
+        team_frame = HunterGlassFrame(team_tab)
+        team_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Title
+        title_label = HunterGlassLabel(
+            team_frame,
+            text="👥 Team Weather Collaboration",
+            font=("Segoe UI", 16, "bold")
+        )
+        title_label.pack(pady=(10, 15))
+        
+        # GitHub status
+        github_status = "🟢 GitHub Ready" if hasattr(self, 'github_service') else "🟡 GitHub Not Configured"
+        status_label = HunterGlassLabel(team_frame, text=github_status)
+        status_label.pack(pady=10)
+        
+        # Feature description
+        desc_text = """Share weather data with your team through GitHub integration.
+Compare conditions across different locations.
+Collaborate on weather-based planning."""
+        
+        desc_label = HunterGlassLabel(
+            team_frame,
+            text=desc_text,
+            wraplength=500,
+            font=("Segoe UI", 11, "normal")
+        )
+        desc_label.pack(pady=20)
+        
+        # Coming soon
+        coming_label = HunterGlassLabel(
+            team_frame,
+            text="🚀 Advanced features coming soon!",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#355E3B"
+        )
+        coming_label.pack(pady=20)
+    
+    def create_placeholder_tabs(self):
+        """Add placeholder content for remaining tabs"""
+        placeholder_tabs = ["Settings"]
+        
+        for tab_name in placeholder_tabs:
             tab = self.tabview.tab(tab_name)
+            content_text = "⚙️ Settings\n(Coming Soon)" if tab_name == "Settings" else f"{tab_name}\n(Coming Soon)"
             placeholder = HunterGlassLabel(
                 tab,
                 text=content_text,
