@@ -122,8 +122,8 @@ The application automatically initializes all services through the dependency in
 1. **Clone and setup:**
 
    ```bash
-   git clone https://github.com/yourusername/CodeFront-Weather-Capstone.git
-   cd CodeFront-Weather-Capstone
+   git clone https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter.git
+   cd weather_dashboard_Final_Eric_Hunter
    python -m venv weather_env
    weather_env\Scripts\activate  # Windows
    pip install -r requirements.txt
