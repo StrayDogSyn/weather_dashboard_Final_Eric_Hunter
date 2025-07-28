@@ -21,7 +21,7 @@ from pathlib import Path
 import io
 import base64
 from PIL import Image
-from ...core.models import TemperatureDataPoint
+from .chart_models import TemperatureDataPoint
 from ...utils.logger import LoggerMixin
 
 

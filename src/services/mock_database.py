@@ -13,7 +13,7 @@ Version: 1.0.0 (Mock Database Implementation)
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from ..core.interfaces import IDatabase, WeatherDataDTO, JournalEntryDTO, UserPreferenceDTO, ILoggingService
+from core.interfaces import IDatabase, WeatherDataDTO, JournalEntryDTO, UserPreferenceDTO, ILoggingService
 
 
 class MockDatabase(IDatabase):

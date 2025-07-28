@@ -14,16 +14,16 @@ import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from ..core.interfaces import IWeatherService, WeatherDataDTO, IConfigurationService, ICacheService, ILoggingService
+from core.interfaces import IWeatherService, WeatherDataDTO, IConfigurationService, ICacheService, ILoggingService
 from .weather_service import WeatherService, WeatherData, WeatherProvider
-from ..core.config_manager import ConfigManager
-from ..core.exceptions import (
+from core.config_manager import ConfigManager
+from core.exceptions import (
     ExternalServiceError, NetworkError, TimeoutError, ServiceError,
     ErrorSeverity, ErrorCategory
 )
-from ..core.error_handling import handle_errors, ErrorContext, safe_execute
-from ..core.reliability import CircuitBreaker, RetryWithBackoff, TimeoutManager
-from ..core.logging_framework import StructuredLogger, LogLevel
+from core.error_handling import handle_errors, ErrorContext, safe_execute
+from core.reliability import CircuitBreaker, RetryHandler, TimeoutManager
+from core.logging_framework import ContextualLogger, LogLevel
 
 
 class WeatherServiceImpl(IWeatherService):
@@ -50,10 +50,8 @@ class WeatherServiceImpl(IWeatherService):
         self._logger_service = logger_service
         
         # Initialize structured logger
-        self._logger = StructuredLogger(
-            name="WeatherServiceImpl",
-            service_name="weather-service",
-            service_version="2.0.0"
+        self._logger = ContextualLogger(
+            name="WeatherServiceImpl"
         )
         
         # Create ConfigManager from our configuration service
@@ -70,7 +68,7 @@ class WeatherServiceImpl(IWeatherService):
             expected_exception=ExternalServiceError
         )
         
-        self._retry_policy = RetryWithBackoff(
+        self._retry_policy = RetryHandler(
             max_attempts=3,
             base_delay=1.0,
             max_delay=10.0,
@@ -155,13 +153,8 @@ class WeatherServiceImpl(IWeatherService):
         )
     
     @handle_errors(
-        default_return=None,
-        log_errors=True,
-        error_context=ErrorContext(
-            operation="get_current_weather",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.MEDIUM
-        )
+        fallback_value=None,
+        log_errors=True
     )
     def get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
         """Get current weather data for a location with reliability patterns.
@@ -273,13 +266,8 @@ class WeatherServiceImpl(IWeatherService):
             ) from e
     
     @handle_errors(
-        default_return=[],
-        log_errors=True,
-        error_context=ErrorContext(
-            operation="get_forecast",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.MEDIUM
-        )
+        fallback_value=[],
+        log_errors=True
     )
     def get_forecast(self, location: str, days: int = 5) -> List[WeatherDataDTO]:
         """Get weather forecast for a location with reliability patterns.
@@ -363,13 +351,8 @@ class WeatherServiceImpl(IWeatherService):
             return []
     
     @handle_errors(
-        default_return=False,
-        log_errors=True,
-        error_context=ErrorContext(
-            operation="test_connection",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.LOW
-        )
+        fallback_value=False,
+        log_errors=True
     )
     def test_connection(self) -> bool:
         """Test if the weather service is available with reliability patterns.
@@ -527,10 +510,8 @@ class MockWeatherService(IWeatherService):
         self._should_fail = False
         
         # Initialize structured logger
-        self._logger = StructuredLogger(
-            name="MockWeatherService",
-            service_name="mock-weather-service",
-            service_version="2.0.0"
+        self._logger = ContextualLogger(
+            name="MockWeatherService"
         )
         
         self._logger.info(
@@ -561,13 +542,8 @@ class MockWeatherService(IWeatherService):
         return self._call_count
     
     @handle_errors(
-        default_return=None,
-        log_errors=True,
-        error_context=ErrorContext(
-            operation="mock_get_current_weather",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.LOW
-        )
+        fallback_value=None,
+        log_errors=True
     )
     def get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
         """Get mock current weather data with error simulation.
@@ -647,7 +623,13 @@ class MockWeatherService(IWeatherService):
             
         Returns:
             List of mock forecast data
+            
+        Raises:
+            ValueError: When days is not between 1 and 14
         """
+        if days < 1 or days > 14:
+            raise ValueError("Days must be between 1 and 14")
+            
         self._call_count += 1
         
         if self._should_fail:

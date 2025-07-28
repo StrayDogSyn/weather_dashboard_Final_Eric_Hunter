@@ -16,7 +16,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ..core.interfaces import IDatabase, WeatherDataDTO, JournalEntryDTO, UserPreferenceDTO, IConfigurationService, ILoggingService
+from core.interfaces import IDatabase, WeatherDataDTO, JournalEntryDTO, UserPreferenceDTO, IConfigurationService, ILoggingService
 from data.database import Database, DatabaseError
 
 

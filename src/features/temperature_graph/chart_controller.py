@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 
-from .models import (
+from .chart_models import (
     ChartConfig, TemperatureDataPoint, ChartAnalytics, 
     TimeRange, ChartType, ExportSettings
 )

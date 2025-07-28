@@ -8,7 +8,7 @@ application development.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
@@ -70,7 +70,7 @@ class BaseApplicationError(Exception):
         self.correlation_id = correlation_id or str(uuid.uuid4())
         self.inner_exception = inner_exception
         self.retry_after = retry_after
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
         
     def to_dict(self) -> Dict[str, Any]:
         """Convert exception to dictionary for logging and serialization."""
@@ -100,23 +100,55 @@ class ValidationError(BaseApplicationError):
         field_name: Optional[str] = None,
         field_value: Optional[Any] = None,
         validation_rules: Optional[List[str]] = None,
+        # Legacy parameter names for backward compatibility
+        field: Optional[str] = None,
+        value: Optional[Any] = None,
+        constraint: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        # Handle legacy parameter names
+        if field is not None:
+            field_name = field
+        if value is not None:
+            field_value = value
+        if constraint is not None:
+            validation_rules = [constraint] if isinstance(constraint, str) else constraint
+            
+        self.field_name = field_name
+        self.field_value = field_value
+        self.validation_rules = validation_rules or []
+        
+        context = kwargs.pop('context', {})
         context.update({
             "field_name": field_name,
             "field_value": str(field_value) if field_value is not None else None,
-            "validation_rules": validation_rules or []
+            "validation_rules": self.validation_rules
         })
+        
+        # Extract severity from kwargs if provided, otherwise use default
+        severity = kwargs.pop('severity', ErrorSeverity.LOW)
         
         super().__init__(
             message,
             category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.LOW,
+            severity=severity,
             user_message=f"Invalid input: {message}",
             context=context,
             **kwargs
         )
+    
+    # Properties for backward compatibility
+    @property
+    def field(self) -> Optional[str]:
+        return self.field_name
+    
+    @property
+    def value(self) -> Optional[Any]:
+        return self.field_value
+    
+    @property
+    def constraint(self) -> Optional[str]:
+        return self.validation_rules[0] if self.validation_rules else None
 
 
 class ServiceError(BaseApplicationError):
@@ -129,16 +161,19 @@ class ServiceError(BaseApplicationError):
         operation: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "service_name": service_name,
             "operation": operation
         })
         
+        # Extract severity from kwargs if provided, otherwise use default
+        severity = kwargs.pop('severity', ErrorSeverity.MEDIUM)
+        
         super().__init__(
             message,
             category=ErrorCategory.BUSINESS_LOGIC,
-            severity=ErrorSeverity.MEDIUM,
+            severity=severity,
             context=context,
             **kwargs
         )
@@ -156,7 +191,12 @@ class ExternalServiceError(BaseApplicationError):
         response_body: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        self.service_name = service_name
+        self.endpoint = endpoint
+        self.status_code = status_code
+        self.response_body = response_body
+        
+        context = kwargs.pop('context', {})
         context.update({
             "service_name": service_name,
             "endpoint": endpoint,
@@ -169,11 +209,14 @@ class ExternalServiceError(BaseApplicationError):
         if status_code in [429, 503, 504]:  # Rate limit, service unavailable, gateway timeout
             retry_after = 60  # Retry after 60 seconds
         
+        # Extract user_message from kwargs if provided, otherwise use default
+        user_message = kwargs.pop('user_message', "External service is temporarily unavailable. Please try again later.")
+        
         super().__init__(
             message,
             category=ErrorCategory.EXTERNAL_SERVICE,
             severity=ErrorSeverity.HIGH if status_code and status_code >= 500 else ErrorSeverity.MEDIUM,
-            user_message="External service is temporarily unavailable. Please try again later.",
+            user_message=user_message,
             retry_after=retry_after,
             context=context,
             **kwargs
@@ -191,7 +234,7 @@ class DatabaseError(BaseApplicationError):
         query: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "operation": operation,
             "table_name": table_name,
@@ -218,7 +261,7 @@ class ConfigurationError(BaseApplicationError):
         config_file: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "config_key": config_key,
             "config_file": config_file
@@ -244,7 +287,7 @@ class AuthenticationError(BaseApplicationError):
         auth_method: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "username": username,
             "auth_method": auth_method
@@ -270,7 +313,7 @@ class AuthorizationError(BaseApplicationError):
         required_permission: Optional[str] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "resource": resource,
             "required_permission": required_permission
@@ -296,7 +339,7 @@ class NetworkError(BaseApplicationError):
         timeout: Optional[float] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "url": url,
             "timeout": timeout
@@ -323,7 +366,7 @@ class TimeoutError(BaseApplicationError):
         timeout_seconds: Optional[float] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "operation": operation,
             "timeout_seconds": timeout_seconds
@@ -350,7 +393,7 @@ class RateLimitError(BaseApplicationError):
         window_seconds: Optional[int] = None,
         **kwargs
     ):
-        context = kwargs.get('context', {})
+        context = kwargs.pop('context', {})
         context.update({
             "limit": limit,
             "window_seconds": window_seconds

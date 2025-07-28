@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
 
-from ..core.interfaces import ILoggingService, IConfigurationService
+from core.interfaces import ILoggingService, IConfigurationService
 
 
 class LoggingServiceImpl(ILoggingService):

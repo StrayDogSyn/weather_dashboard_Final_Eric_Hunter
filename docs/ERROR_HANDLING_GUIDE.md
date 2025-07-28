@@ -24,13 +24,13 @@ The error handling framework consists of four core components:
 ┌─────────────────────────────────────────────────────────────┐
 │                    Application Layer                        │
 ├─────────────────────────────────────────────────────────────┤
-│  Error Handling Framework (decorators, boundaries, utils)  │
+│  Error Handling Framework (decorators, boundaries, utils)   │
 ├─────────────────────────────────────────────────────────────┤
-│     Reliability Patterns (circuit breaker, retry, etc.)    │
+│     Reliability Patterns (circuit breaker, retry, etc.)     │
 ├─────────────────────────────────────────────────────────────┤
-│        Exception Hierarchy (custom exception types)        │
+│        Exception Hierarchy (custom exception types)         │
 ├─────────────────────────────────────────────────────────────┤
-│         Logging Infrastructure (structured logging)        │
+│         Logging Infrastructure (structured logging)         │
 └─────────────────────────────────────────────────────────────┘
 ```
 

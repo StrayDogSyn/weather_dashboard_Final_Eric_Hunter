@@ -15,8 +15,8 @@ import json
 from typing import Any, Dict, Optional, List
 from pathlib import Path
 
-from ..core.interfaces import IConfigurationService, ILoggingService
-from ..core.config_manager import ConfigManager
+from core.interfaces import IConfigurationService, ILoggingService
+from core.config_manager import ConfigManager
 
 
 class ConfigurationServiceImpl(IConfigurationService):

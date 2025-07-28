@@ -10,7 +10,7 @@ Version: 1.0.0 (Modularized Services)
 """
 
 # Import modularized database components
-from .database_service import DatabaseImpl
+# from .database_service import DatabaseImpl  # Commented out due to missing data.database dependency
 from .mock_database import MockDatabase
 
 # Import other service implementations
@@ -43,7 +43,7 @@ except ImportError:
 # Export all components
 __all__ = [
     # New modularized components
-    'DatabaseImpl',
+    # 'DatabaseImpl',  # Commented out due to missing dependency
     'MockDatabase',
     
     # Backward compatibility (if available)

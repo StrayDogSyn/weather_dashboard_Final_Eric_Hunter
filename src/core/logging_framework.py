@@ -183,7 +183,8 @@ class StructuredFormatter(logging.Formatter):
                           'filename', 'module', 'lineno', 'funcName', 'created', 
                           'msecs', 'relativeCreated', 'thread', 'threadName', 
                           'processName', 'process', 'getMessage', 'exc_info', 
-                          'exc_text', 'stack_info', 'context', 'correlation_id', 'performance']:
+                          'exc_text', 'stack_info', 'context', 'correlation_id', 
+                          'performance', 'message']:
                 log_entry['extra'] = log_entry.get('extra', {})
                 log_entry['extra'][key] = value
         

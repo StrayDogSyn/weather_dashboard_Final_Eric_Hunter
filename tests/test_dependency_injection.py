@@ -15,17 +15,19 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from typing import Optional, List
 
-# Add project root to path
+# Add project root and src directory to path
 project_root = Path(__file__).parent.parent
+src_path = project_root / "src"
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(src_path))
 
 # Import dependency injection infrastructure
-from src.core.interfaces import (
+from core.interfaces import (
     IWeatherService, IDatabase, ICacheService, IConfigurationService,
     ILoggingService, WeatherDataDTO
 )
-from src.core.dependency_container import get_container, reset_container
-from src.core.service_registry import configure_for_testing, get_service_registry
+from core.dependency_container import get_container, reset_container
+from core.service_registry import configure_for_testing, get_service_registry
 from main import WeatherDashboardApp
 
 
@@ -103,7 +105,7 @@ class TestDependencyInjectionBenefits(unittest.TestCase):
         self.assertIsNotNone(weather_data)
         self.assertEqual(weather_data.location, "London")
         self.assertEqual(weather_data.temperature, 20.0)  # Predictable mock data
-        self.assertEqual(weather_data.condition, "Sunny")
+        self.assertEqual(weather_data.description, "Mock weather condition")
     
     def test_get_weather_error_scenario(self):
         """Test weather service error handling with simulated failures.
@@ -132,10 +134,13 @@ class TestDependencyInjectionBenefits(unittest.TestCase):
         test_weather = WeatherDataDTO(
             location="TestCity",
             temperature=25.0,
-            condition="Cloudy",
+            feels_like=26.0,
             humidity=60,
+            pressure=1013.25,
+            description="Cloudy",
+            icon="04d",
             wind_speed=10.0,
-            timestamp="2024-01-01T12:00:00Z"
+            wind_direction=180
         )
         
         # Test saving data (uses mock database)
@@ -239,7 +244,7 @@ class TestDependencyInjectionBenefits(unittest.TestCase):
         
         self.assertTrue(validation_result['is_valid'])
         self.assertEqual(len(validation_result['errors']), 0)
-        self.assertGreater(len(validation_result['registered_services']), 0)
+        self.assertGreater(len(validation_result['service_status']), 0)
     
     def test_environment_specific_configuration(self):
         """Test that different environments have different configurations.
@@ -307,10 +312,13 @@ class TestDependencyInjectionPerformance(unittest.TestCase):
             test_weather = WeatherDataDTO(
                 location=f"TestCity{i}",
                 temperature=20.0 + i,
-                condition="Sunny",
+                feels_like=21.0 + i,
                 humidity=50 + i,
+                pressure=1013.25,
+                description="Sunny",
+                icon="01d",
                 wind_speed=5.0 + i,
-                timestamp=f"2024-01-0{i+1}T12:00:00Z"
+                wind_direction=180
             )
             result = self.app._database.save_weather_data(test_weather)
             self.assertTrue(result)

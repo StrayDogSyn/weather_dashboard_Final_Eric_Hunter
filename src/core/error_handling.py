@@ -11,7 +11,7 @@ Follows Microsoft's recommended patterns for enterprise error handling.
 import functools
 import traceback
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Dict, Type, Union, List
 from contextlib import contextmanager
 import logging
@@ -56,13 +56,13 @@ class ErrorContext:
         self.start_time: Optional[datetime] = None
     
     def __enter__(self):
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         return self
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if exc_type is not None:
             self.exception = exc_value
-            execution_time = (datetime.utcnow() - self.start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - self.start_time).total_seconds()
             
             # Convert to application error if needed
             if not isinstance(exc_value, BaseApplicationError):
@@ -117,15 +117,16 @@ class ErrorContext:
     def _log_error(self, error: BaseApplicationError):
         """Log error with appropriate level based on severity."""
         error_dict = error.to_dict()
+        error_dict.pop('message', None)  # Remove 'message' to avoid conflict with LogRecord
         
         if error.severity == ErrorSeverity.CRITICAL:
-            logger.critical(f"Critical error in {self.operation}", extra=error_dict)
+            logger.critical(f"Critical error in {self.operation}: {error.message}", extra=error_dict)
         elif error.severity == ErrorSeverity.HIGH:
-            logger.error(f"High severity error in {self.operation}", extra=error_dict)
+            logger.error(f"High severity error in {self.operation}: {error.message}", extra=error_dict)
         elif error.severity == ErrorSeverity.MEDIUM:
-            logger.warning(f"Medium severity error in {self.operation}", extra=error_dict)
+            logger.warning(f"Medium severity error in {self.operation}: {error.message}", extra=error_dict)
         else:
-            logger.info(f"Low severity error in {self.operation}", extra=error_dict)
+            logger.info(f"Low severity error in {self.operation}: {error.message}", extra=error_dict)
     
     def get_fallback_value(self):
         """Get fallback value if exception was suppressed."""
@@ -136,10 +137,10 @@ def handle_errors(
     operation: Optional[str] = None,
     *,
     log_errors: bool = True,
-    reraise: bool = True,
+    reraise: Optional[bool] = None,
     fallback_value: Any = None,
     error_callback: Optional[Callable[[Exception], None]] = None,
-    expected_exceptions: Optional[tuple] = None,
+    expected_exceptions: Optional[tuple[Type[Exception], ...]] = None,
     context: Optional[Dict[str, Any]] = None
 ):
     """Decorator for standardized error handling.
@@ -158,10 +159,13 @@ def handle_errors(
         def wrapper(*args, **kwargs):
             op_name = operation or func.__name__
             
+            # Auto-determine reraise behavior: if fallback_value is provided, don't reraise
+            should_reraise = reraise if reraise is not None else (fallback_value is None)
+            
             with ErrorContext(
                 op_name,
                 log_errors=log_errors,
-                reraise=reraise,
+                reraise=should_reraise,
                 fallback_value=fallback_value,
                 error_callback=error_callback,
                 context=context or {}
@@ -217,7 +221,7 @@ def safe_execute(
 class ErrorAggregator:
     """Aggregates multiple errors for batch processing."""
     
-    def __init__(self, operation: str):
+    def __init__(self, operation: str = "batch_operation"):
         self.operation = operation
         self.errors: List[BaseApplicationError] = []
         self.warnings: List[str] = []
@@ -248,15 +252,42 @@ class ErrorAggregator:
         """Check if there are any warnings."""
         return len(self.warnings) > 0
     
+    def get_errors(self) -> List[BaseApplicationError]:
+        """Get all errors."""
+        return self.errors.copy()
+    
+    def get_error_count(self) -> int:
+        """Get the total number of errors."""
+        return len(self.errors)
+    
+    def get_errors_by_severity(self, severity: ErrorSeverity) -> List[BaseApplicationError]:
+        """Get errors filtered by severity level."""
+        return [error for error in self.errors if error.severity == severity]
+    
     def get_summary(self) -> Dict[str, Any]:
         """Get summary of all errors and warnings."""
+        # Count errors by category
+        by_category = {}
+        for error in self.errors:
+            category = error.category.value if hasattr(error.category, 'value') else str(error.category)
+            by_category[category] = by_category.get(category, 0) + 1
+        
+        # Count errors by severity
+        by_severity = {}
+        for error in self.errors:
+            severity = error.severity.value if hasattr(error.severity, 'value') else str(error.severity)
+            by_severity[severity] = by_severity.get(severity, 0) + 1
+        
         return {
             'operation': self.operation,
+            'total_errors': len(self.errors),
             'error_count': len(self.errors),
             'warning_count': len(self.warnings),
+            'by_category': by_category,
+            'by_severity': by_severity,
             'errors': [error.to_dict() for error in self.errors],
             'warnings': self.warnings,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     def raise_if_errors(self):
@@ -302,17 +333,34 @@ class ErrorRecovery:
         raise exception
 
 
+class ErrorBoundary:
+    """Error boundary context object."""
+    
+    def __init__(self, operation: str, fallback_value=None):
+        self.operation = operation
+        self.fallback_value = fallback_value
+        self.error = None
+        self.success = True
+
+
 @contextmanager
-def error_boundary(operation: str, **kwargs):
+def error_boundary(operation: str, logger_instance=None, fallback_value=None, **kwargs):
     """Context manager that acts as an error boundary.
     
     Catches and handles all exceptions within the boundary,
     preventing them from propagating further.
     """
+    boundary = ErrorBoundary(operation, fallback_value)
+    
     try:
-        yield
+        yield boundary
     except Exception as e:
-        logger.error(f"Error boundary caught exception in {operation}: {e}", exc_info=True)
+        boundary.error = e
+        boundary.success = False
+        
+        # Use provided logger or default
+        log_instance = logger_instance or logger
+        log_instance.error(f"Error boundary caught exception in {operation}: {e}", exc_info=True)
         
         # Convert to application error if needed
         if not isinstance(e, BaseApplicationError):
@@ -326,8 +374,14 @@ def error_boundary(operation: str, **kwargs):
             app_error = e
             app_error.context.update(kwargs)
         
-        # Log the structured error
-        logger.error(f"Structured error in {operation}", extra=app_error.to_dict())
+        # Log the structured error (exclude 'message' to avoid LogRecord conflict)
+        error_dict = app_error.to_dict()
+        error_dict.pop('message', None)  # Remove 'message' to avoid conflict with LogRecord
+        log_instance.error(f"Structured error in {operation}: {app_error.message}", extra=error_dict)
+        
+        # Don't reraise if fallback_value is provided
+        if fallback_value is not None:
+            return fallback_value
         
         # Don't reraise - this is an error boundary
 

@@ -16,7 +16,7 @@ import asyncio
 import functools
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Optional, Dict, List, Union, TypeVar, Generic
 from dataclasses import dataclass, field
@@ -108,8 +108,7 @@ class CircuitBreaker:
                 raise ExternalServiceError(
                     f"Circuit breaker '{self.name}' is OPEN",
                     service_name=self.name,
-                    user_message="Service is temporarily unavailable due to repeated failures.",
-                    retry_after=self.config.recovery_timeout
+                    user_message="Service is temporarily unavailable due to repeated failures."
                 )
             
             self.metrics.total_requests += 1
@@ -139,7 +138,7 @@ class CircuitBreaker:
     
     def _check_state(self):
         """Check and update circuit breaker state."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         if self.state == CircuitState.OPEN:
             if (self._last_failure_time and 
@@ -150,7 +149,7 @@ class CircuitBreaker:
         """Handle successful operation."""
         with self._lock:
             self.metrics.successful_requests += 1
-            self.metrics.last_success_time = datetime.utcnow()
+            self.metrics.last_success_time = datetime.now(timezone.utc)
             
             if self.state == CircuitState.HALF_OPEN:
                 self._success_count += 1
@@ -164,7 +163,7 @@ class CircuitBreaker:
         """Handle failed operation."""
         with self._lock:
             self.metrics.failed_requests += 1
-            self.metrics.last_failure_time = datetime.utcnow()
+            self.metrics.last_failure_time = datetime.now(timezone.utc)
             self._last_failure_time = self.metrics.last_failure_time
             
             if self.state in [CircuitState.CLOSED, CircuitState.HALF_OPEN]:
@@ -193,7 +192,7 @@ class CircuitBreaker:
     def _log_state_change(self, new_state: str, reason: str):
         """Log state change for monitoring."""
         change_info = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "from_state": self.state.value if hasattr(self.state, 'value') else str(self.state),
             "to_state": new_state,
             "reason": reason,
@@ -338,9 +337,10 @@ class TimeoutManager:
                 result = func(*args, **kwargs)
                 execution_time = time.time() - start_time
                 if execution_time > timeout:
-                    logger.warning(
-                        f"Function {func.__name__} took {execution_time:.2f}s, "
-                        f"exceeding timeout of {timeout}s"
+                    raise TimeoutError(
+                        f"Operation '{func.__name__}' timed out after {execution_time:.2f}s",
+                        operation=func.__name__,
+                        timeout_seconds=timeout
                     )
                 return result
             except Exception as e:
@@ -373,7 +373,7 @@ class HealthCheck:
     
     def check_health(self) -> Dict[str, Any]:
         """Perform all health checks and return status."""
-        self._last_check_time = datetime.utcnow()
+        self._last_check_time = datetime.now(timezone.utc)
         status = {
             "service": self.name,
             "timestamp": self._last_check_time.isoformat(),
@@ -387,7 +387,7 @@ class HealthCheck:
                 result = check_func()
                 status["checks"][check_name] = {
                     "healthy": result,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 if not result:
                     status["healthy"] = False
@@ -396,7 +396,7 @@ class HealthCheck:
                 status["checks"][check_name] = {
                     "healthy": False,
                     "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 status["healthy"] = False
                 status["errors"].append(f"Health check '{check_name}' threw exception: {e}")

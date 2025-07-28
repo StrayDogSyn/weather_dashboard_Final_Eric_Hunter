@@ -20,7 +20,7 @@ from .components.hunter_widgets import (
     Hunter3DFrame
 )
 from ..features.temperature_graph.advanced_chart_widget import AdvancedChartWidget
-from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
+from ..features.temperature_graph.chart_models import ChartConfig, ChartType, TimeRange
 
 # Configure CustomTkinter globally
 ctk.set_appearance_mode("dark")
@@ -202,7 +202,7 @@ class HunterDashboardUI:
     def create_temperature_graph_tab(self):
         """Create advanced interactive temperature visualization"""
         from ..features.temperature_graph.advanced_chart_widget import AdvancedChartWidget
-        from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
+        from ..features.temperature_graph.chart_models import ChartConfig, ChartType, TimeRange
         from ..features.temperature_graph.chart_controller import ChartController
         
         temp_tab = self.tabview.tab("Temperature Graph")

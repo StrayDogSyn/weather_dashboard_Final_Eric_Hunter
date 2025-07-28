@@ -91,6 +91,11 @@ class WeatherDashboardApp:
         - Interface-based service resolution
         """
         try:
+            # Check if services are already configured (e.g., in tests)
+            if self.service_registry.is_configured:
+                print(f"Services already configured in {self.service_registry.configuration_mode} mode, skipping re-configuration")
+                return
+            
             if self.environment == 'production':
                 configure_for_production(
                     config_path=None,  # Use default config

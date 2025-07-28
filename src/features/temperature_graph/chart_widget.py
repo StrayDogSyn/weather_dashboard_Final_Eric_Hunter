@@ -23,10 +23,10 @@ from pathlib import Path
 from dataclasses import dataclass
 
 # Core imports
-from ...core.models import TemperatureDataPoint, ChartType, TimeRange, ChartConfig
+from .chart_models import TemperatureDataPoint, ChartType, TimeRange, ChartConfig
 from ...ui.components.glass import GlassFrame, GlassButton
 from ...utils.logger import LoggerMixin
-from ...services.chart_controller import ChartController
+from .chart_controller import ChartController
 
 # Component imports
 from .chart_models import WeatherEvent, CityComparison, GlassmorphicTooltip

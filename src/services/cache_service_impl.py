@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 import threading
 from dataclasses import dataclass, asdict
 
-from ..core.interfaces import ICacheService, ILoggingService
+from core.interfaces import ICacheService, ILoggingService
 
 
 @dataclass

@@ -21,14 +21,14 @@ from .interfaces import (
 from .dependency_container import DependencyContainer, get_container
 
 # Import service implementations
-from ..services.weather_service_impl import WeatherServiceImpl, MockWeatherService
-from ..services.database_impl import DatabaseImpl, MockDatabase
-from ..services.cache_service_impl import CacheServiceImpl, MockCacheService
-from ..services.config_service_impl import ConfigurationServiceImpl, MockConfigurationService
-from ..services.logging_service_impl import LoggingServiceImpl, MockLoggingService
+from services.weather_service_impl import WeatherServiceImpl, MockWeatherService
+from services.database_impl import DatabaseImpl, MockDatabase
+from services.cache_service_impl import CacheServiceImpl, MockCacheService
+from services.config_service_impl import ConfigurationServiceImpl, MockConfigurationService
+from services.logging_service_impl import LoggingServiceImpl, MockLoggingService
 
 # Import existing services for adaptation
-from ..services.weather_service import WeatherService
+from services.weather_service import WeatherService
 from data.database import Database
 from .config_manager import ConfigManager
 
@@ -160,14 +160,14 @@ class ServiceRegistry:
         # Register mock database service
         self._container.register_factory(
             IDatabase,
-            lambda: MockDatabase(should_fail=False),
+            lambda: MockDatabase(),
             ServiceLifetime.SINGLETON
         )
         
         # Register mock weather service
         self._container.register_factory(
             IWeatherService,
-            lambda: MockWeatherService(should_fail=False),
+            lambda: MockWeatherService(),
             ServiceLifetime.SINGLETON
         )
         
@@ -286,21 +286,24 @@ class ServiceRegistry:
     def _register_mock_external_services(self) -> None:
         """Register mock external services for testing/development."""
         # Mock Gemini service
-        self._container.register_singleton(
+        self._container.register_factory(
             IGeminiService,
-            lambda: MockExternalService("MockGeminiService")
+            lambda: MockExternalService("MockGeminiService"),
+            ServiceLifetime.SINGLETON
         )
         
         # Mock GitHub service
-        self._container.register_singleton(
+        self._container.register_factory(
             IGitHubService,
-            lambda: MockExternalService("MockGitHubService")
+            lambda: MockExternalService("MockGitHubService"),
+            ServiceLifetime.SINGLETON
         )
         
         # Mock Spotify service
-        self._container.register_singleton(
+        self._container.register_factory(
             ISpotifyService,
-            lambda: MockExternalService("MockSpotifyService")
+            lambda: MockExternalService("MockSpotifyService"),
+            ServiceLifetime.SINGLETON
         )
     
     def _create_placeholder_service(self, service_name: str) -> Any:
@@ -325,12 +328,12 @@ class ServiceRegistry:
             implementation_factory: Factory function to create service instance
             lifetime: Service lifetime
         """
-        if lifetime == ServiceLifetime.SINGLETON:
-            self._container.register_singleton(interface_type, implementation_factory)
-        elif lifetime == ServiceLifetime.SCOPED:
-            self._container.register_scoped(interface_type, implementation_factory)
-        else:
-            self._container.register_transient(interface_type, implementation_factory)
+        # Use register_factory for all custom services since we're dealing with factory functions
+        # Note: SCOPED lifetime is treated as TRANSIENT since scoped isn't implemented
+        if lifetime == ServiceLifetime.SCOPED:
+            lifetime = ServiceLifetime.TRANSIENT
+        
+        self._container.register_factory(interface_type, implementation_factory, lifetime)
         
         # Log registration if logger available
         try:

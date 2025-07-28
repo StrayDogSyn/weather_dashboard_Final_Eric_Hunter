@@ -32,7 +32,7 @@ from PIL import Image, ImageDraw, ImageFilter
 import io
 import base64
 
-from .models import (
+from .chart_models import (
     ChartType, TimeRange, ChartConfig, TemperatureDataPoint, 
     ChartAnalytics, ExportSettings
 )
