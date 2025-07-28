@@ -231,11 +231,15 @@ class ChartController:
     def _fetch_raw_data(self, start_date: datetime, end_date: datetime, location: Optional[str]) -> List[Any]:
         """Fetch raw data from database."""
         try:
+            # Calculate days between start and end date
+            days_diff = (end_date - start_date).days
+            days = max(1, days_diff)  # Ensure at least 1 day
+            
             # Use database manager to fetch weather records
+            location_name = location or "New York"  # Default city if location is None
             records = self.database_manager.get_weather_history(
-                start_date=start_date,
-                end_date=end_date,
-                location=location
+                location=location_name,
+                days=days
             )
             return records
         except Exception as e:

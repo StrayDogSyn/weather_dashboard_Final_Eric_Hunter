@@ -185,7 +185,7 @@ class DatabaseImpl(IDatabase):
             start_date = end_date - timedelta(days=days)
             
             # Get data from legacy database
-            history_data = self._database.get_recent_weather_data(days)
+            history_data = self._database.get_recent_weather(days)
             
             # Filter by location and convert to DTOs
             weather_dtos = []
@@ -216,7 +216,7 @@ class DatabaseImpl(IDatabase):
         """
         try:
             # Get recent data from legacy database
-            recent_data = self._database.get_recent_weather_data(limit)
+            recent_data = self._database.get_recent_weather(limit)
             
             # Convert to DTOs
             weather_dtos = []

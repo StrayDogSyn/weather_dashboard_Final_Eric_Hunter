@@ -529,51 +529,60 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             self.tooltip = None
     
     def refresh_chart(self):
-        """Refresh chart data and display."""
+        """Refresh chart data."""
         if self.is_loading:
             return
         
         self.is_loading = True
         self._show_loading()
         
-        # Run data loading in background thread
-        thread = threading.Thread(target=self._load_chart_data)
-        thread.daemon = True
-        thread.start()
+        # Schedule data loading on main thread to avoid threading issues
+        self.after(10, self._load_chart_data_sync)
     
-    def _load_chart_data(self):
-        """Load chart data in background thread."""
+    def _load_chart_data_sync(self):
+        """Load chart data synchronously on main thread."""
         try:
-            # Update progress
-            self.after(0, lambda: self.progress_bar.set(0.2))
+            # Update progress incrementally
+            self.progress_bar.set(0.2)
+            self.update_idletasks()  # Force UI update
             
             # Fetch temperature data
             self.current_data = self.chart_controller.get_temperature_data(
                 self.config.time_range
             )
             
-            self.after(0, lambda: self.progress_bar.set(0.5))
+            self.progress_bar.set(0.5)
+            self.update_idletasks()
             
             # Calculate analytics
             self.analytics = self.chart_controller.calculate_analytics(self.current_data)
             
-            self.after(0, lambda: self.progress_bar.set(0.7))
+            self.progress_bar.set(0.7)
+            self.update_idletasks()
             
             # Detect weather events
             self.weather_events = self._detect_weather_events(self.current_data)
             
-            self.after(0, lambda: self.progress_bar.set(0.9))
+            self.progress_bar.set(0.9)
+            self.update_idletasks()
             
-            # Update UI on main thread
-            self.after(0, self._update_chart_display)
-            self.after(0, lambda: self.progress_bar.set(1.0))
+            # Update chart display
+            self._update_chart_display()
+            self.progress_bar.set(1.0)
+            
+            # Hide loading after a short delay
             self.after(100, self._hide_loading)
             
         except Exception as e:
+            error_msg = f"Failed to load data: {str(e)}"
             self.logger.error(f"Error loading chart data: {e}")
-            self.after(0, lambda: self._show_error(f"Failed to load data: {str(e)}"))
+            self._show_error(error_msg)
         finally:
             self.is_loading = False
+    
+    def _load_chart_data(self):
+        """Legacy method - now redirects to sync version."""
+        self._load_chart_data_sync()
     
     def _update_chart_display(self):
         """Update chart display with current data."""
@@ -1122,14 +1131,15 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         self.loading_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
         self.progress_bar.set(0)
         
-        # Animate progress bar
-        def animate_progress():
-            for i in range(20):
-                if not self.is_loading:
-                    break
-                self.after(i * 50, lambda p=i*0.05: self.progress_bar.set(p))
+        # Animate progress bar using main thread scheduling
+        def animate_progress_step(step=0):
+            if not self.is_loading or step >= 20:
+                return
+            self.progress_bar.set(step * 0.05)
+            self.after(50, lambda: animate_progress_step(step + 1))
         
-        threading.Thread(target=animate_progress, daemon=True).start()
+        # Start animation from main thread
+        self.after(0, animate_progress_step)
     
     def _hide_loading(self):
         """Hide loading overlay."""

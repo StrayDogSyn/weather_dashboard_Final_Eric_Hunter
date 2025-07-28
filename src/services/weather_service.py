@@ -23,7 +23,7 @@ import time
 from enum import Enum
 import hashlib
 
-from ..utils.logger import LoggerMixin
+from ..utils.logger import LoggerMixin, ContextLogger
 from ..core.config_manager import ConfigManager
 
 

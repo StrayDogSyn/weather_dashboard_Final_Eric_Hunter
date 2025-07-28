@@ -20,7 +20,7 @@ import glob
 from pathlib import Path
 from datetime import datetime
 
-def find_most_recent_screenshot(images_dir="../assets/images"):
+def find_most_recent_screenshot(images_dir="assets/images"):
     """
     Find the most recently modified image file in the images directory.
     
@@ -30,28 +30,36 @@ def find_most_recent_screenshot(images_dir="../assets/images"):
     Returns:
         str: Relative path to the most recent image file
     """
+    # Get the script directory and project root
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    
+    # Construct absolute path to images directory
+    if not os.path.isabs(images_dir):
+        images_path = project_root / images_dir
+    else:
+        images_path = Path(images_dir)
+    
     # Supported image extensions
     extensions = ['*.png', '*.jpg', '*.jpeg', '*.gif']
     
     image_files = []
     for ext in extensions:
-        pattern = os.path.join(images_dir, ext)
+        pattern = str(images_path / ext)
         image_files.extend(glob.glob(pattern))
     
     if not image_files:
-        raise FileNotFoundError(f"No image files found in {images_dir}")
+        raise FileNotFoundError(f"No image files found in {images_path}")
     
     # Find the most recently modified file
     most_recent = max(image_files, key=os.path.getmtime)
     
-    # Convert to relative path for README (remove the ../ prefix since README is in project root)
-    relative_path = os.path.relpath(most_recent).replace('\\', '/')
-    if relative_path.startswith('../'):
-        relative_path = relative_path[3:]  # Remove '../' prefix
+    # Convert to relative path for README
+    relative_path = os.path.relpath(most_recent, project_root).replace('\\', '/')
     
     return relative_path
 
-def update_readme_screenshot(readme_path="../README.md", images_dir="../assets/images"):
+def update_readme_screenshot(readme_path="README.md", images_dir="assets/images"):
     """
     Update the README.md file with the most recent screenshot.
     
@@ -60,11 +68,21 @@ def update_readme_screenshot(readme_path="../README.md", images_dir="../assets/i
         images_dir (str): Path to the images directory
     """
     try:
+        # Get the script directory and project root
+        script_dir = Path(__file__).parent
+        project_root = script_dir.parent
+        
+        # Construct absolute path to README
+        if not os.path.isabs(readme_path):
+            readme_full_path = project_root / readme_path
+        else:
+            readme_full_path = Path(readme_path)
+        
         # Find the most recent screenshot
         latest_image = find_most_recent_screenshot(images_dir)
         
         # Read the current README content
-        with open(readme_path, 'r', encoding='utf-8') as file:
+        with open(readme_full_path, 'r', encoding='utf-8') as file:
             content = file.read()
         
         # Find and replace the UI Preview image line
@@ -83,7 +101,7 @@ def update_readme_screenshot(readme_path="../README.md", images_dir="../assets/i
         # Write the updated content back
         updated_content = '\n'.join(updated_lines)
         
-        with open(readme_path, 'w', encoding='utf-8') as file:
+        with open(readme_full_path, 'w', encoding='utf-8') as file:
             file.write(updated_content)
         
         print(f"README.md updated successfully with {latest_image}")
@@ -98,7 +116,7 @@ def update_readme_screenshot(readme_path="../README.md", images_dir="../assets/i
     except Exception as e:
         print(f"Unexpected error: {e}")
 
-def list_available_screenshots(images_dir="../assets/images"):
+def list_available_screenshots(images_dir="assets/images"):
     """
     List all available screenshots with their modification times.
     
@@ -139,10 +157,10 @@ if __name__ == "__main__":
     
     if len(sys.argv) > 1 and sys.argv[1] == "--list":
         # List available screenshots
-        list_available_screenshots("../assets/images")
+        list_available_screenshots("assets/images")
     else:
         # Update README with most recent screenshot
         print("Updating README.md with most recent screenshot...")
-        list_available_screenshots("../assets/images")
+        list_available_screenshots("assets/images")
         update_readme_screenshot()
         print("\nDone! Your README.md now shows the latest screenshot.")

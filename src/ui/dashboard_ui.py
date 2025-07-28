@@ -21,6 +21,8 @@ from .components.hunter_widgets import (
 )
 from ..features.temperature_graph.advanced_chart_widget import AdvancedChartWidget
 from ..features.temperature_graph.chart_models import ChartConfig, ChartType, TimeRange
+from ..features.voice_assistant.voice_ui import VoiceAssistantUI
+from ..features.voice_assistant.cortana_service import CortanaService
 
 # Configure CustomTkinter globally
 ctk.set_appearance_mode("dark")
@@ -122,6 +124,7 @@ class HunterDashboardUI:
         self.tabview.add("Weather Journal")
         self.tabview.add("Activity Suggester")
         self.tabview.add("Team Collaboration")
+        self.tabview.add("Voice Assistant")
         self.tabview.add("Settings")
         
         self.create_weather_tab()
@@ -376,6 +379,7 @@ class HunterDashboardUI:
         self.create_weather_journal_tab()
         self.create_activity_suggester_tab()
         self.create_team_collaboration_tab()
+        self.create_voice_assistant_tab()
         self.create_placeholder_tabs()
     
     def create_team_collaboration_tab(self):
@@ -683,6 +687,38 @@ class HunterDashboardUI:
             justify="left"
         )
         activity_label.pack(pady=10, padx=10, anchor="w")
+    
+    def create_voice_assistant_tab(self):
+        """Create Cortana voice assistant interface"""
+        voice_tab = self.tabview.tab("Voice Assistant")
+        
+        try:
+            # Initialize Cortana service with injected dependencies
+            self.cortana_service = CortanaService(
+                weather_service=self.weather_service,
+                database=self.database
+            )
+            
+            # Create voice assistant UI
+            self.voice_ui = VoiceAssistantUI(
+                parent=voice_tab,
+                cortana_service=self.cortana_service
+            )
+            self.voice_ui.pack(fill="both", expand=True, padx=10, pady=10)
+            
+        except Exception as e:
+            # Fallback to placeholder if voice assistant fails to initialize
+            print(f"Voice assistant initialization failed: {e}")
+            placeholder_frame = HunterGlassFrame(voice_tab)
+            placeholder_frame.pack(fill="both", expand=True, padx=10, pady=10)
+            
+            placeholder = HunterGlassLabel(
+                placeholder_frame,
+                text="🎤 Voice Assistant (Cortana)\n\nInitialization failed. Please check dependencies.",
+                font=("Segoe UI", 16, "normal"),
+                text_color=("#C0C0C0", "#999999")
+            )
+            placeholder.pack(expand=True)
     
     def create_placeholder_tabs(self):
         """Add placeholder content for remaining tabs"""

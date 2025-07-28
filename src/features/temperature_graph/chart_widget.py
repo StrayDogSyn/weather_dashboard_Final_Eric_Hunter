@@ -141,15 +141,22 @@ class AdvancedChartWidget(ctk.CTkFrame, LoggerMixin):
             # Load data in background thread
             def load_data():
                 try:
-                    # Generate mock data for demonstration
+                    # Generate initial mock data
                     mock_data = self._generate_mock_data()
                     
-                    # Update UI in main thread
-                    self.after(0, lambda: self._on_data_loaded(mock_data))
+                    # Schedule UI update on main thread
+                    def update_ui():
+                        self._on_data_loaded(mock_data)
+                    
+                    self.after(0, update_ui)
                     
                 except Exception as e:
                     self.logger.error(f"Error loading initial data: {e}")
-                    self.after(0, lambda: self._show_loading(False))
+                    
+                    def hide_loading():
+                        self._show_loading(False)
+                    
+                    self.after(0, hide_loading)
             
             threading.Thread(target=load_data, daemon=True).start()
             
@@ -453,10 +460,18 @@ class AdvancedChartWidget(ctk.CTkFrame, LoggerMixin):
                     # In a real implementation, this would fetch fresh data
                     # For now, regenerate mock data
                     new_data = self._generate_mock_data()
-                    self.after(0, lambda: self._on_data_loaded(new_data))
+                    
+                    def update_ui():
+                        self._on_data_loaded(new_data)
+                    
+                    self.after(0, update_ui)
                 except Exception as e:
                     self.logger.error(f"Error refreshing data: {e}")
-                    self.after(0, lambda: self._show_loading(False))
+                    
+                    def hide_loading():
+                        self._show_loading(False)
+                    
+                    self.after(0, hide_loading)
             
             threading.Thread(target=refresh_data, daemon=True).start()
             

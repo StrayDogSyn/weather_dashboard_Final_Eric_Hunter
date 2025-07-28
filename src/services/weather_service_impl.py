@@ -186,12 +186,9 @@ class WeatherServiceImpl(IWeatherService):
         
         # Apply reliability patterns
         result = safe_execute(
-            operation=_get_weather_operation,
-            circuit_breaker=self._circuit_breaker,
-            retry_policy=self._retry_policy,
-            timeout_manager=self._timeout_manager,
-            operation_name=f"get_weather_{location}",
-            logger=self._logger
+            _get_weather_operation,
+            operation=f"get_weather_{location}",
+            log_errors=True
         )
         
         return result
@@ -303,12 +300,9 @@ class WeatherServiceImpl(IWeatherService):
         
         # Apply reliability patterns
         result = safe_execute(
-            operation=_get_forecast_operation,
-            circuit_breaker=self._circuit_breaker,
-            retry_policy=self._retry_policy,
-            timeout_manager=self._timeout_manager,
-            operation_name=f"get_forecast_{location}_{days}d",
-            logger=self._logger
+            _get_forecast_operation,
+            operation=f"get_forecast_{location}_{days}d",
+            log_errors=True
         )
         
         return result or []
@@ -374,12 +368,9 @@ class WeatherServiceImpl(IWeatherService):
         timeout_manager = TimeoutManager(default_timeout=10.0)
         
         result = safe_execute(
-            operation=_test_connection_operation,
-            circuit_breaker=self._circuit_breaker,
-            retry_policy=self._retry_policy,
-            timeout_manager=timeout_manager,
-            operation_name="test_connection",
-            logger=self._logger
+            _test_connection_operation,
+            operation="test_connection",
+            log_errors=True
         )
         
         return result if result is not None else False

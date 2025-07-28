@@ -36,7 +36,7 @@
 
 ## 🖼️ UI Preview
 
-> ![UI Preview](assets/images/TTKBootstrap.png)
+> ![UI Preview](assets/images/Phase4A.png)
 >> ---
 
 ## ✨ Key Features
@@ -73,6 +73,10 @@
 - **Service Health**: Built-in monitoring and health checks
 - **Code Quality**: Linted with `flake8`, formatted with `black`
 - **Agent-Powered Development**: Built using TRAE IDE with AI assistance
+
+### 📚 **Works Cited**
+
+- [Works Cited](docs/Works_Cited.md)
 
 ---
 
