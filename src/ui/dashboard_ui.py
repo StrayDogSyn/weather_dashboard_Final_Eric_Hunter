@@ -49,11 +49,12 @@ class HunterDashboardUI:
     - Responsive layout
     """
     
-    def __init__(self, parent, weather_service, database, settings):
+    def __init__(self, parent, weather_service, database, settings, github_service=None):
         self.parent = parent
         self.weather_service = weather_service
         self.database = database
         self.settings = settings
+        self.github_service = github_service
         
         # Configure main window background
         if hasattr(parent, 'configure'):

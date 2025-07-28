@@ -5,9 +5,13 @@ for team collaboration features.
 """
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import customtkinter as ctk
 from typing import Optional, Callable, List, Dict, Any
+import logging
+import asyncio
+import threading
+from datetime import datetime
 
 from ...ui.components.base_components import (
     GlassFrame, GlassButton, GlassLabel, GlassEntry, GlassProgressBar
@@ -124,12 +128,20 @@ class TeamCollaborationWidget(ctk.CTkFrame, LoggerMixin):
         self.cities_tab = self.tabview.add("🏙️ Shared Cities")
         self._create_cities_tab()
 
+        # Weather data tab
+        self.weather_data_tab = self.tabview.add("🌤️ Team Weather")
+        self._create_weather_data_tab()
+
+        # Analysis tab
+        self.analysis_tab = self.tabview.add("📊 City Analysis")
+        self._create_analysis_tab()
+
         # Comparisons tab
-        self.comparisons_tab = self.tabview.add("📊 Team Comparisons")
+        self.comparisons_tab = self.tabview.add("📈 Team Comparisons")
         self._create_comparisons_tab()
 
         # Activity tab
-        self.activity_tab = self.tabview.add("📈 Team Activity")
+        self.activity_tab = self.tabview.add("📋 Team Activity")
         self._create_activity_tab()
 
         # Team tab
@@ -320,6 +332,7 @@ class TeamCollaborationWidget(ctk.CTkFrame, LoggerMixin):
     def _refresh_all_data(self):
         """Refresh all data displays."""
         self._refresh_cities()
+        self._refresh_weather_data()
         self._refresh_comparisons()
         self._refresh_activity()
         self._refresh_team_members()
@@ -359,8 +372,21 @@ class TeamCollaborationWidget(ctk.CTkFrame, LoggerMixin):
     def _update_stats(self):
         """Update statistics display."""
         stats = self.controller.get_collaboration_stats()
-        stats_text = f"Cities: {stats['total_cities']} | Comparisons: {stats['total_comparisons']} | Members: {stats['team_members']}"
-        self.stats_label.configure(text=stats_text)
+        
+        # Include new metrics from optimized service
+        base_stats = f"Cities: {stats['total_cities']} | Comparisons: {stats['total_comparisons']} | Members: {stats['team_members']}"
+        
+        if 'service_metrics' in stats:
+            metrics = stats['service_metrics']
+            cache_info = f" | Cache: {metrics.get('cache_hits', 0)}/{metrics.get('cache_requests', 0)}"
+            base_stats += cache_info
+            
+        if 'data_freshness' in stats:
+            freshness = stats['data_freshness']
+            if freshness:
+                base_stats += f" | Updated: {freshness.strftime('%H:%M')}"
+        
+        self.stats_label.configure(text=base_stats)
 
     # Event handlers
     def _manual_sync(self):
@@ -369,15 +395,22 @@ class TeamCollaborationWidget(ctk.CTkFrame, LoggerMixin):
         self.progress_bar.set(0.5)
         
         # Sync in background thread
-        import threading
         threading.Thread(target=self._perform_sync, daemon=True).start()
 
     def _perform_sync(self):
         """Perform synchronization in background."""
-        success = self.controller.sync_with_remote()
-        
-        # Update UI in main thread
-        self.after(0, self._sync_completed, success)
+        try:
+            # Refresh team data first
+            self.controller.refresh_team_data()
+            
+            # Then sync with remote
+            success = self.controller.sync_with_remote()
+            
+            # Update UI in main thread
+            self.after(0, self._sync_completed, success)
+        except Exception as e:
+            self.logger.error(f"Error during sync: {e}")
+            self.after(0, self._sync_completed, False)
 
     def _sync_completed(self, success: bool):
         """Handle sync completion."""
@@ -466,3 +499,237 @@ class TeamCollaborationWidget(ctk.CTkFrame, LoggerMixin):
     def _show_settings(self):
         """Show settings dialog."""
         pass
+
+    def _create_weather_data_tab(self):
+        """Create the team weather data tab."""
+        weather_frame = GlassFrame(self.weather_data_tab)
+        weather_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        weather_frame.grid_columnconfigure(0, weight=1)
+        weather_frame.grid_rowconfigure(1, weight=1)
+
+        # Weather data controls
+        weather_controls_frame = ctk.CTkFrame(weather_frame, fg_color="transparent")
+        weather_controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+        # Refresh weather button
+        refresh_weather_button = GlassButton(
+            weather_controls_frame,
+            text="🔄 Refresh Weather",
+            command=self._refresh_weather_data
+        )
+        refresh_weather_button.pack(side="left", padx=(0, 10))
+        
+        # Load team data button
+        load_data_button = GlassButton(
+            weather_controls_frame,
+            text="📥 Load Team Data",
+            command=self._load_team_data
+        )
+        load_data_button.pack(side="left", padx=(0, 10))
+        
+        # Clear cache button
+        clear_cache_button = GlassButton(
+            weather_controls_frame,
+            text="🗑️ Clear Cache",
+            command=self._clear_cache
+        )
+        clear_cache_button.pack(side="left", padx=(0, 10))
+
+        # Weather data list
+        self.weather_data_listbox = tk.Listbox(
+            weather_frame,
+            font=("Segoe UI", 11)
+        )
+        self.weather_data_listbox.grid(row=1, column=0, sticky="nsew")
+
+        # Scrollbar for weather data list
+        weather_scrollbar = ctk.CTkScrollbar(weather_frame, command=self.weather_data_listbox.yview)
+        weather_scrollbar.grid(row=1, column=1, sticky="ns")
+        self.weather_data_listbox.configure(yscrollcommand=weather_scrollbar.set)
+
+    def _create_analysis_tab(self):
+        """Create the city analysis tab."""
+        analysis_frame = GlassFrame(self.analysis_tab)
+        analysis_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        analysis_frame.grid_columnconfigure(0, weight=1)
+        analysis_frame.grid_rowconfigure(1, weight=1)
+
+        # Analysis controls
+        analysis_controls_frame = ctk.CTkFrame(analysis_frame, fg_color="transparent")
+        analysis_controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+        # Generate analysis button
+        generate_analysis_button = GlassButton(
+            analysis_controls_frame,
+            text="📊 Generate Analysis",
+            command=self._generate_analysis
+        )
+        generate_analysis_button.pack(side="left", padx=(0, 10))
+        
+        # Export analysis button
+        export_analysis_button = GlassButton(
+            analysis_controls_frame,
+            text="💾 Export Analysis",
+            command=self._export_analysis
+        )
+        export_analysis_button.pack(side="left", padx=(0, 10))
+
+        # Analysis results
+        self.analysis_text = tk.Text(
+            analysis_frame,
+            font=("Segoe UI", 10),
+            wrap=tk.WORD
+        )
+        self.analysis_text.grid(row=1, column=0, sticky="nsew")
+
+        # Scrollbar for analysis text
+        analysis_scrollbar = ctk.CTkScrollbar(analysis_frame, command=self.analysis_text.yview)
+        analysis_scrollbar.grid(row=1, column=1, sticky="ns")
+        self.analysis_text.configure(yscrollcommand=analysis_scrollbar.set)
+
+    def _refresh_weather_data(self):
+        """Refresh the team weather data."""
+        try:
+            self.weather_data_listbox.delete(0, tk.END)
+            
+            # Load team weather data using the optimized service
+            weather_data = self.controller.load_team_weather_data()
+            
+            if weather_data:
+                for city, data in weather_data.items():
+                    if isinstance(data, dict) and 'temperature' in data:
+                        temp = data.get('temperature', 'N/A')
+                        condition = data.get('condition', 'Unknown')
+                        humidity = data.get('humidity', 'N/A')
+                        display_text = f"{city} - {temp}°F, {condition}, Humidity: {humidity}%"
+                        self.weather_data_listbox.insert(tk.END, display_text)
+                    else:
+                        # Handle list of weather records
+                        if isinstance(data, list) and data:
+                            latest = data[-1]  # Get most recent
+                            temp = latest.get('temperature', 'N/A')
+                            condition = latest.get('condition', 'Unknown')
+                            display_text = f"{city} - {temp}°F, {condition} (Latest)"
+                            self.weather_data_listbox.insert(tk.END, display_text)
+            else:
+                self.weather_data_listbox.insert(tk.END, "No team weather data available")
+                
+        except Exception as e:
+            self.logger.error(f"Error refreshing weather data: {e}")
+            self.weather_data_listbox.insert(tk.END, f"Error loading weather data: {e}")
+
+    def _generate_analysis(self):
+        """Generate city analysis."""
+        try:
+            self.analysis_text.delete(1.0, tk.END)
+            self.analysis_text.insert(tk.END, "Generating analysis...\n")
+            
+            # Get cities analysis from the optimized service
+            analysis_data = self.controller.get_cities_analysis()
+            
+            if analysis_data:
+                analysis_text = "=== CITY WEATHER ANALYSIS ===\n\n"
+                
+                for city, analysis in analysis_data.items():
+                    analysis_text += f"📍 {city.upper()}\n"
+                    analysis_text += f"   Average Temperature: {analysis.get('avg_temp', 'N/A')}°F\n"
+                    analysis_text += f"   Temperature Range: {analysis.get('min_temp', 'N/A')}°F - {analysis.get('max_temp', 'N/A')}°F\n"
+                    analysis_text += f"   Most Common Condition: {analysis.get('common_condition', 'N/A')}\n"
+                    analysis_text += f"   Average Humidity: {analysis.get('avg_humidity', 'N/A')}%\n"
+                    analysis_text += f"   Data Points: {analysis.get('data_count', 0)}\n\n"
+                
+                # Add performance metrics
+                metrics = self.controller.get_team_performance_metrics()
+                if metrics:
+                    analysis_text += "=== PERFORMANCE METRICS ===\n\n"
+                    analysis_text += f"Cache Hit Rate: {metrics.get('cache_hit_rate', 0):.1%}\n"
+                    analysis_text += f"Average Response Time: {metrics.get('avg_response_time', 0):.2f}s\n"
+                    analysis_text += f"Total Requests: {metrics.get('total_requests', 0)}\n"
+                    analysis_text += f"Error Rate: {metrics.get('error_rate', 0):.1%}\n"
+                
+                self.analysis_text.delete(1.0, tk.END)
+                self.analysis_text.insert(tk.END, analysis_text)
+            else:
+                self.analysis_text.delete(1.0, tk.END)
+                self.analysis_text.insert(tk.END, "No analysis data available. Please ensure team weather data is loaded.")
+                
+        except Exception as e:
+             self.logger.error(f"Error generating analysis: {e}")
+             self.analysis_text.delete(1.0, tk.END)
+             self.analysis_text.insert(tk.END, f"Error generating analysis: {e}")
+    
+    def _load_team_data(self):
+        """Load team data in background thread."""
+        def load_data():
+            try:
+                self.after(0, lambda: self.sync_status_label.configure(text="Loading team data..."))
+                self.after(0, lambda: self.progress_bar.set(0.3))
+                
+                # Load team weather data
+                weather_data = self.controller.load_team_weather_data()
+                
+                self.after(0, lambda: self.progress_bar.set(0.7))
+                
+                # Refresh UI
+                self.after(0, self._refresh_weather_data)
+                self.after(0, lambda: self.progress_bar.set(1.0))
+                self.after(0, lambda: self.sync_status_label.configure(text="Team data loaded"))
+                
+                # Reset after delay
+                self.after(3000, lambda: self.sync_status_label.configure(text="Ready"))
+                self.after(3000, lambda: self.progress_bar.set(0))
+                
+            except Exception as e:
+                self.logger.error(f"Error loading team data: {e}")
+                self.after(0, lambda: self.sync_status_label.configure(text="Load failed"))
+                self.after(0, lambda: self.progress_bar.set(0))
+                self.after(0, lambda: self._show_error(f"Failed to load team data: {e}"))
+        
+        threading.Thread(target=load_data, daemon=True).start()
+    
+    def _clear_cache(self):
+        """Clear the team data cache."""
+        try:
+            self.controller.clear_team_data_cache()
+            self.sync_status_label.configure(text="Cache cleared")
+            
+            # Reset after delay
+            self.after(2000, lambda: self.sync_status_label.configure(text="Ready"))
+            
+            messagebox.showinfo("Success", "Team data cache has been cleared.")
+            
+        except Exception as e:
+            self.logger.error(f"Error clearing cache: {e}")
+            self._show_error(f"Failed to clear cache: {e}")
+    
+    def _export_analysis(self):
+        """Export the current analysis to a file."""
+        try:
+            from tkinter import filedialog
+            
+            # Get current analysis text
+            analysis_content = self.analysis_text.get(1.0, tk.END)
+            
+            if not analysis_content.strip() or analysis_content.strip() == "Generating analysis...":
+                messagebox.showwarning("No Data", "No analysis data to export. Please generate analysis first.")
+                return
+            
+            # Ask user for save location
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                title="Export Analysis"
+            )
+            
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(f"Team Weather Analysis Export\n")
+                    f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"{'='*50}\n\n")
+                    f.write(analysis_content)
+                
+                messagebox.showinfo("Success", f"Analysis exported to {filename}")
+                
+        except Exception as e:
+            self.logger.error(f"Error exporting analysis: {e}")
+            self._show_error(f"Failed to export analysis: {e}")

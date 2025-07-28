@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional, Callable
 import logging
 
 from .models import CollaborationConfig, TeamActivity, SyncStatus, CollaborationSession
+from ...services.team_data_service import OptimizedTeamDataService, TeamDataConfig
 
 
 class CollaborationController:
@@ -20,6 +21,16 @@ class CollaborationController:
         self.github_service = github_service
         self.config = config or CollaborationConfig()
         self.logger = logging.getLogger(__name__)
+
+        # Initialize optimized team data service
+        team_data_config = TeamDataConfig(
+            cache_ttl=self.config.sync_interval,
+            enable_metrics=True
+        )
+        self.team_data_service = OptimizedTeamDataService(team_data_config)
+        
+        # Register callbacks for team data updates
+        self.team_data_service.add_callback(self._on_team_data_updated)
 
         # Data storage
         self.team_members: List = []
@@ -159,15 +170,31 @@ class CollaborationController:
         recent_activities = [a for a in self.activities 
                            if now - a.timestamp < timedelta(days=7)]
         
-        return {
+        # Get team data service metrics
+        team_metrics = self.team_data_service.get_metrics()
+        
+        # Get team summary from optimized service
+        team_summary = self.team_data_service.get_team_summary()
+        
+        stats = {
             'total_cities': len(self.shared_cities),
             'total_comparisons': len(self.team_comparisons),
             'team_members': len(self.team_members),
             'recent_activities': len(recent_activities),
             'last_sync': self.sync_status.last_sync,
             'pending_changes': self.sync_status.pending_changes,
-            'current_session': self.current_session.session_id if self.current_session else None
+            'current_session': self.current_session.session_id if self.current_session else None,
+            'service_metrics': team_metrics
         }
+        
+        # Add team summary data if available
+        if team_summary:
+            stats.update({
+                'team_summary': team_summary,
+                'data_freshness': 'live' if team_metrics.get('cache_hit_rate', 0) > 0.8 else 'refreshing'
+            })
+            
+        return stats
 
     def search_cities(self, query: str) -> List:
         """Search shared cities by name or criteria."""
@@ -287,3 +314,126 @@ class CollaborationController:
         except Exception as e:
             self.logger.error(f"Error pulling data from GitHub: {e}")
             raise
+    
+    def _on_team_data_updated(self, event: str, data: Any):
+        """Callback for team data service updates."""
+        self.logger.info(f"Team data updated: {event}")
+        if self.on_data_updated:
+            self.on_data_updated()
+    
+    def load_team_weather_data(self, use_cache: bool = True) -> Optional[List[Dict[str, Any]]]:
+        """Load team weather data using optimized service.
+        
+        Args:
+            use_cache: Whether to use cached data
+            
+        Returns:
+            Team weather data or None if failed
+        """
+        try:
+            return self.team_data_service.load_csv_data("team_weather_data.csv", use_cache)
+        except Exception as e:
+            self.logger.error(f"Error loading team weather data: {e}")
+            if self.on_error:
+                self.on_error(f"Failed to load team weather data: {e}")
+            return None
+    
+    def get_city_weather_history(self, city_name: str, use_cache: bool = True) -> Optional[List[Dict[str, Any]]]:
+        """Get weather history for a specific city.
+        
+        Args:
+            city_name: Name of the city
+            use_cache: Whether to use cached data
+            
+        Returns:
+            Weather history for the city or None if not found
+        """
+        try:
+            return self.team_data_service.get_city_weather(city_name, use_cache)
+        except Exception as e:
+            self.logger.error(f"Error getting city weather history: {e}")
+            if self.on_error:
+                self.on_error(f"Failed to get weather history for {city_name}: {e}")
+            return None
+    
+    def get_cities_analysis(self, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+        """Get cities analysis data.
+        
+        Args:
+            use_cache: Whether to use cached data
+            
+        Returns:
+            Cities analysis data or None if failed
+        """
+        try:
+            return self.team_data_service.get_cities_analysis(use_cache)
+        except Exception as e:
+            self.logger.error(f"Error getting cities analysis: {e}")
+            if self.on_error:
+                self.on_error(f"Failed to get cities analysis: {e}")
+            return None
+    
+    def refresh_team_data(self) -> Dict[str, bool]:
+        """Refresh all team data from remote sources.
+        
+        Returns:
+            Dictionary with refresh status for each data type
+        """
+        try:
+            self.logger.info("Refreshing team data...")
+            results = self.team_data_service.refresh_all_data()
+            
+            # Update sync status
+            if any(results.values()):
+                self.sync_status.last_sync = datetime.now()
+                self.sync_status.last_error = None
+                if self.on_sync_completed:
+                    self.on_sync_completed()
+            else:
+                self.sync_status.last_error = "Failed to refresh any data"
+                
+            return results
+        except Exception as e:
+            error_msg = f"Error refreshing team data: {e}"
+            self.logger.error(error_msg)
+            self.sync_status.last_error = error_msg
+            if self.on_error:
+                self.on_error(error_msg)
+            return {}
+    
+    def get_team_performance_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics for the team data service.
+        
+        Returns:
+            Performance metrics dictionary
+        """
+        return self.team_data_service.get_metrics()
+    
+    def clear_team_data_cache(self):
+        """Clear the team data service cache."""
+        try:
+            self.team_data_service.clear_cache()
+            self.logger.info("Team data cache cleared")
+        except Exception as e:
+            self.logger.error(f"Error clearing cache: {e}")
+            if self.on_error:
+                self.on_error(f"Failed to clear cache: {e}")
+    
+    def shutdown(self):
+        """Shutdown the collaboration controller and cleanup resources."""
+        try:
+            # Stop auto-sync
+            self.stop_auto_sync()
+            
+            # Shutdown team data service
+            self.team_data_service.shutdown()
+            
+            # Clear data
+            self.shared_cities.clear()
+            self.team_comparisons.clear()
+            self.activities.clear()
+            self.team_members.clear()
+            
+            self.logger.info("Collaboration controller shutdown complete")
+        except Exception as e:
+            self.logger.error(f"Error during shutdown: {e}")

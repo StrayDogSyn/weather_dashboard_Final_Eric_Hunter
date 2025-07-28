@@ -37,7 +37,8 @@ from config.settings import get_settings
 from data.database import Database
 from services.weather_service import WeatherService
 from services.gemini_service import GeminiService
-from services.github_service import GitHubService
+from src.services.github_service import GitHubService
+from src.core.config_manager import ConfigManager
 from services.spotify_service import SpotifyService
 
 # Import Hunter theme UI
@@ -124,8 +125,9 @@ class WeatherDashboardApp:
 
             # GitHub service
             try:
-                self.github_service = GitHubService()
-                if self.github_service.is_available():
+                config_manager = ConfigManager()
+                self.github_service = GitHubService(config_manager)
+                if self.github_service.is_connected():
                     logger.info("GitHub service initialized")
                 else:
                     logger.info("GitHub service skipped - not configured")
@@ -173,7 +175,8 @@ class WeatherDashboardApp:
                 self.root,
                 self.weather_service,
                 self.database,
-                self.settings
+                self.settings,
+                self.github_service
             )
 
             # Setup event handlers

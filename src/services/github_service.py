@@ -142,7 +142,7 @@ class GitHubService(LoggerMixin):
     def _initialize_github(self):
         """Initialize GitHub client and repository."""
         try:
-            github_token = self.config.get_api_key("github")
+            github_token = self.config.api_config.github_token
             if not github_token:
                 self.logger.warning("GitHub token not found. Team features will be limited.")
                 return
