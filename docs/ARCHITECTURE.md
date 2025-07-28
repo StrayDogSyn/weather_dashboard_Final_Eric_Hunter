@@ -19,7 +19,7 @@ The Weather Dashboard is built using clean architecture principles with a sophis
 
 ### High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Presentation Layer                       │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
@@ -134,6 +134,7 @@ from src.core.interfaces import (
 ### Service Implementations
 
 #### Weather Service
+
 ```python
 class WeatherServiceImpl(IWeatherService):
     def __init__(self, config_service: IConfigurationService, 
@@ -146,6 +147,7 @@ class WeatherServiceImpl(IWeatherService):
 ```
 
 #### Database Service
+
 ```python
 class DatabaseImpl(IDatabase):
     def __init__(self, config_service: IConfigurationService,
@@ -188,24 +190,28 @@ if not validation['is_valid']:
 ### Layer Responsibilities
 
 #### Presentation Layer (`src/ui/`)
+
 - User interface components
 - Event handling and user interactions
 - Data presentation and formatting
 - Theme management and styling
 
 #### Application Layer (`src/core/`)
+
 - Application orchestration
 - Service coordination
 - Cross-cutting concerns (logging, error handling)
 - Dependency injection configuration
 
 #### Service Layer (`src/services/`)
+
 - Business logic implementation
 - External service integration
 - Data transformation and validation
 - Service-specific error handling
 
 #### Infrastructure Layer
+
 - External API clients
 - Database access
 - File system operations
@@ -281,7 +287,7 @@ else:
 
 ### Test Structure
 
-```
+```text
 tests/
 ├── test_dependency_injection.py    # DI container tests
 ├── test_error_handling.py          # Error handling tests
@@ -340,6 +346,7 @@ config_service.cache_section("weather", ttl=3600)  # 1 hour
 ### Adding New Services
 
 1. **Define Interface**:
+
 ```python
 class INewService(ABC):
     @abstractmethod
@@ -347,14 +354,16 @@ class INewService(ABC):
         pass
 ```
 
-2. **Implement Service**:
+1. **Implement Service**:
+
 ```python
 class NewServiceImpl(INewService):
     def __init__(self, dependency: IDependency):
         self._dependency = dependency
 ```
 
-3. **Register Service**:
+1. **Register Service**:
+
 ```python
 container.register_factory(
     INewService,
