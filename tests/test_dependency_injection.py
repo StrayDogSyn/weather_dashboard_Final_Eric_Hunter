@@ -26,8 +26,8 @@ from src.core.interfaces import (
     IWeatherService, IDatabase, ICacheService, IConfigurationService,
     ILoggingService, WeatherDataDTO
 )
-from core.dependency_container import get_container, reset_container
-from core.service_registry import configure_for_testing, get_service_registry
+from src.core.dependency_container import get_container, reset_container
+from src.core.service_registry import configure_for_testing, get_service_registry
 from main import WeatherDashboardApp
 
 

@@ -28,8 +28,15 @@ from ..services.config_service_impl import ConfigurationServiceImpl, MockConfigu
 from ..services.logging_service_impl import LoggingServiceImpl, MockLoggingService
 
 # Import existing services for adaptation
-from services.weather_service import WeatherService
-from data.database import Database
+try:
+    from services.weather_service import WeatherService
+except ImportError:
+    WeatherService = None
+    
+try:
+    from data.database import Database
+except ImportError:
+    Database = None
 from .config_manager import ConfigManager
 
 

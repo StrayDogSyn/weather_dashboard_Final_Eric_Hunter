@@ -21,22 +21,22 @@ import os
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from core.exceptions import (
+from src.core.exceptions import (
     BaseApplicationError, ValidationError, ServiceError, ExternalServiceError,
     NetworkError, TimeoutError, DatabaseError, ConfigurationError,
     AuthenticationError, AuthorizationError, RateLimitError,
     ErrorSeverity, ErrorCategory
 )
-from core.reliability import (
+from src.core.reliability import (
     CircuitBreaker, CircuitState, RetryHandler,
     TimeoutManager, HealthCheck, GracefulDegradation
 )
-from core.error_handling import (
+from src.core.error_handling import (
     ErrorContext, handle_errors, safe_execute, ErrorAggregator,
     ErrorRecovery, error_boundary, create_error_handler
 )
-from core.logging_framework import ContextualLogger, LogLevel
-from services.weather_service_impl import WeatherServiceImpl, MockWeatherService
+from src.core.logging_framework import ContextualLogger, LogLevel
+from src.services.weather_service_impl import WeatherServiceImpl, MockWeatherService
 
 
 class TestExceptionHierarchy(unittest.TestCase):
