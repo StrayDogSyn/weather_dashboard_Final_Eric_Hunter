@@ -7,7 +7,7 @@ adapting the existing WeatherService to work with the dependency injection syste
 It demonstrates how to bridge existing code with new DI patterns.
 
 Author: Eric Hunter (Cortana Builder Agent)
-Version: 1.0.0 (Dependency Injection Implementation)
+Version: 2.0.0 (Production-Ready with Error Handling & Reliability)
 """
 
 import asyncio
@@ -17,6 +17,13 @@ from datetime import datetime
 from ..core.interfaces import IWeatherService, WeatherDataDTO, IConfigurationService, ICacheService, ILoggingService
 from .weather_service import WeatherService, WeatherData, WeatherProvider
 from ..core.config_manager import ConfigManager
+from ..core.exceptions import (
+    ExternalServiceError, NetworkError, TimeoutError, ServiceError,
+    ErrorSeverity, ErrorCategory
+)
+from ..core.error_handling import handle_errors, ErrorContext, safe_execute
+from ..core.reliability import CircuitBreaker, RetryWithBackoff, TimeoutManager
+from ..core.logging_framework import StructuredLogger, LogLevel
 
 
 class WeatherServiceImpl(IWeatherService):
@@ -24,7 +31,7 @@ class WeatherServiceImpl(IWeatherService):
     
     This adapter class bridges the existing WeatherService with the new
     dependency injection interface, demonstrating how to integrate legacy
-    code with modern DI patterns.
+    code with modern DI patterns with production-ready reliability.
     """
     
     def __init__(self, 
@@ -42,6 +49,13 @@ class WeatherServiceImpl(IWeatherService):
         self._cache_service = cache_service
         self._logger_service = logger_service
         
+        # Initialize structured logger
+        self._logger = StructuredLogger(
+            name="WeatherServiceImpl",
+            service_name="weather-service",
+            service_version="2.0.0"
+        )
+        
         # Create ConfigManager from our configuration service
         self._config_manager = self._create_config_manager()
         
@@ -49,7 +63,30 @@ class WeatherServiceImpl(IWeatherService):
         self._weather_service = None
         self._service_lock = asyncio.Lock()
         
-        self._log_info("WeatherServiceImpl initialized")
+        # Initialize reliability patterns
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=60.0,
+            expected_exception=ExternalServiceError
+        )
+        
+        self._retry_policy = RetryWithBackoff(
+            max_attempts=3,
+            base_delay=1.0,
+            max_delay=10.0,
+            backoff_multiplier=2.0
+        )
+        
+        self._timeout_manager = TimeoutManager(default_timeout=30.0)
+        
+        self._logger.info(
+            "WeatherServiceImpl initialized",
+            extra={
+                "circuit_breaker_threshold": 5,
+                "retry_max_attempts": 3,
+                "default_timeout": 30.0
+            }
+        )
     
     def _create_config_manager(self) -> ConfigManager:
         """Create a ConfigManager from the configuration service.
@@ -62,17 +99,20 @@ class WeatherServiceImpl(IWeatherService):
         return ConfigManager()
     
     def _log_info(self, message: str, **kwargs) -> None:
-        """Log an info message if logger service is available."""
+        """Log an info message using structured logging."""
+        self._logger.info(message, extra=kwargs)
         if self._logger_service:
             self._logger_service.info(message, **kwargs)
     
     def _log_error(self, message: str, **kwargs) -> None:
-        """Log an error message if logger service is available."""
+        """Log an error message using structured logging."""
+        self._logger.error(message, extra=kwargs)
         if self._logger_service:
             self._logger_service.error(message, **kwargs)
     
     def _log_warning(self, message: str, **kwargs) -> None:
-        """Log a warning message if logger service is available."""
+        """Log a warning message using structured logging."""
+        self._logger.warning(message, extra=kwargs)
         if self._logger_service:
             self._logger_service.warning(message, **kwargs)
     
@@ -114,8 +154,17 @@ class WeatherServiceImpl(IWeatherService):
             timestamp=weather_data.timestamp
         )
     
+    @handle_errors(
+        default_return=None,
+        log_errors=True,
+        error_context=ErrorContext(
+            operation="get_current_weather",
+            category=ErrorCategory.EXTERNAL_SERVICE,
+            severity=ErrorSeverity.MEDIUM
+        )
+    )
     def get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
-        """Get current weather data for a location.
+        """Get current weather data for a location with reliability patterns.
         
         Args:
             location: Location name or coordinates
@@ -123,13 +172,29 @@ class WeatherServiceImpl(IWeatherService):
             
         Returns:
             Weather data or None if unavailable
+            
+        Raises:
+            ExternalServiceError: When weather service is unavailable
+            NetworkError: When network connectivity issues occur
+            TimeoutError: When request times out
         """
-        try:
-            # Run the async method synchronously
+        if not location or not location.strip():
+            raise ValueError("Location cannot be empty")
+        
+        def _get_weather_operation():
             return asyncio.run(self._async_get_current_weather(location, use_cache))
-        except Exception as e:
-            self._log_error(f"Error getting current weather for {location}: {e}")
-            return None
+        
+        # Apply reliability patterns
+        result = safe_execute(
+            operation=_get_weather_operation,
+            circuit_breaker=self._circuit_breaker,
+            retry_policy=self._retry_policy,
+            timeout_manager=self._timeout_manager,
+            operation_name=f"get_weather_{location}",
+            logger=self._logger
+        )
+        
+        return result
     
     def get_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
         """Get weather data for a location (backward compatibility wrapper).
@@ -147,7 +212,7 @@ class WeatherServiceImpl(IWeatherService):
         return self.get_current_weather(location, use_cache)
     
     async def _async_get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
-        """Async implementation of get_current_weather.
+        """Async implementation of get_current_weather with proper error handling.
         
         Args:
             location: Location name or coordinates
@@ -155,25 +220,69 @@ class WeatherServiceImpl(IWeatherService):
             
         Returns:
             Weather data or None if unavailable
+            
+        Raises:
+            ExternalServiceError: When weather service fails
+            NetworkError: When network issues occur
+            TimeoutError: When request times out
         """
         try:
             weather_service = await self._get_weather_service()
-            weather_data = await weather_service.get_current_weather(location, use_cache)
+            
+            # Apply timeout to the weather service call
+            weather_data = await asyncio.wait_for(
+                weather_service.get_current_weather(location, use_cache),
+                timeout=self._timeout_manager.default_timeout
+            )
             
             if weather_data:
                 dto = self._convert_to_dto(weather_data)
-                self._log_info(f"Successfully retrieved weather for {location}")
+                self._log_info(
+                    f"Successfully retrieved weather for {location}",
+                    location=location,
+                    use_cache=use_cache,
+                    temperature=dto.temperature,
+                    description=dto.description
+                )
                 return dto
             else:
-                self._log_warning(f"No weather data available for {location}")
+                self._log_warning(
+                    f"No weather data available for {location}",
+                    location=location,
+                    use_cache=use_cache
+                )
                 return None
                 
+        except asyncio.TimeoutError as e:
+            raise TimeoutError(
+                message=f"Weather request timed out for {location}",
+                context={"location": location, "timeout": self._timeout_manager.default_timeout},
+                user_message="Weather service is taking too long to respond. Please try again."
+            ) from e
+        except ConnectionError as e:
+            raise NetworkError(
+                message=f"Network error retrieving weather for {location}",
+                context={"location": location, "error": str(e)},
+                user_message="Unable to connect to weather service. Please check your internet connection."
+            ) from e
         except Exception as e:
-            self._log_error(f"Error in async get_current_weather for {location}: {e}")
-            return None
+            raise ExternalServiceError(
+                message=f"Weather service error for {location}: {str(e)}",
+                context={"location": location, "error_type": type(e).__name__},
+                user_message="Weather service is currently unavailable. Please try again later."
+            ) from e
     
+    @handle_errors(
+        default_return=[],
+        log_errors=True,
+        error_context=ErrorContext(
+            operation="get_forecast",
+            category=ErrorCategory.EXTERNAL_SERVICE,
+            severity=ErrorSeverity.MEDIUM
+        )
+    )
     def get_forecast(self, location: str, days: int = 5) -> List[WeatherDataDTO]:
-        """Get weather forecast for a location.
+        """Get weather forecast for a location with reliability patterns.
         
         Args:
             location: Location name or coordinates
@@ -181,12 +290,33 @@ class WeatherServiceImpl(IWeatherService):
             
         Returns:
             List of forecast data
+            
+        Raises:
+            ExternalServiceError: When weather service is unavailable
+            NetworkError: When network connectivity issues occur
+            TimeoutError: When request times out
+            ValueError: When invalid parameters are provided
         """
-        try:
+        if not location or not location.strip():
+            raise ValueError("Location cannot be empty")
+        
+        if days < 1 or days > 14:
+            raise ValueError("Days must be between 1 and 14")
+        
+        def _get_forecast_operation():
             return asyncio.run(self._async_get_forecast(location, days))
-        except Exception as e:
-            self._log_error(f"Error getting forecast for {location}: {e}")
-            return []
+        
+        # Apply reliability patterns
+        result = safe_execute(
+            operation=_get_forecast_operation,
+            circuit_breaker=self._circuit_breaker,
+            retry_policy=self._retry_policy,
+            timeout_manager=self._timeout_manager,
+            operation_name=f"get_forecast_{location}_{days}d",
+            logger=self._logger
+        )
+        
+        return result or []
     
     async def _async_get_forecast(self, location: str, days: int = 5) -> List[WeatherDataDTO]:
         """Async implementation of get_forecast.
@@ -232,40 +362,91 @@ class WeatherServiceImpl(IWeatherService):
             self._log_error(f"Error in async get_forecast for {location}: {e}")
             return []
     
+    @handle_errors(
+        default_return=False,
+        log_errors=True,
+        error_context=ErrorContext(
+            operation="test_connection",
+            category=ErrorCategory.EXTERNAL_SERVICE,
+            severity=ErrorSeverity.LOW
+        )
+    )
     def test_connection(self) -> bool:
-        """Test if the weather service is available.
+        """Test if the weather service is available with reliability patterns.
         
         Returns:
             True if service is available, False otherwise
         """
-        try:
+        def _test_connection_operation():
             return asyncio.run(self._async_test_connection())
-        except Exception as e:
-            self._log_error(f"Error testing connection: {e}")
-            return False
+        
+        # Apply reliability patterns with shorter timeout for health checks
+        timeout_manager = TimeoutManager(default_timeout=10.0)
+        
+        result = safe_execute(
+            operation=_test_connection_operation,
+            circuit_breaker=self._circuit_breaker,
+            retry_policy=self._retry_policy,
+            timeout_manager=timeout_manager,
+            operation_name="test_connection",
+            logger=self._logger
+        )
+        
+        return result if result is not None else False
     
     async def _async_test_connection(self) -> bool:
-        """Async implementation of test_connection.
+        """Async implementation of test_connection with proper error handling.
         
         Returns:
             True if service is available, False otherwise
+            
+        Raises:
+            ExternalServiceError: When weather service fails
+            NetworkError: When network issues occur
+            TimeoutError: When request times out
         """
         try:
             weather_service = await self._get_weather_service()
             
-            # Try to get weather for a known location
-            test_weather = await weather_service.get_current_weather("London", use_cache=False)
+            # Try to get weather for a known location with timeout
+            test_weather = await asyncio.wait_for(
+                weather_service.get_current_weather("London", use_cache=False),
+                timeout=10.0
+            )
             
             if test_weather:
-                self._log_info("Weather service connection test successful")
+                self._log_info(
+                    "Weather service connection test successful",
+                    test_location="London",
+                    response_received=True
+                )
                 return True
             else:
-                self._log_warning("Weather service connection test failed - no data returned")
+                self._log_warning(
+                    "Weather service connection test failed - no data returned",
+                    test_location="London",
+                    response_received=False
+                )
                 return False
                 
+        except asyncio.TimeoutError as e:
+            raise TimeoutError(
+                message="Weather service connection test timed out",
+                context={"test_location": "London", "timeout": 10.0},
+                user_message="Weather service is not responding."
+            ) from e
+        except ConnectionError as e:
+            raise NetworkError(
+                message="Network error during connection test",
+                context={"test_location": "London", "error": str(e)},
+                user_message="Unable to connect to weather service."
+            ) from e
         except Exception as e:
-            self._log_error(f"Weather service connection test failed: {e}")
-            return False
+            raise ExternalServiceError(
+                message=f"Weather service connection test failed: {str(e)}",
+                context={"test_location": "London", "error_type": type(e).__name__},
+                user_message="Weather service is currently unavailable."
+            ) from e
     
     def get_provider_status(self) -> Dict[str, Any]:
         """Get status of weather data providers.
@@ -328,7 +509,7 @@ class WeatherServiceImpl(IWeatherService):
 
 
 class MockWeatherService(IWeatherService):
-    """Mock weather service implementation for testing.
+    """Mock weather service implementation for testing with reliability patterns.
     
     This class provides a mock implementation of IWeatherService
     that can be used for unit testing and development scenarios
@@ -345,10 +526,21 @@ class MockWeatherService(IWeatherService):
         self._call_count = 0
         self._should_fail = False
         
-        self._log_info("MockWeatherService initialized")
+        # Initialize structured logger
+        self._logger = StructuredLogger(
+            name="MockWeatherService",
+            service_name="mock-weather-service",
+            service_version="2.0.0"
+        )
+        
+        self._logger.info(
+            "MockWeatherService initialized",
+            extra={"mock_mode": True}
+        )
     
     def _log_info(self, message: str, **kwargs) -> None:
-        """Log an info message if logger service is available."""
+        """Log an info message using structured logging."""
+        self._logger.info(message, extra=kwargs)
         if self._logger_service:
             self._logger_service.info(message, **kwargs)
     
@@ -368,8 +560,17 @@ class MockWeatherService(IWeatherService):
         """
         return self._call_count
     
+    @handle_errors(
+        default_return=None,
+        log_errors=True,
+        error_context=ErrorContext(
+            operation="mock_get_current_weather",
+            category=ErrorCategory.EXTERNAL_SERVICE,
+            severity=ErrorSeverity.LOW
+        )
+    )
     def get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
-        """Get mock current weather data.
+        """Get mock current weather data with error simulation.
         
         Args:
             location: Location name or coordinates
@@ -377,12 +578,28 @@ class MockWeatherService(IWeatherService):
             
         Returns:
             Mock weather data or None if simulating failure
+            
+        Raises:
+            ExternalServiceError: When simulating service failures
+            ValueError: When invalid parameters are provided
         """
+        if not location or not location.strip():
+            raise ValueError("Location cannot be empty")
+        
         self._call_count += 1
         
         if self._should_fail:
-            self._log_info(f"MockWeatherService simulating failure for {location}")
-            return None
+            self._log_info(
+                f"MockWeatherService simulating failure for {location}",
+                location=location,
+                call_count=self._call_count,
+                simulated_failure=True
+            )
+            raise ExternalServiceError(
+                message=f"Simulated weather service failure for {location}",
+                context={"location": location, "mock_mode": True},
+                user_message="Weather service is temporarily unavailable (simulated failure)."
+            )
         
         # Generate consistent mock data based on location
         import hashlib
