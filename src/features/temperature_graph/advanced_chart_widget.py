@@ -37,7 +37,7 @@ from .models import (
     ChartAnalytics, ExportSettings
 )
 from .chart_controller import ChartController
-from ...ui.components.base_components import GlassmorphicFrame, GlassmorphicButton
+from ...ui.components.base_components import GlassFrame, GlassButton
 from ...utils.logger import LoggerMixin
 
 
@@ -121,7 +121,7 @@ class GlassmorphicTooltip(ctk.CTkToplevel):
             pass
 
 
-class AdvancedChartWidget(GlassmorphicFrame, LoggerMixin):
+class AdvancedChartWidget(GlassFrame, LoggerMixin):
     """Advanced interactive temperature chart with glassmorphic design."""
     
     def __init__(self, parent, chart_controller: ChartController, **kwargs):
@@ -1367,4 +1367,633 @@ class AdvancedChartWidget(GlassmorphicFrame, LoggerMixin):
             text="Cancel",
             command=export_popup.destroy,
             width=100,
-            height
+            height=35
+        )
+        cancel_button.pack(side="left")
+    
+    def _export_chart(self, settings: ExportSettings) -> bool:
+        """Export chart with specified settings."""
+        try:
+            from tkinter import filedialog
+            
+            # Get save location
+            file_types = {
+                'png': [('PNG files', '*.png')],
+                'pdf': [('PDF files', '*.pdf')],
+                'svg': [('SVG files', '*.svg')],
+                'jpg': [('JPEG files', '*.jpg')],
+                'csv': [('CSV files', '*.csv')]
+            }
+            
+            filename = filedialog.asksaveasfilename(
+                defaultextension=f".{settings.format}",
+                filetypes=file_types.get(settings.format, [('All files', '*.*')]),
+                title="Save Chart"
+            )
+            
+            if not filename:
+                return False
+            
+            if settings.format == 'csv':
+                # Export data as CSV
+                self._export_csv(filename, settings)
+            else:
+                # Export chart as image
+                self._export_image(filename, settings)
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Export failed: {e}")
+            return False
+    
+    def _export_csv(self, filename: str, settings: ExportSettings):
+        """Export chart data as CSV."""
+        import csv
+        
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # Write header
+            headers = ['Timestamp', 'Temperature (°C)']
+            if any(p.feels_like is not None for p in self.current_data):
+                headers.append('Feels Like (°C)')
+            if any(p.humidity is not None for p in self.current_data):
+                headers.append('Humidity (%)')
+            if any(p.pressure is not None for p in self.current_data):
+                headers.append('Pressure (hPa)')
+            if any(p.wind_speed is not None for p in self.current_data):
+                headers.append('Wind Speed (km/h)')
+            if any(p.condition for p in self.current_data):
+                headers.append('Condition')
+            
+            writer.writerow(headers)
+            
+            # Write data
+            for point in self.current_data:
+                row = [point.timestamp.isoformat(), point.temperature]
+                
+                if 'Feels Like (°C)' in headers:
+                    row.append(point.feels_like or '')
+                if 'Humidity (%)' in headers:
+                    row.append(point.humidity or '')
+                if 'Pressure (hPa)' in headers:
+                    row.append(point.pressure or '')
+                if 'Wind Speed (km/h)' in headers:
+                    row.append(point.wind_speed or '')
+                if 'Condition' in headers:
+                    row.append(point.condition or '')
+                
+                writer.writerow(row)
+            
+            # Add metadata if requested
+            if settings.include_metadata and self.analytics:
+                writer.writerow([])
+                writer.writerow(['Analytics'])
+                writer.writerow(['Data Points', self.analytics.data_points_count])
+                writer.writerow(['Average Temperature', f"{self.analytics.avg_temperature:.2f}°C"])
+                writer.writerow(['Min Temperature', f"{self.analytics.min_temperature:.2f}°C"])
+                writer.writerow(['Max Temperature', f"{self.analytics.max_temperature:.2f}°C"])
+                writer.writerow(['Temperature Trend', self.analytics.temperature_trend])
+    
+    def _export_image(self, filename: str, settings: ExportSettings):
+        """Export chart as image."""
+        # Save current figure settings
+        original_facecolor = self.fig.get_facecolor()
+        
+        try:
+            # Set transparent background if requested
+            if settings.transparent:
+                self.fig.patch.set_facecolor('none')
+                self.ax.patch.set_facecolor('none')
+            
+            # Save figure
+            self.fig.savefig(
+                filename,
+                dpi=settings.dpi,
+                bbox_inches='tight',
+                transparent=settings.transparent,
+                facecolor='none' if settings.transparent else self.fig.get_facecolor(),
+                edgecolor='none'
+            )
+            
+        finally:
+            # Restore original settings
+            self.fig.patch.set_facecolor(original_facecolor)
+            self.ax.patch.set_facecolor('#2b2b2b')
+    
+    def _show_success_message(self, message: str):
+        """Show success message popup."""
+        success_popup = ctk.CTkToplevel(self)
+        success_popup.title("Success")
+        success_popup.geometry("300x150")
+        success_popup.configure(fg_color=("#1a1a1a", "#1a1a1a"))
+        
+        # Center popup
+        success_popup.update_idletasks()
+        x = (success_popup.winfo_screenwidth() // 2) - (150)
+        y = (success_popup.winfo_screenheight() // 2) - (75)
+        success_popup.geometry(f"300x150+{x}+{y}")
+        
+        # Success content
+        success_frame = GlassmorphicFrame(
+            success_popup,
+            fg_color=("#50C87822", "#50C87811"),
+            corner_radius=15
+        )
+        success_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        success_label = ctk.CTkLabel(
+            success_frame,
+            text=f"✅ Success\n\n{message}",
+            font=("Segoe UI", 12),
+            text_color=("#FFFFFF", "#E0E0E0"),
+            justify="center"
+        )
+        success_label.pack(expand=True)
+        
+        # Auto-close after 3 seconds
+        success_popup.after(3000, success_popup.destroy)
+    
+    def _show_custom_range_dialog(self):
+        """Show custom time range selection dialog."""
+        range_popup = ctk.CTkToplevel(self)
+        range_popup.title("Custom Time Range")
+        range_popup.geometry("400x300")
+        range_popup.configure(fg_color=("#1a1a1a", "#1a1a1a"))
+        
+        # Make popup modal
+        range_popup.transient(self)
+        range_popup.grab_set()
+        
+        # Center popup
+        range_popup.update_idletasks()
+        x = (range_popup.winfo_screenwidth() // 2) - (200)
+        y = (range_popup.winfo_screenheight() // 2) - (150)
+        range_popup.geometry(f"400x300+{x}+{y}")
+        
+        # Content frame
+        content_frame = GlassmorphicFrame(
+            range_popup,
+            fg_color=("#FFFFFF11", "#000000AA"),
+            corner_radius=15
+        )
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            content_frame,
+            text="📅 Custom Time Range",
+            font=("Segoe UI", 16, "bold"),
+            text_color=("#FFFFFF", "#E0E0E0")
+        )
+        title_label.pack(pady=(20, 20))
+        
+        # Date inputs (simplified - would need proper date picker)
+        start_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        start_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            start_frame,
+            text="Start Date (YYYY-MM-DD):",
+            text_color=("#CCCCCC", "#AAAAAA")
+        ).pack(anchor="w")
+        
+        start_entry = ctk.CTkEntry(
+            start_frame,
+            placeholder_text="2024-01-01",
+            width=200
+        )
+        start_entry.pack(anchor="w", pady=(5, 0))
+        
+        end_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        end_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            end_frame,
+            text="End Date (YYYY-MM-DD):",
+            text_color=("#CCCCCC", "#AAAAAA")
+        ).pack(anchor="w")
+        
+        end_entry = ctk.CTkEntry(
+            end_frame,
+            placeholder_text="2024-01-31",
+            width=200
+        )
+        end_entry.pack(anchor="w", pady=(5, 0))
+        
+        # Buttons
+        button_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        button_frame.pack(fill="x", padx=20, pady=(20, 20))
+        
+        def apply_range():
+            try:
+                start_date = datetime.strptime(start_entry.get(), "%Y-%m-%d")
+                end_date = datetime.strptime(end_entry.get(), "%Y-%m-%d")
+                
+                if start_date >= end_date:
+                    raise ValueError("Start date must be before end date")
+                
+                self.selected_range = (start_date, end_date)
+                self.config.time_range = TimeRange.CUSTOM
+                range_popup.destroy()
+                self.refresh_chart()
+                
+            except ValueError as e:
+                self._show_error(f"Invalid date range: {str(e)}")
+        
+        apply_button = GlassmorphicButton(
+            button_frame,
+            text="Apply",
+            command=apply_range,
+            width=80,
+            height=35
+        )
+        apply_button.pack(side="right", padx=(10, 0))
+        
+        cancel_button = GlassmorphicButton(
+            button_frame,
+            text="Cancel",
+            command=range_popup.destroy,
+            width=80,
+            height=35
+        )
+        cancel_button.pack(side="left")
+    
+    def _show_context_menu(self, event):
+        """Show context menu on right click."""
+        context_menu = ctk.CTkToplevel(self)
+        context_menu.overrideredirect(True)
+        context_menu.configure(fg_color=("#2b2b2b", "#2b2b2b"))
+        
+        # Position menu at mouse
+        canvas_widget = self.canvas.get_tk_widget()
+        x = canvas_widget.winfo_rootx() + int(event.x)
+        y = canvas_widget.winfo_rooty() + int(event.y)
+        context_menu.geometry(f"+{x}+{y}")
+        
+        # Menu items
+        menu_frame = ctk.CTkFrame(
+            context_menu,
+            fg_color=("#FFFFFF22", "#333333"),
+            corner_radius=8
+        )
+        menu_frame.pack(padx=2, pady=2)
+        
+        # Add city comparison
+        add_city_btn = ctk.CTkButton(
+            menu_frame,
+            text="📍 Add City Comparison",
+            command=lambda: [context_menu.destroy(), self._show_add_city_dialog()],
+            width=180,
+            height=30,
+            corner_radius=6,
+            fg_color="transparent",
+            hover_color=("#FFFFFF33", "#444444")
+        )
+        add_city_btn.pack(padx=5, pady=2)
+        
+        # Export chart
+        export_btn = ctk.CTkButton(
+            menu_frame,
+            text="📊 Export Chart",
+            command=lambda: [context_menu.destroy(), self._show_export_dialog()],
+            width=180,
+            height=30,
+            corner_radius=6,
+            fg_color="transparent",
+            hover_color=("#FFFFFF33", "#444444")
+        )
+        export_btn.pack(padx=5, pady=2)
+        
+        # Reset zoom
+        reset_btn = ctk.CTkButton(
+            menu_frame,
+            text="🏠 Reset Zoom",
+            command=lambda: [context_menu.destroy(), self._reset_zoom()],
+            width=180,
+            height=30,
+            corner_radius=6,
+            fg_color="transparent",
+            hover_color=("#FFFFFF33", "#444444")
+        )
+        reset_btn.pack(padx=5, pady=2)
+        
+        # Auto-hide menu
+        def hide_menu():
+            try:
+                context_menu.destroy()
+            except:
+                pass
+        
+        context_menu.after(5000, hide_menu)
+        context_menu.bind('<FocusOut>', lambda e: hide_menu())
+    
+    def _show_add_city_dialog(self):
+        """Show dialog to add city for comparison."""
+        city_popup = ctk.CTkToplevel(self)
+        city_popup.title("Add City Comparison")
+        city_popup.geometry("350x200")
+        city_popup.configure(fg_color=("#1a1a1a", "#1a1a1a"))
+        
+        # Make popup modal
+        city_popup.transient(self)
+        city_popup.grab_set()
+        
+        # Center popup
+        city_popup.update_idletasks()
+        x = (city_popup.winfo_screenwidth() // 2) - (175)
+        y = (city_popup.winfo_screenheight() // 2) - (100)
+        city_popup.geometry(f"350x200+{x}+{y}")
+        
+        # Content frame
+        content_frame = GlassmorphicFrame(
+            city_popup,
+            fg_color=("#FFFFFF11", "#000000AA"),
+            corner_radius=15
+        )
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            content_frame,
+            text="📍 Add City for Comparison",
+            font=("Segoe UI", 14, "bold"),
+            text_color=("#FFFFFF", "#E0E0E0")
+        )
+        title_label.pack(pady=(15, 15))
+        
+        # City input
+        city_entry = ctk.CTkEntry(
+            content_frame,
+            placeholder_text="Enter city name (e.g., London, UK)",
+            width=250,
+            height=35
+        )
+        city_entry.pack(pady=10)
+        
+        # Buttons
+        button_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        button_frame.pack(fill="x", padx=20, pady=(15, 15))
+        
+        def add_city():
+            city_name = city_entry.get().strip()
+            if city_name:
+                self._add_city_comparison(city_name)
+                city_popup.destroy()
+        
+        add_button = GlassmorphicButton(
+            button_frame,
+            text="Add",
+            command=add_city,
+            width=80,
+            height=35
+        )
+        add_button.pack(side="right", padx=(10, 0))
+        
+        cancel_button = GlassmorphicButton(
+            button_frame,
+            text="Cancel",
+            command=city_popup.destroy,
+            width=80,
+            height=35
+        )
+        cancel_button.pack(side="left")
+        
+        # Focus on entry
+        city_entry.focus()
+    
+    def _add_city_comparison(self, city_name: str):
+        """Add city for temperature comparison."""
+        try:
+            # Get color for this city
+            color = self.city_colors[self.color_index % len(self.city_colors)]
+            self.color_index += 1
+            
+            # Create comparison data (mock data for demo)
+            comparison_data = self._generate_mock_city_data(city_name)
+            
+            comparison = CityComparison(
+                city_name=city_name,
+                data_points=comparison_data,
+                color=color,
+                line_style='-',
+                marker_style='o',
+                visible=True
+            )
+            
+            self.city_comparisons[city_name] = comparison
+            self._update_chart_display()
+            
+            self._show_success_message(f"Added {city_name} for comparison")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to add city comparison: {e}")
+            self._show_error(f"Failed to add city: {str(e)}")
+    
+    def _generate_mock_city_data(self, city_name: str) -> List[TemperatureDataPoint]:
+        """Generate mock temperature data for city comparison."""
+        # This would normally fetch real data from weather API
+        import random
+        
+        data_points = []
+        base_temp = random.uniform(-10, 35)  # Random base temperature
+        
+        for i, point in enumerate(self.current_data):
+            # Add some variation to make it realistic
+            temp_variation = random.uniform(-5, 5)
+            seasonal_factor = np.sin(i * 0.1) * 3  # Seasonal variation
+            
+            mock_temp = base_temp + temp_variation + seasonal_factor
+            
+            data_points.append(TemperatureDataPoint(
+                timestamp=point.timestamp,
+                temperature=mock_temp,
+                feels_like=mock_temp + random.uniform(-2, 2),
+                humidity=random.uniform(30, 90),
+                pressure=random.uniform(990, 1030),
+                wind_speed=random.uniform(0, 25),
+                condition=random.choice(['Clear', 'Cloudy', 'Partly Cloudy', 'Rain']),
+                location=city_name
+            ))
+        
+        return data_points
+    
+    def _show_help_dialog(self):
+        """Show help dialog with keyboard shortcuts."""
+        help_popup = ctk.CTkToplevel(self)
+        help_popup.title("Chart Help")
+        help_popup.geometry("500x400")
+        help_popup.configure(fg_color=("#1a1a1a", "#1a1a1a"))
+        
+        # Center popup
+        help_popup.update_idletasks()
+        x = (help_popup.winfo_screenwidth() // 2) - (250)
+        y = (help_popup.winfo_screenheight() // 2) - (200)
+        help_popup.geometry(f"500x400+{x}+{y}")
+        
+        # Content frame
+        content_frame = GlassmorphicFrame(
+            help_popup,
+            fg_color=("#FFFFFF11", "#000000AA"),
+            corner_radius=15
+        )
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            content_frame,
+            text="❓ Chart Help & Shortcuts",
+            font=("Segoe UI", 16, "bold"),
+            text_color=("#FFFFFF", "#E0E0E0")
+        )
+        title_label.pack(pady=(20, 20))
+        
+        # Help content
+        help_text = """
+🖱️ Mouse Controls:
+• Hover over data points for detailed tooltips
+• Left click on points for detailed popup
+• Right click for context menu
+• Scroll wheel to zoom in/out
+
+⌨️ Keyboard Shortcuts:
+• R - Refresh chart data
+• E - Export chart
+• H - Show this help dialog
+• Escape - Reset zoom
+
+🎛️ Interactive Features:
+• Switch between chart types (Line, Area, Bar, etc.)
+• Toggle weather event annotations
+• Toggle trend analysis display
+• Add multiple cities for comparison
+• Export in various formats (PNG, PDF, CSV)
+
+📊 Chart Types:
+• Line - Standard temperature trend
+• Area - Temperature range visualization
+• Bar - Discrete temperature readings
+• Scatter - Temperature vs. other metrics
+• Candlestick - Temperature range analysis
+        """
+        
+        help_label = ctk.CTkLabel(
+            content_frame,
+            text=help_text.strip(),
+            font=("Segoe UI", 11),
+            text_color=("#CCCCCC", "#AAAAAA"),
+            justify="left"
+        )
+        help_label.pack(pady=10, padx=20)
+        
+        # Close button
+        close_button = GlassmorphicButton(
+            content_frame,
+            text="Close",
+            command=help_popup.destroy,
+            width=100,
+            height=35
+        )
+        close_button.pack(pady=(10, 20))
+    
+    def add_city_comparison(self, city_name: str, data_points: List[TemperatureDataPoint]):
+        """Public method to add city comparison data."""
+        color = self.city_colors[self.color_index % len(self.city_colors)]
+        self.color_index += 1
+        
+        comparison = CityComparison(
+            city_name=city_name,
+            data_points=data_points,
+            color=color,
+            line_style='-',
+            marker_style='o',
+            visible=True
+        )
+        
+        self.city_comparisons[city_name] = comparison
+        self._update_chart_display()
+    
+    def remove_city_comparison(self, city_name: str):
+        """Remove city from comparison."""
+        if city_name in self.city_comparisons:
+            del self.city_comparisons[city_name]
+            self._update_chart_display()
+    
+    def toggle_city_visibility(self, city_name: str):
+        """Toggle visibility of city comparison."""
+        if city_name in self.city_comparisons:
+            self.city_comparisons[city_name].visible = not self.city_comparisons[city_name].visible
+            self._update_chart_display()
+    
+    def get_chart_analytics(self) -> Optional[ChartAnalytics]:
+        """Get current chart analytics."""
+        return self.analytics
+    
+    def set_chart_config(self, config: ChartConfig):
+        """Update chart configuration."""
+        self.config = config
+        self.chart_controller.config = config
+        self.refresh_chart()
+    
+    def update_current_weather(self, weather_data):
+        """Update chart with current weather data."""
+        try:
+            # Extract temperature from weather data
+            if hasattr(weather_data, 'temperature'):
+                temp = weather_data.temperature
+            elif hasattr(weather_data, 'temp'):
+                temp = weather_data.temp
+            else:
+                temp = 20.0  # Default
+            
+            # Extract location
+            if hasattr(weather_data, 'location'):
+                location = weather_data.location
+            elif hasattr(weather_data, 'city'):
+                location = f"{weather_data.city}, {weather_data.country}"
+            else:
+                location = "Current Location"
+            
+            # Add current data point to chart
+            current_time = datetime.now()
+            
+            # Update chart title with current location
+            self.config.title = f"Temperature Trends - {location}"
+            
+            # Add annotation for current weather
+            condition = "Clear"
+            if hasattr(weather_data, 'condition'):
+                condition = weather_data.condition
+            elif hasattr(weather_data, 'description'):
+                condition = weather_data.description
+            
+            # Create current weather data point
+            current_point = TemperatureDataPoint(
+                timestamp=current_time,
+                temperature=temp,
+                feels_like=getattr(weather_data, 'feels_like', temp),
+                humidity=getattr(weather_data, 'humidity', 50),
+                pressure=getattr(weather_data, 'pressure', 1013),
+                wind_speed=getattr(weather_data, 'wind_speed', 0),
+                condition=condition,
+                location=location
+            )
+            
+            # Add to current data if not empty
+            if self.current_data:
+                # Replace the last point if it's very recent (within 5 minutes)
+                if (current_time - self.current_data[-1].timestamp).total_seconds() < 300:
+                    self.current_data[-1] = current_point
+                else:
+                    self.current_data.append(current_point)
+            
+            # Refresh the chart with updated data
+            self.refresh_chart()
+            
+            # Show success message
+            self._show_success_message(f"Updated: {temp:.1f}°C in {location}")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating chart with weather data: {e}")
+            self._show_error("Failed to update chart with weather data")

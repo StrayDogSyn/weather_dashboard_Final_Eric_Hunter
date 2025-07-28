@@ -19,6 +19,8 @@ from .components.hunter_widgets import (
     Hunter3DEntry,
     Hunter3DFrame
 )
+from ..features.temperature_graph.advanced_chart_widget import AdvancedTemperatureChart
+from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
 
 # Configure CustomTkinter globally
 ctk.set_appearance_mode("dark")
@@ -198,49 +200,33 @@ class HunterDashboardUI:
         self.condition_label.pack(pady=5)
     
     def create_temperature_graph_tab(self):
-        """Create temperature visualization with matplotlib"""
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-        from datetime import datetime, timedelta
-        import random
+        """Create advanced interactive temperature visualization"""
+        from ..features.temperature_graph.advanced_chart_widget import AdvancedTemperatureChart
+        from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
         
         temp_tab = self.tabview.tab("Temperature Graph")
         
-        # Graph container
-        graph_frame = HunterGlassFrame(temp_tab)
-        graph_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Create advanced chart configuration
+        chart_config = ChartConfig(
+            chart_type=ChartType.LINE,
+            time_range=TimeRange.LAST_24_HOURS,
+            show_trends=True,
+            show_annotations=True,
+            show_grid=True,
+            animate_transitions=True,
+            glassmorphic_style=True
+        )
         
-        # Create matplotlib figure with Hunter theme
-        fig, ax = plt.subplots(figsize=(8, 5), facecolor='#2F4F4F')
-        ax.set_facecolor('#1C1C1C')
+        # Create advanced temperature chart widget
+        self.advanced_chart = AdvancedTemperatureChart(
+            temp_tab,
+            config=chart_config,
+            weather_service=self.weather_service
+        )
+        self.advanced_chart.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Generate sample 24-hour temperature data
-        hours = [datetime.now() - timedelta(hours=i) for i in range(24, 0, -1)]
-        temps = [20 + random.uniform(-5, 10) for _ in range(24)]
-        
-        # Plot with Hunter theme colors
-        ax.plot(hours, temps, color='#355E3B', linewidth=3, marker='o',
-                markersize=4, markerfacecolor='#C0C0C0')
-        
-        # Style with Hunter colors
-        ax.set_title('24-Hour Temperature Trend', color='#C0C0C0', fontsize=14)
-        ax.set_ylabel('Temperature (°C)', color='#C0C0C0')
-        ax.grid(True, alpha=0.3, color='#C0C0C080')
-        ax.tick_params(colors='#C0C0C0')
-        
-        # Format time axis
-        import matplotlib.dates as mdates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        
-        # Embed in CustomTkinter
-        canvas = FigureCanvasTkAgg(fig, graph_frame)
-        canvas.get_tk_widget().pack(fill="both", expand=True)
-        
-        # Store for updates
-        self.temp_graph_canvas = canvas
-        self.temp_graph_ax = ax
+        # Initialize with sample data if no weather service data available
+        self.advanced_chart.refresh_chart()
     
     def create_weather_journal_tab(self):
         """Create weather journal with text editing"""
@@ -1025,6 +1011,13 @@ class HunterDashboardUI:
         if hasattr(weather_data, 'location'):
             self.location_entry.delete(0, 'end')
             self.location_entry.insert(0, weather_data.location.split(',')[0])
+        
+        # Update advanced chart widget if available
+        if hasattr(self, 'advanced_chart'):
+            try:
+                self.advanced_chart.update_current_weather(weather_data)
+            except Exception as e:
+                print(f"Failed to update chart: {e}")
     
     def update_weather_display_with_data(self, weather_data):
         """Legacy method - redirects to new robust method"""
