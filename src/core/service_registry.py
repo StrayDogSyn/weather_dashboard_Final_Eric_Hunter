@@ -29,8 +29,8 @@ from ..services.logging_service_impl import LoggingServiceImpl, MockLoggingServi
 
 # Import existing services for adaptation
 from ..services.weather_service import WeatherService
-from ..database import Database
-from ..config import ConfigManager
+from data.database import Database
+from .config_manager import ConfigManager
 
 
 class ServiceRegistry:
@@ -65,24 +65,25 @@ class ServiceRegistry:
         self._configuration_mode = 'production'
         
         # Register configuration service first (other services depend on it)
-        self._container.register_singleton(
+        self._container.register_factory(
             IConfigurationService,
             lambda: ConfigurationServiceImpl(
-                config_manager=ConfigManager(config_path)
-            )
+                config_file_path=config_path
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register logging service (depends on configuration)
-        self._container.register_singleton(
+        self._container.register_factory(
             ILoggingService,
             lambda: LoggingServiceImpl(
-                config_service=self._container.resolve(IConfigurationService),
-                logger_name="WeatherDashboard"
-            )
+                config_service=self._container.resolve(IConfigurationService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register cache service (depends on logging)
-        self._container.register_singleton(
+        self._container.register_factory(
             ICacheService,
             lambda: CacheServiceImpl(
                 logger=self._container.resolve(ILoggingService),
@@ -90,26 +91,29 @@ class ServiceRegistry:
                 default_ttl_seconds=3600,
                 file_cache_dir=cache_dir or "cache",
                 enable_file_cache=True
-            )
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register database service (depends on configuration and logging)
-        self._container.register_singleton(
+        self._container.register_factory(
             IDatabase,
             lambda: DatabaseImpl(
-                database=Database(database_path),
-                logger=self._container.resolve(ILoggingService)
-            )
+                config_service=self._container.resolve(IConfigurationService),
+                logger_service=self._container.resolve(ILoggingService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register weather service (depends on configuration, logging, and cache)
-        self._container.register_singleton(
+        self._container.register_factory(
             IWeatherService,
             lambda: WeatherServiceImpl(
-                weather_service=WeatherService(),
-                logger=self._container.resolve(ILoggingService),
-                cache_service=self._container.resolve(ICacheService)
-            )
+                config_service=self._container.resolve(IConfigurationService),
+                cache_service=self._container.resolve(ICacheService),
+                logger_service=self._container.resolve(ILoggingService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register external service interfaces (to be implemented)
@@ -133,33 +137,38 @@ class ServiceRegistry:
         self._configuration_mode = 'testing'
         
         # Register mock configuration service
-        self._container.register_singleton(
+        self._container.register_factory(
             IConfigurationService,
-            lambda: MockConfigurationService()
+            lambda: MockConfigurationService(),
+            ServiceLifetime.SINGLETON
         )
         
         # Register mock logging service
-        self._container.register_singleton(
+        self._container.register_factory(
             ILoggingService,
-            lambda: MockLoggingService(capture_logs=True)
+            lambda: MockLoggingService(capture_logs=True),
+            ServiceLifetime.SINGLETON
         )
         
         # Register mock cache service
-        self._container.register_singleton(
+        self._container.register_factory(
             ICacheService,
-            lambda: MockCacheService(should_fail=False)
+            lambda: MockCacheService(should_fail=False),
+            ServiceLifetime.SINGLETON
         )
         
         # Register mock database service
-        self._container.register_singleton(
+        self._container.register_factory(
             IDatabase,
-            lambda: MockDatabase(should_fail=False)
+            lambda: MockDatabase(should_fail=False),
+            ServiceLifetime.SINGLETON
         )
         
         # Register mock weather service
-        self._container.register_singleton(
+        self._container.register_factory(
             IWeatherService,
-            lambda: MockWeatherService(should_fail=False)
+            lambda: MockWeatherService(should_fail=False),
+            ServiceLifetime.SINGLETON
         )
         
         # Register mock external services
@@ -183,24 +192,25 @@ class ServiceRegistry:
         self._configuration_mode = 'development'
         
         # Register configuration service
-        self._container.register_singleton(
+        self._container.register_factory(
             IConfigurationService,
             lambda: ConfigurationServiceImpl(
-                config_manager=ConfigManager(config_path)
-            )
+                config_file_path=config_path
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register logging service with debug level
-        self._container.register_singleton(
+        self._container.register_factory(
             ILoggingService,
             lambda: LoggingServiceImpl(
-                config_service=self._container.resolve(IConfigurationService),
-                logger_name="WeatherDashboard-Dev"
-            )
+                config_service=self._container.resolve(IConfigurationService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register cache service with shorter TTL for development
-        self._container.register_singleton(
+        self._container.register_factory(
             ICacheService,
             lambda: CacheServiceImpl(
                 logger=self._container.resolve(ILoggingService),
@@ -208,26 +218,29 @@ class ServiceRegistry:
                 default_ttl_seconds=300,  # 5 minutes for development
                 file_cache_dir="dev_cache",
                 enable_file_cache=True
-            )
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register database service with development database
-        self._container.register_singleton(
+        self._container.register_factory(
             IDatabase,
             lambda: DatabaseImpl(
-                database=Database("dev_weather.db"),
-                logger=self._container.resolve(ILoggingService)
-            )
+                config_service=self._container.resolve(IConfigurationService),
+                logger_service=self._container.resolve(ILoggingService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register weather service
-        self._container.register_singleton(
+        self._container.register_factory(
             IWeatherService,
             lambda: WeatherServiceImpl(
-                weather_service=WeatherService(),
-                logger=self._container.resolve(ILoggingService),
-                cache_service=self._container.resolve(ICacheService)
-            )
+                config_service=self._container.resolve(IConfigurationService),
+                cache_service=self._container.resolve(ICacheService),
+                logger_service=self._container.resolve(ILoggingService)
+            ),
+            ServiceLifetime.SINGLETON
         )
         
         # Register external services (mock or real based on parameter)
@@ -250,21 +263,24 @@ class ServiceRegistry:
         you would register actual implementations of these services.
         """
         # Placeholder for Gemini service
-        self._container.register_transient(
+        self._container.register_factory(
             IGeminiService,
-            lambda: self._create_placeholder_service("GeminiService")
+            lambda: self._create_placeholder_service("GeminiService"),
+            ServiceLifetime.TRANSIENT
         )
         
         # Placeholder for GitHub service
-        self._container.register_transient(
+        self._container.register_factory(
             IGitHubService,
-            lambda: self._create_placeholder_service("GitHubService")
+            lambda: self._create_placeholder_service("GitHubService"),
+            ServiceLifetime.TRANSIENT
         )
         
         # Placeholder for Spotify service
-        self._container.register_transient(
+        self._container.register_factory(
             ISpotifyService,
-            lambda: self._create_placeholder_service("SpotifyService")
+            lambda: self._create_placeholder_service("SpotifyService"),
+            ServiceLifetime.TRANSIENT
         )
     
     def _register_mock_external_services(self) -> None:
@@ -388,12 +404,8 @@ class ServiceRegistry:
                     'error': str(e)
                 }
         
-        # Check for circular dependencies
-        try:
-            self._container._check_circular_dependencies()
-        except Exception as e:
-            validation_results['is_valid'] = False
-            validation_results['errors'].append(f"Circular dependency detected: {str(e)}")
+        # Note: Circular dependency detection is handled during resolution
+        # by the DependencyContainer's _resolution_stack mechanism
         
         return validation_results
     

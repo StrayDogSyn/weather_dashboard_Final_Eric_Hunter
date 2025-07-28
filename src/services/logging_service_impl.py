@@ -13,7 +13,7 @@ Version: 1.0.0 (Dependency Injection Implementation)
 import logging
 import logging.handlers
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
 

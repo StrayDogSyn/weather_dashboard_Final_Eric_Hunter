@@ -167,7 +167,7 @@ class WeatherDashboardApp:
             # Initialize dashboard UI with injected services
             # Note: This demonstrates interface-based dependency injection
             self.ui = HunterDashboardUI(
-                root=self.root,
+                parent=self.root,
                 weather_service=self._weather_service,  # ✅ Injected IWeatherService
                 database=self._database,                # ✅ Injected IDatabase
                 settings=self._config_service.get_all_settings(),  # ✅ From IConfigurationService
@@ -188,9 +188,9 @@ class WeatherDashboardApp:
             location: The location to get weather data for
         """
         try:
-            if self.weather_service:
-                weather_data = self.weather_service.get_weather(location)
-                if weather_data and self.dashboard_ui:
+            if self._weather_service:
+                weather_data = self._weather_service.get_weather(location)
+                if weather_data and self.ui:
                     # Convert weather data to dictionary format
                     weather_dict = {
                         'location': getattr(weather_data, 'location', location),
@@ -200,15 +200,15 @@ class WeatherDashboardApp:
                         'wind_speed': getattr(weather_data, 'wind_speed', 'N/A'),
                         'pressure': getattr(weather_data, 'pressure', 'N/A')
                     }
-                    self.dashboard_ui.update_weather_display(weather_dict)
+                    self.ui.update_weather_display(weather_dict)
                     self.current_weather = weather_data
-                    logger.info(f"Weather data updated for {location}")
+                    self._logger.info(f"Weather data updated for {location}")
                 else:
-                    logger.warning(f"Failed to get weather data for {location}")
+                    self._logger.warning(f"Failed to get weather data for {location}")
             else:
-                logger.error("Weather service not available")
+                self._logger.error("Weather service not available")
         except Exception as e:
-            logger.error(f"Error handling weather request: {e}")
+            self._logger.error(f"Error handling weather request: {e}")
 
     def _setup_event_handlers(self):
         """Setup application-wide event handlers with dependency injection.
@@ -235,7 +235,7 @@ class WeatherDashboardApp:
         """Handle weather data updates across all components."""
         self.current_weather = weather_data
         
-        if self.dashboard_ui:
+        if self.ui:
             # Convert weather data to dictionary format for UI
             weather_dict = {
                 'location': getattr(weather_data, 'location', 'Unknown'),
@@ -245,9 +245,9 @@ class WeatherDashboardApp:
                 'wind_speed': getattr(weather_data, 'wind_speed', 'N/A'),
                 'pressure': getattr(weather_data, 'pressure', 'N/A')
             }
-            self.dashboard_ui.update_weather_display(weather_dict)
+            self.ui.update_weather_display(weather_dict)
         
-        logger.debug(f"Weather data updated: {getattr(weather_data, 'location', 'Unknown')} - {getattr(weather_data, 'temperature', 'N/A')}°")
+        self._logger.debug(f"Weather data updated: {getattr(weather_data, 'location', 'Unknown')} - {getattr(weather_data, 'temperature', 'N/A')}°")
 
     def _show_error_dialog(self, title: str, message: str, error_type: str = "Error"):
         """Show error dialog to user."""
@@ -265,7 +265,7 @@ class WeatherDashboardApp:
             daemon=True
         )
         self.update_thread.start()
-        logger.info("Background update thread started")
+        self._logger.info("Background update thread started")
 
     def _background_update_loop(self):
         """Background loop for periodic data updates."""
@@ -274,10 +274,10 @@ class WeatherDashboardApp:
         while self.is_running:
             try:
                 # Update weather data every 10 minutes
-                if self.weather_service and self.dashboard_ui and self.current_weather:
+                if self._weather_service and self.ui and self.current_weather:
                     # Get location from current weather data
                     location = getattr(self.current_weather, 'location', 'New York')
-                    weather_data = self.weather_service.get_weather(location)
+                    weather_data = self._weather_service.get_weather(location)
                     if weather_data:
                         # Schedule UI update on main thread
                         self.root.after(0, lambda data=weather_data: self._on_weather_update(data))
@@ -286,7 +286,7 @@ class WeatherDashboardApp:
                 time.sleep(10 * 60)  # Convert minutes to seconds
 
             except Exception as e:
-                logger.error(f"Background update error: {e}")
+                self._logger.error(f"Background update error: {e}")
                 time.sleep(60)  # Wait 1 minute before retrying
 
     def run(self) -> int:
@@ -336,33 +336,33 @@ class WeatherDashboardApp:
                 "Welcome to Weather Dashboard!\n\n"
                 "Features: Temperature Graphs, Weather Journal, Activity Suggestions"
             )
-            if self.github_service:
+            if self._github_service:
                 welcome_text += ", Team Collaboration"
 
-            logger.info("Ready - Welcome to Weather Dashboard!")
+            self._logger.info("Ready - Welcome to Weather Dashboard!")
 
     def on_closing(self):
         """Handle application closing."""
         try:
-            logger.info("Application closing initiated")
+            self._logger.info("Application closing initiated")
 
             # Stop background updates
             self.is_running = False
 
             # Database cleanup (SQLite connections are auto-managed)
-            if self.database:
-                logger.info("Database cleanup completed")
+            if self._database:
+                self._logger.info("Database cleanup completed")
 
             # Cleanup UI
-            if self.dashboard_ui:
-                self.dashboard_ui.cleanup()
+            if self.ui:
+                self.ui.cleanup()
             
             # Destroy UI
             if self.root:
                 self.root.destroy()
 
         except Exception as e:
-            logger.error(f"Error during application closing: {e}")
+            self._logger.error(f"Error during application closing: {e}")
         finally:
             # Force exit if needed
             sys.exit(0)
@@ -389,7 +389,7 @@ class WeatherDashboardApp:
             # Clear cache through injected service
             if self._cache_service:
                 try:
-                    self._cache_service.clear_all()
+                    self._cache_service.clear()
                     self._logger.info("Cache cleared through dependency injection")
                 except Exception as e:
                     self._logger.warning(f"Error clearing cache: {e}")

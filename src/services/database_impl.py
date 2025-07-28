@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..core.interfaces import IDatabase, WeatherDataDTO, JournalEntryDTO, UserPreferenceDTO, IConfigurationService, ILoggingService
-from ..database import Database, DatabaseError
+from data.database import Database, DatabaseError
 
 
 class DatabaseImpl(IDatabase):
@@ -204,6 +204,118 @@ class DatabaseImpl(IDatabase):
         except Exception as e:
             self._log_error(f"Error getting weather history for {location}: {e}")
             return []
+    
+    def get_recent_weather(self, limit: int = 10) -> List[WeatherDataDTO]:
+        """Get recent weather data records.
+        
+        Args:
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of weather data records
+        """
+        try:
+            # Get recent data from legacy database
+            recent_data = self._database.get_recent_weather_data(limit)
+            
+            # Convert to DTOs
+            weather_dtos = []
+            for data in recent_data:
+                try:
+                    dto = self._convert_weather_to_dto(data)
+                    weather_dtos.append(dto)
+                except Exception as e:
+                    self._log_warning(f"Error converting weather data to DTO: {e}")
+                    continue
+            
+            self._log_info(f"Retrieved {len(weather_dtos)} recent weather records")
+            return weather_dtos
+            
+        except Exception as e:
+            self._log_error(f"Error getting recent weather data: {e}")
+            return []
+    
+    def get_weather_by_location(self, location: str, limit: int = 5) -> List[WeatherDataDTO]:
+        """Get weather data for specific location.
+        
+        Args:
+            location: Location name to search for
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of weather data records
+        """
+        try:
+            # Get data from legacy database
+            location_data = self._database.get_weather_by_location(location, limit)
+            
+            # Convert to DTOs
+            weather_dtos = []
+            for data in location_data:
+                try:
+                    dto = self._convert_weather_to_dto(data)
+                    weather_dtos.append(dto)
+                except Exception as e:
+                    self._log_warning(f"Error converting weather data to DTO: {e}")
+                    continue
+            
+            self._log_info(f"Retrieved {len(weather_dtos)} weather records for location {location}")
+            return weather_dtos
+            
+        except Exception as e:
+            self._log_error(f"Error getting weather data for location {location}: {e}")
+            return []
+    
+    def get_preference(self, key: str) -> Optional[UserPreferenceDTO]:
+        """Get a user preference.
+        
+        Args:
+            key: Preference key
+            
+        Returns:
+            User preference or None if not found
+        """
+        try:
+            # Get preference from legacy database
+            pref_data = self._database.get_user_preference(key)
+            
+            if pref_data:
+                # Convert to DTO
+                dto = self._convert_preference_to_dto(pref_data)
+                self._log_info(f"Retrieved user preference: {key}")
+                return dto
+            else:
+                self._log_info(f"User preference not found: {key}")
+                return None
+                
+        except Exception as e:
+            self._log_error(f"Error getting user preference {key}: {e}")
+            return None
+    
+    def set_preference(self, preference: UserPreferenceDTO) -> None:
+        """Set a user preference.
+        
+        Args:
+            preference: User preference to set
+        """
+        try:
+            # Convert DTO to format for legacy database
+            pref_data = {
+                'key': preference.key,
+                'value': preference.value,
+                'updated_at': preference.updated_at.isoformat()
+            }
+            
+            # Save to legacy database
+            success = self._database.set_user_preference(preference.key, preference.value)
+            
+            if success:
+                self._log_info(f"User preference set: {preference.key}")
+            else:
+                self._log_warning(f"Failed to set user preference: {preference.key}")
+                
+        except Exception as e:
+            self._log_error(f"Error setting user preference {preference.key}: {e}")
     
     def save_journal_entry(self, journal_entry: JournalEntryDTO) -> bool:
         """Save a journal entry to the database.
@@ -595,6 +707,78 @@ class MockDatabase(IDatabase):
         preferences = list(self._user_preferences.values())
         self._log_info(f"MockDatabase returning {len(preferences)} user preferences")
         return preferences
+    
+    def get_recent_weather(self, limit: int = 10) -> List[WeatherDataDTO]:
+        """Get recent weather data from mock storage.
+        
+        Args:
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of recent weather data
+        """
+        if self._should_fail:
+            self._log_info("MockDatabase simulating get recent weather failure")
+            return []
+        
+        # Return most recent entries (last added)
+        recent_data = self._weather_data[-limit:] if len(self._weather_data) > limit else self._weather_data
+        self._log_info(f"MockDatabase returning {len(recent_data)} recent weather records")
+        return recent_data
+    
+    def get_weather_by_location(self, location: str, limit: int = 5) -> List[WeatherDataDTO]:
+        """Get weather data for specific location from mock storage.
+        
+        Args:
+            location: Location name to search for
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of weather data for the location
+        """
+        if self._should_fail:
+            self._log_info("MockDatabase simulating get weather by location failure")
+            return []
+        
+        # Filter by location
+        location_data = [data for data in self._weather_data 
+                        if data.location.lower() == location.lower()]
+        
+        # Apply limit
+        limited_data = location_data[:limit] if len(location_data) > limit else location_data
+        
+        self._log_info(f"MockDatabase returning {len(limited_data)} weather records for location {location}")
+        return limited_data
+    
+    def get_preference(self, key: str) -> Optional[UserPreferenceDTO]:
+        """Get a user preference from mock storage.
+        
+        Args:
+            key: Preference key
+            
+        Returns:
+            User preference or None if not found
+        """
+        if self._should_fail:
+            self._log_info("MockDatabase simulating get preference failure")
+            return None
+        
+        preference = self._user_preferences.get(key)
+        self._log_info(f"MockDatabase returning preference for key: {key}")
+        return preference
+    
+    def set_preference(self, preference: UserPreferenceDTO) -> None:
+        """Set a user preference in mock storage.
+        
+        Args:
+            preference: User preference to set
+        """
+        if self._should_fail:
+            self._log_info("MockDatabase simulating set preference failure")
+            return
+        
+        self._user_preferences[preference.key] = preference
+        self._log_info(f"MockDatabase set preference: {preference.key}")
     
     def test_connection(self) -> bool:
         """Test mock database connection.

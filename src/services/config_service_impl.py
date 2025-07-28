@@ -381,6 +381,54 @@ class ConfigurationServiceImpl(IConfigurationService):
         except Exception as e:
             self._log_error(f"Error getting configuration info: {e}")
             return {}
+    
+    # ============================================================================
+    # IConfigurationService Interface Implementation
+    # ============================================================================
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value (IConfigurationService interface method).
+        
+        Args:
+            key: Configuration key
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value
+        """
+        return self.get_setting(key, default)
+    
+    def set(self, key: str, value: Any) -> None:
+        """Set configuration value (IConfigurationService interface method).
+        
+        Args:
+            key: Configuration key
+            value: Configuration value
+        """
+        self.set_setting(key, value)
+    
+    def get_section(self, section: str) -> Dict[str, Any]:
+        """Get entire configuration section (IConfigurationService interface method).
+        
+        Args:
+            section: Section name
+            
+        Returns:
+            Dictionary of configuration values
+        """
+        try:
+            # Get section from custom configuration
+            section_data = self._get_nested_value(self._custom_config, section, {})
+            if isinstance(section_data, dict):
+                return section_data.copy()
+            
+            # If not found or not a dict, return empty dict
+            self._log_warning(f"Section '{section}' not found or not a dictionary")
+            return {}
+            
+        except Exception as e:
+            self._log_error(f"Error getting section {section}: {e}")
+            return {}
 
 
 class MockConfigurationService(IConfigurationService):
@@ -524,3 +572,54 @@ class MockConfigurationService(IConfigurationService):
         
         self._log_info("MockConfigurationService returning configuration info")
         return info
+    
+    # ============================================================================
+    # IConfigurationService Interface Implementation
+    # ============================================================================
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value (IConfigurationService interface method).
+        
+        Args:
+            key: Configuration key
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value
+        """
+        return self.get_setting(key, default)
+    
+    def set(self, key: str, value: Any) -> None:
+        """Set configuration value (IConfigurationService interface method).
+        
+        Args:
+            key: Configuration key
+            value: Configuration value
+        """
+        self.set_setting(key, value)
+    
+    def get_section(self, section: str) -> Dict[str, Any]:
+        """Get entire configuration section (IConfigurationService interface method).
+        
+        Args:
+            section: Section name
+            
+        Returns:
+            Dictionary of configuration values
+        """
+        if self._should_fail:
+            self._log_info(f"MockConfigurationService simulating failure for get_section: {section}")
+            return {}
+        
+        # Filter settings that start with the section prefix
+        section_prefix = f"{section}."
+        section_data = {}
+        
+        for key, value in self._settings.items():
+            if key.startswith(section_prefix):
+                # Remove the section prefix from the key
+                sub_key = key[len(section_prefix):]
+                section_data[sub_key] = value
+        
+        self._log_info(f"MockConfigurationService returning section {section} with {len(section_data)} items")
+        return section_data

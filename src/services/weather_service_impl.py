@@ -131,6 +131,21 @@ class WeatherServiceImpl(IWeatherService):
             self._log_error(f"Error getting current weather for {location}: {e}")
             return None
     
+    def get_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
+        """Get weather data for a location (backward compatibility wrapper).
+        
+        This method provides backward compatibility for code that expects
+        a 'get_weather' method instead of 'get_current_weather'.
+        
+        Args:
+            location: Location name or coordinates
+            use_cache: Whether to use cached data if available
+            
+        Returns:
+            Weather data or None if unavailable
+        """
+        return self.get_current_weather(location, use_cache)
+    
     async def _async_get_current_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
         """Async implementation of get_current_weather.
         
@@ -390,6 +405,21 @@ class MockWeatherService(IWeatherService):
         
         self._log_info(f"MockWeatherService returning data for {location}")
         return mock_data
+    
+    def get_weather(self, location: str, use_cache: bool = True) -> Optional[WeatherDataDTO]:
+        """Get weather data for a location (backward compatibility wrapper).
+        
+        This method provides backward compatibility for code that expects
+        a 'get_weather' method instead of 'get_current_weather'.
+        
+        Args:
+            location: Location name or coordinates
+            use_cache: Whether to use cached data if available
+            
+        Returns:
+            Weather data or None if unavailable
+        """
+        return self.get_current_weather(location, use_cache)
     
     def get_forecast(self, location: str, days: int = 5) -> List[WeatherDataDTO]:
         """Get mock weather forecast.
