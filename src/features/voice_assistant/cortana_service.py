@@ -374,22 +374,42 @@ class CortanaService(LoggerMixin):
             )
         
         try:
-            location = command.parameters.get('location', 'your current location')
+            location = command.parameters.get('location', 'New York')
             
-            # For demo purposes, provide a simple response
-            # In a real implementation, you would call self.weather_service
-            response_text = f"The current weather in {location} is partly cloudy with a temperature of 72 degrees Fahrenheit."
+            # Get real weather data from the weather service
+            weather_data = None
+            if hasattr(self.weather_service, 'get_current_weather'):
+                weather_data = self.weather_service.get_current_weather(location)
+            elif hasattr(self.weather_service, 'get_weather'):
+                weather_data = self.weather_service.get_weather(location)
             
-            return VoiceResponse(
-                text=response_text,
-                response_type=ResponseType.WEATHER,
-                should_speak=True,
-                data={'location': location, 'type': 'current'}
-            )
+            if weather_data:
+                # Format the response with real data
+                temp = getattr(weather_data, 'temperature', 'unknown')
+                condition = getattr(weather_data, 'condition', 'unknown')
+                humidity = getattr(weather_data, 'humidity', None)
+                
+                response_text = f"The current weather in {location} is {condition} with a temperature of {temp} degrees."
+                if humidity:
+                    response_text += f" Humidity is {humidity} percent."
+                
+                return VoiceResponse(
+                    text=response_text,
+                    response_type=ResponseType.WEATHER,
+                    should_speak=True,
+                    data={'location': location, 'type': 'current', 'weather_data': weather_data}
+                )
+            else:
+                return VoiceResponse(
+                    text=f"I couldn't find weather information for {location}. Please try a different location.",
+                    response_type=ResponseType.ERROR,
+                    should_speak=True
+                )
             
         except Exception as e:
+            self.logger.error(f"Error getting weather for {location}: {e}")
             return VoiceResponse(
-                text="I couldn't get the current weather information right now.",
+                text="I couldn't get the current weather information right now. Please try again later.",
                 response_type=ResponseType.ERROR,
                 should_speak=True,
                 data={'error': str(e)}
@@ -397,17 +417,52 @@ class CortanaService(LoggerMixin):
     
     def _handle_weather_forecast(self, command: VoiceCommand) -> VoiceResponse:
         """Handle weather forecast requests."""
-        location = command.parameters.get('location', 'your area')
-        time_period = command.parameters.get('time_period', 'tomorrow')
+        if not self.weather_service:
+            return VoiceResponse(
+                text="Weather service is not available right now.",
+                response_type=ResponseType.ERROR,
+                should_speak=True
+            )
         
-        response_text = f"The forecast for {time_period} in {location} shows sunny skies with a high of 75 and a low of 55 degrees."
-        
-        return VoiceResponse(
-            text=response_text,
-            response_type=ResponseType.WEATHER,
-            should_speak=True,
-            data={'location': location, 'time_period': time_period, 'type': 'forecast'}
-        )
+        try:
+            location = command.parameters.get('location', 'New York')
+            time_period = command.parameters.get('time_period', 'tomorrow')
+            
+            # Try to get forecast data
+            forecast_data = None
+            if hasattr(self.weather_service, 'get_forecast'):
+                forecast_data = self.weather_service.get_forecast(location)
+            elif hasattr(self.weather_service, 'get_current_weather'):
+                # Fallback to current weather if forecast not available
+                forecast_data = self.weather_service.get_current_weather(location)
+            
+            if forecast_data:
+                temp = getattr(forecast_data, 'temperature', 'unknown')
+                condition = getattr(forecast_data, 'condition', 'unknown')
+                
+                response_text = f"The forecast for {time_period} in {location} shows {condition} with temperatures around {temp} degrees."
+                
+                return VoiceResponse(
+                    text=response_text,
+                    response_type=ResponseType.WEATHER,
+                    should_speak=True,
+                    data={'location': location, 'time_period': time_period, 'type': 'forecast'}
+                )
+            else:
+                return VoiceResponse(
+                    text=f"I couldn't find forecast information for {location}. Please try a different location.",
+                    response_type=ResponseType.ERROR,
+                    should_speak=True
+                )
+                
+        except Exception as e:
+            self.logger.error(f"Error getting forecast for {location}: {e}")
+            return VoiceResponse(
+                text="I couldn't get the forecast information right now. Please try again later.",
+                response_type=ResponseType.ERROR,
+                should_speak=True,
+                data={'error': str(e)}
+            )
     
     def _handle_location_set(self, command: VoiceCommand) -> VoiceResponse:
         """Handle location setting commands."""

@@ -760,14 +760,47 @@ class HunterDashboardUI:
         nav_buttons_frame.pack(pady=10)
         
         # Create navigation buttons
-        self.weather_button = HunterGlassButton(nav_buttons_frame, text="🌤️ Weather", width=120)
+        self.weather_button = HunterGlassButton(
+            nav_buttons_frame, 
+            text="🌤️ Weather", 
+            width=120,
+            command=self.show_weather_tab
+        )
         self.weather_button.pack(side="left", padx=5)
         
-        self.settings_button = HunterGlassButton(nav_buttons_frame, text="⚙️ Settings", width=120)
+        self.settings_button = HunterGlassButton(
+            nav_buttons_frame, 
+            text="⚙️ Settings", 
+            width=120,
+            command=self.show_settings_dialog
+        )
         self.settings_button.pack(side="left", padx=5)
         
-        self.about_button = HunterGlassButton(nav_buttons_frame, text="ℹ️ About", width=120)
+        self.about_button = HunterGlassButton(
+            nav_buttons_frame, 
+            text="ℹ️ About", 
+            width=120,
+            command=self.show_about_dialog
+        )
         self.about_button.pack(side="left", padx=5)
+    
+    def show_weather_tab(self):
+        """Switch to weather tab"""
+        if hasattr(self, 'tabview'):
+            self.tabview.set("Weather")
+    
+    def show_settings_dialog(self):
+        """Show settings dialog"""
+        if hasattr(self, 'tabview'):
+            self.tabview.set("Settings")
+    
+    def show_about_dialog(self):
+        """Show about dialog"""
+        import tkinter.messagebox as messagebox
+        messagebox.showinfo(
+            "About", 
+            f"{BRAND_NAME}\n\nA modern weather dashboard with Hunter theme styling.\n\nFeatures:\n• Real-time weather data\n• Temperature graphs\n• Weather journal\n• Voice assistant\n• Team collaboration"
+        )
     
     # Methods removed that caused fg_color errors:
     # - apply_hunter_theme_to_tabview()

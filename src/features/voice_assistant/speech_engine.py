@@ -148,9 +148,9 @@ class SpeechEngine(LoggerMixin):
     
     def _speak_text(self, text: str):
         """Actually speak the text using the engine."""
-        if not self.engine or not self.settings.enabled:
+        if not self.settings.enabled:
             return
-        
+
         try:
             self.is_speaking = True
             
@@ -160,6 +160,17 @@ class SpeechEngine(LoggerMixin):
             # Add delay if configured
             if self.settings.response_delay > 0:
                 time.sleep(self.settings.response_delay)
+            
+            # Reinitialize engine for each speech to avoid state issues
+            try:
+                if self.engine:
+                    self.engine.stop()
+                self.engine = pyttsx3.init()
+                self._configure_engine()
+            except Exception as init_error:
+                self.logger.warning(f"Engine reinit failed, using existing: {init_error}")
+                if not self.engine:
+                    return
             
             # Speak the text
             self.engine.say(text)
