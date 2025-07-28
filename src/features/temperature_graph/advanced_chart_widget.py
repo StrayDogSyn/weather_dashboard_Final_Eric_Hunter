@@ -76,7 +76,7 @@ class GlassmorphicTooltip(ctk.CTkToplevel):
         self.attributes('-alpha', 0.95)
         
         # Glassmorphic styling
-        self.configure(fg_color=("#FFFFFF33", "#000000AA"))
+        self.configure(fg_color=("#F0F0F0", "#2A2A2A"))
         
         # Content frame
         content_frame = ctk.CTkFrame(
@@ -84,7 +84,7 @@ class GlassmorphicTooltip(ctk.CTkToplevel):
             fg_color="transparent",
             corner_radius=12,
             border_width=1,
-            border_color=("#FFFFFF44", "#FFFFFF22")
+            border_color=("#E0E0E0", "#404040")
         )
         content_frame.pack(padx=8, pady=8)
         
@@ -160,17 +160,17 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         """Setup glassmorphic UI components."""
         # Configure main frame
         self.configure(
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=20,
             border_width=2,
-            border_color=("#FFFFFF33", "#FFFFFF11")
+            border_color=("#E0E0E0", "#404040")
         )
         
         # Header frame with controls
-        self.header_frame = GlassmorphicFrame(
+        self.header_frame = GlassFrame(
             self,
             height=80,
-            fg_color=("#FFFFFF08", "#000000CC"),
+            fg_color=("#FAFAFA", "#1A1A1A"),
             corner_radius=15
         )
         self.header_frame.pack(fill="x", padx=15, pady=(15, 10))
@@ -195,10 +195,10 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             width=100,
             height=32,
             corner_radius=8,
-            fg_color=("#FFFFFF22", "#333333"),
-            button_color=("#FFFFFF33", "#444444"),
-            button_hover_color=("#FFFFFF44", "#555555"),
-            dropdown_fg_color=("#FFFFFF22", "#333333")
+            fg_color=("#F0F0F0", "#333333"),
+            button_color=("#E8E8E8", "#444444"),
+            button_hover_color=("#E0E0E0", "#555555"),
+            dropdown_fg_color=("#F0F0F0", "#333333")
         )
         self.time_range_menu.pack(side="left", padx=(0, 15))
         self.time_range_menu.set("7d")
@@ -218,10 +218,10 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             width=120,
             height=32,
             corner_radius=8,
-            fg_color=("#FFFFFF22", "#333333"),
-            button_color=("#FFFFFF33", "#444444"),
-            button_hover_color=("#FFFFFF44", "#555555"),
-            dropdown_fg_color=("#FFFFFF22", "#333333")
+            fg_color=("#F0F0F0", "#333333"),
+            button_color=("#E8E8E8", "#444444"),
+            button_hover_color=("#E0E0E0", "#555555"),
+            dropdown_fg_color=("#F0F0F0", "#333333")
         )
         self.chart_type_menu.pack(side="left", padx=(0, 15))
         self.chart_type_menu.set("Line")
@@ -240,7 +240,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             switch_width=40,
             switch_height=20,
             corner_radius=10,
-            fg_color=("#FFFFFF22", "#333333"),
+            fg_color=("#F0F0F0", "#333333"),
             progress_color=("#4A90E2", "#4A90E2"),
             button_color=("#FFFFFF", "#CCCCCC"),
             button_hover_color=("#F0F0F0", "#DDDDDD")
@@ -257,7 +257,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             switch_width=40,
             switch_height=20,
             corner_radius=10,
-            fg_color=("#FFFFFF22", "#333333"),
+            fg_color=("#F0F0F0", "#333333"),
             progress_color=("#50C878", "#50C878"),
             button_color=("#FFFFFF", "#CCCCCC"),
             button_hover_color=("#F0F0F0", "#DDDDDD")
@@ -266,7 +266,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         self.trends_switch.select()
         
         # Export button
-        self.export_button = GlassmorphicButton(
+        self.export_button = GlassButton(
             right_controls,
             text="📊 Export",
             command=self._show_export_dialog,
@@ -277,7 +277,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         self.export_button.pack(side="left", padx=(0, 10))
         
         # Refresh button
-        self.refresh_button = GlassmorphicButton(
+        self.refresh_button = GlassButton(
             right_controls,
             text="🔄 Refresh",
             command=self.refresh_chart,
@@ -288,19 +288,19 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         self.refresh_button.pack(side="left")
         
         # Chart container
-        self.chart_container = GlassmorphicFrame(
+        self.chart_container = GlassFrame(
             self,
-            fg_color=("#FFFFFF05", "#000000DD"),
+            fg_color=("#FCFCFC", "#1A1A1A"),
             corner_radius=15,
             border_width=1,
-            border_color=("#FFFFFF22", "#FFFFFF11")
+            border_color=("#F0F0F0", "#404040")
         )
         self.chart_container.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         
         # Loading overlay
-        self.loading_overlay = GlassmorphicFrame(
+        self.loading_overlay = GlassFrame(
             self.chart_container,
-            fg_color=("#000000AA", "#000000CC"),
+            fg_color=("#2A2A2A", "#1A1A1A"),
             corner_radius=15
         )
         
@@ -318,7 +318,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             width=200,
             height=8,
             corner_radius=4,
-            fg_color=("#FFFFFF22", "#333333"),
+            fg_color=("#F0F0F0", "#333333"),
             progress_color=("#4A90E2", "#4A90E2")
         )
         self.progress_bar.pack(pady=(10, 0))
@@ -361,10 +361,10 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
     
     def _create_custom_toolbar(self):
         """Create custom glassmorphic navigation toolbar."""
-        toolbar_frame = GlassmorphicFrame(
+        toolbar_frame = GlassFrame(
             self.chart_container,
             height=40,
-            fg_color=("#FFFFFF08", "#000000CC"),
+            fg_color=("#FAFAFA", "#1A1A1A"),
             corner_radius=10
         )
         toolbar_frame.pack(fill="x", padx=10, pady=(0, 10))
@@ -374,7 +374,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         zoom_frame = ctk.CTkFrame(toolbar_frame, fg_color="transparent")
         zoom_frame.pack(side="left", fill="y", padx=10, pady=5)
         
-        self.zoom_in_btn = GlassmorphicButton(
+        self.zoom_in_btn = GlassButton(
             zoom_frame,
             text="🔍+",
             command=self._zoom_in,
@@ -384,7 +384,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         )
         self.zoom_in_btn.pack(side="left", padx=(0, 5))
         
-        self.zoom_out_btn = GlassmorphicButton(
+        self.zoom_out_btn = GlassButton(
             zoom_frame,
             text="🔍-",
             command=self._zoom_out,
@@ -394,7 +394,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         )
         self.zoom_out_btn.pack(side="left", padx=(0, 5))
         
-        self.reset_zoom_btn = GlassmorphicButton(
+        self.reset_zoom_btn = GlassButton(
             zoom_frame,
             text="🏠",
             command=self._reset_zoom,
@@ -775,8 +775,8 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
                 textcoords='offset points',
                 bbox=dict(
                     boxstyle='round,pad=0.3',
-                    facecolor='#FFFFFF22',
-                    edgecolor='#FFFFFF44',
+                    facecolor='#F0F0F0',
+                    edgecolor='#E0E0E0',
                     alpha=0.8
                 ),
                 arrowprops=dict(
@@ -816,7 +816,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             color=trend_color,
             bbox=dict(
                 boxstyle='round,pad=0.3',
-                facecolor='#00000088',
+                facecolor='#2A2A2A',
                 edgecolor=trend_color,
                 alpha=0.8
             ),
@@ -837,8 +837,8 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             color='#CCCCCC',
             bbox=dict(
                 boxstyle='round,pad=0.3',
-                facecolor='#00000088',
-                edgecolor='#FFFFFF44',
+                facecolor='#2A2A2A',
+                edgecolor='#E0E0E0',
                 alpha=0.8
             ),
             verticalalignment='top'
@@ -902,10 +902,10 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
                 fancybox=True,
                 shadow=True,
                 framealpha=0.8,
-                facecolor='#00000088',
-                edgecolor='#FFFFFF44'
+                facecolor='#2A2A2A',
+                edgecolor='#E0E0E0'
             )
-            legend.get_frame().set_facecolor('#00000088')
+            legend.get_frame().set_facecolor('#2A2A2A')
             for text in legend.get_texts():
                 text.set_color('#CCCCCC')
         
@@ -1057,9 +1057,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         popup.geometry(f"400x500+{x}+{y}")
         
         # Content frame
-        content_frame = GlassmorphicFrame(
+        content_frame = GlassFrame(
             popup,
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=15
         )
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1108,7 +1108,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         data_label.pack(pady=20, padx=20)
         
         # Close button
-        close_button = GlassmorphicButton(
+        close_button = GlassButton(
             content_frame,
             text="Close",
             command=popup.destroy,
@@ -1151,9 +1151,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         error_popup.geometry(f"400x200+{x}+{y}")
         
         # Error content
-        error_frame = GlassmorphicFrame(
+        error_frame = GlassFrame(
             error_popup,
-            fg_color=("#FF6B6B22", "#FF6B6B11"),
+            fg_color=("#FFE5E5", "#4A2A2A"),
             corner_radius=15
         )
         error_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1168,7 +1168,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         error_label.pack(expand=True)
         
         # Close button
-        close_button = GlassmorphicButton(
+        close_button = GlassButton(
             error_frame,
             text="Close",
             command=error_popup.destroy,
@@ -1252,9 +1252,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         export_popup.geometry(f"500x400+{x}+{y}")
         
         # Content frame
-        content_frame = GlassmorphicFrame(
+        content_frame = GlassFrame(
             export_popup,
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=15
         )
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1353,7 +1353,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
                 # Show error message
                 self._show_error("Failed to export chart")
         
-        export_button = GlassmorphicButton(
+        export_button = GlassButton(
             button_frame,
             text="📁 Export",
             command=export_chart,
@@ -1362,7 +1362,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         )
         export_button.pack(side="right", padx=(10, 0))
         
-        cancel_button = GlassmorphicButton(
+        cancel_button = GlassButton(
             button_frame,
             text="Cancel",
             command=export_popup.destroy,
@@ -1496,9 +1496,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         success_popup.geometry(f"300x150+{x}+{y}")
         
         # Success content
-        success_frame = GlassmorphicFrame(
+        success_frame = GlassFrame(
             success_popup,
-            fg_color=("#50C87822", "#50C87811"),
+            fg_color=("#E8F5E8", "#2A4A2A"),
             corner_radius=15
         )
         success_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1533,9 +1533,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         range_popup.geometry(f"400x300+{x}+{y}")
         
         # Content frame
-        content_frame = GlassmorphicFrame(
+        content_frame = GlassFrame(
             range_popup,
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=15
         )
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1602,7 +1602,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             except ValueError as e:
                 self._show_error(f"Invalid date range: {str(e)}")
         
-        apply_button = GlassmorphicButton(
+        apply_button = GlassButton(
             button_frame,
             text="Apply",
             command=apply_range,
@@ -1611,7 +1611,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         )
         apply_button.pack(side="right", padx=(10, 0))
         
-        cancel_button = GlassmorphicButton(
+        cancel_button = GlassButton(
             button_frame,
             text="Cancel",
             command=range_popup.destroy,
@@ -1635,7 +1635,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         # Menu items
         menu_frame = ctk.CTkFrame(
             context_menu,
-            fg_color=("#FFFFFF22", "#333333"),
+            fg_color=("#F0F0F0", "#333333"),
             corner_radius=8
         )
         menu_frame.pack(padx=2, pady=2)
@@ -1649,7 +1649,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             height=30,
             corner_radius=6,
             fg_color="transparent",
-            hover_color=("#FFFFFF33", "#444444")
+            hover_color=("#E8E8E8", "#444444")
         )
         add_city_btn.pack(padx=5, pady=2)
         
@@ -1662,7 +1662,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             height=30,
             corner_radius=6,
             fg_color="transparent",
-            hover_color=("#FFFFFF33", "#444444")
+            hover_color=("#E8E8E8", "#444444")
         )
         export_btn.pack(padx=5, pady=2)
         
@@ -1675,7 +1675,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
             height=30,
             corner_radius=6,
             fg_color="transparent",
-            hover_color=("#FFFFFF33", "#444444")
+            hover_color=("#E8E8E8", "#444444")
         )
         reset_btn.pack(padx=5, pady=2)
         
@@ -1707,9 +1707,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         city_popup.geometry(f"350x200+{x}+{y}")
         
         # Content frame
-        content_frame = GlassmorphicFrame(
+        content_frame = GlassFrame(
             city_popup,
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=15
         )
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1742,7 +1742,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
                 self._add_city_comparison(city_name)
                 city_popup.destroy()
         
-        add_button = GlassmorphicButton(
+        add_button = GlassButton(
             button_frame,
             text="Add",
             command=add_city,
@@ -1751,7 +1751,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         )
         add_button.pack(side="right", padx=(10, 0))
         
-        cancel_button = GlassmorphicButton(
+        cancel_button = GlassButton(
             button_frame,
             text="Cancel",
             command=city_popup.destroy,
@@ -1833,9 +1833,9 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         help_popup.geometry(f"500x400+{x}+{y}")
         
         # Content frame
-        content_frame = GlassmorphicFrame(
+        content_frame = GlassFrame(
             help_popup,
-            fg_color=("#FFFFFF11", "#000000AA"),
+            fg_color=("#F8F8F8", "#2A2A2A"),
             corner_radius=15
         )
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -1888,7 +1888,7 @@ class AdvancedChartWidget(GlassFrame, LoggerMixin):
         help_label.pack(pady=10, padx=20)
         
         # Close button
-        close_button = GlassmorphicButton(
+        close_button = GlassButton(
             content_frame,
             text="Close",
             command=help_popup.destroy,

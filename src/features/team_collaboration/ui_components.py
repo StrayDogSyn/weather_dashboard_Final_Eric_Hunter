@@ -10,7 +10,7 @@ import customtkinter as ctk
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 
-from ...ui.components.base_components import (
+from ...ui.components.glass import (
     GlassFrame, GlassButton, GlassLabel, GlassEntry, GlassProgressBar
 )
 from .models import TeamMember, CityData, TeamComparison, ActivityItem

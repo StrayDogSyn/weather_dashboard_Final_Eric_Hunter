@@ -19,7 +19,7 @@ from .components.hunter_widgets import (
     Hunter3DEntry,
     Hunter3DFrame
 )
-from ..features.temperature_graph.advanced_chart_widget import AdvancedTemperatureChart
+from ..features.temperature_graph.advanced_chart_widget import AdvancedChartWidget
 from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
 
 # Configure CustomTkinter globally
@@ -201,8 +201,9 @@ class HunterDashboardUI:
     
     def create_temperature_graph_tab(self):
         """Create advanced interactive temperature visualization"""
-        from ..features.temperature_graph.advanced_chart_widget import AdvancedTemperatureChart
+        from ..features.temperature_graph.advanced_chart_widget import AdvancedChartWidget
         from ..features.temperature_graph.models import ChartConfig, ChartType, TimeRange
+        from ..features.temperature_graph.chart_controller import ChartController
         
         temp_tab = self.tabview.tab("Temperature Graph")
         
@@ -210,18 +211,21 @@ class HunterDashboardUI:
         chart_config = ChartConfig(
             chart_type=ChartType.LINE,
             time_range=TimeRange.LAST_24_HOURS,
-            show_trends=True,
             show_annotations=True,
             show_grid=True,
-            animate_transitions=True,
-            glassmorphic_style=True
+            show_legend=True
+        )
+        
+        # Create chart controller
+        chart_controller = ChartController(
+            database_manager=self.database,
+            config=chart_config
         )
         
         # Create advanced temperature chart widget
-        self.advanced_chart = AdvancedTemperatureChart(
+        self.advanced_chart = AdvancedChartWidget(
             temp_tab,
-            config=chart_config,
-            weather_service=self.weather_service
+            chart_controller=chart_controller
         )
         self.advanced_chart.pack(fill="both", expand=True, padx=10, pady=10)
         

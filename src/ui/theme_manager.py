@@ -474,6 +474,15 @@ class ThemeManager:
 
         return gradient
 
+    def get_current_theme(self) -> 'WeatherTheme':
+        """
+        Get the current weather theme.
+
+        Returns:
+            Current WeatherTheme enum value
+        """
+        return self.current_weather_theme
+
     def get_current_theme_info(self) -> Dict[str, Any]:
         """
         Get information about the current theme state.

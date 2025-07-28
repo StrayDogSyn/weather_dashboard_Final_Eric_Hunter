@@ -21,7 +21,7 @@ from .spotify_service import SpotifyIntegration
 from .ui_components import ActivityUIComponents
 from .activity_controller import ActivityController
 from .utils import ActivityUtils
-from ...ui.components.base_components import (
+from ...ui.components.glass import (
     GlassFrame, GlassLabel, GlassButton
 )
 from ...utils.logger import LoggerMixin

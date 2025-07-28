@@ -58,7 +58,7 @@ class ChartConfig:
     grid_color: str = "#333333"
     text_color: str = "#ffffff"
     line_color: str = "#4A90E2"
-    fill_color: str = "#4A90E240"
+    fill_color: str = "#B8D4F0"
 
     # Chart dimensions
     figure_width: float = 12.0
@@ -104,7 +104,7 @@ class ChartConfig:
             grid_color=data.get('grid_color', "#333333"),
             text_color=data.get('text_color', "#ffffff"),
             line_color=data.get('line_color', "#4A90E2"),
-            fill_color=data.get('fill_color', "#4A90E240"),
+            fill_color=data.get('fill_color', "#B8D4F0"),
             figure_width=data.get('figure_width', 12.0),
             figure_height=data.get('figure_height', 6.0),
             dpi=data.get('dpi', 100)

@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import List, Callable
 
 from ...utils.logger import LoggerMixin
-from ...ui.components.base_components import (
+from ...ui.components.glass import (
     GlassFrame, GlassButton, GlassLabel,
     ComponentSize, GlassEffect
 )

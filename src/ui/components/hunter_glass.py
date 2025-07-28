@@ -123,8 +123,8 @@ class HunterColors:
     SILVER = "#C0C0C0"
     
     # Glassmorphic variants
-    GLASS_PRIMARY = "#355E3B40"
-    GLASS_SECONDARY = "#2F4F4F60"
+    GLASS_PRIMARY = "#7A9A7A"
+    GLASS_SECONDARY = "#6A7F7F"
     GLASS_ACCENT = ("#C0C0C0", "#808080")
     GLASS_HOVER = "#4A7C59"
     

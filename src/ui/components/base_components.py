@@ -9,7 +9,7 @@ For new code, import directly from the glass package:
     from src.ui.components.glass import GlassFrame, GlassButton
     
 This module maintains backward compatibility for existing imports:
-    from src.ui.components.base_components import GlassFrame, GlassButton
+    from src.ui.components.glass import GlassFrame, GlassButton
 """
 
 # Import all components from the new glass package for backward compatibility

@@ -14,7 +14,7 @@ import math
 
 from .core_types import ComponentSize, AnimationState, GlassEffect
 from src.utils.logger import LoggerMixin
-from src.core.theme_manager import ThemeManager, WeatherTheme
+from src.ui.theme_manager import ThemeManager, WeatherTheme
 
 
 class GlassButton(ctk.CTkButton, LoggerMixin):

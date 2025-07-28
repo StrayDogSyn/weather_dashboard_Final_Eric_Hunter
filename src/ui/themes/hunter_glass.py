@@ -33,9 +33,9 @@ class HunterColors:
     BUTTON_PRESSED = ["#2F4F4F", "#355E3B", "#1C1C1C"] # Inverted for depth
     
     # Drop shadows (multi-layer for 3D depth)
-    DROP_SHADOW_LIGHT = "#C0C0C040"   # Silver highlight
-    DROP_SHADOW_DARK = "#1C1C1C80"    # Black depth shadow
-    DROP_SHADOW_INNER = "#355E3B60"   # Inner glow
+    DROP_SHADOW_LIGHT = "#E0E0E0"   # Silver highlight
+    DROP_SHADOW_DARK = "#404040"    # Black depth shadow
+    DROP_SHADOW_INNER = "#7A9A7A"   # Inner glow
 
 class HunterStyling:
     """3D styling and animation constants"""
