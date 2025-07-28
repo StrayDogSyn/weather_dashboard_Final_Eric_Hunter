@@ -22,14 +22,11 @@ Usage:
 """
 
 # Import all components from the modular package
-from .weather_journal import *
-
-# For backward compatibility, also export the main classes directly
-from .weather_journal.models import EntryMood, SearchFilter, JournalEntry
-from .weather_journal.database import JournalDatabase
-from .weather_journal.ui_components import RichTextEditor
-from .weather_journal.journal_controller import JournalController
 from .weather_journal.journal_widget import WeatherJournalWidget, create_weather_journal
+from .weather_journal.journal_controller import JournalController
+from .weather_journal.ui_components import RichTextEditor
+from .weather_journal.database import JournalDatabase
+from .weather_journal.models import EntryMood, SearchFilter, JournalEntry
 
 # Main factory function for backward compatibility
 def create_weather_journal_widget(parent, database_manager, **kwargs):
