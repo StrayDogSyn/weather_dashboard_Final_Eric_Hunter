@@ -1,0 +1,29 @@
+# Core dependencies - Required for basic functionality
+customtkinter>=5.2.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# AI Service Dependencies
+# Uncomment for Gemini AI integration:
+# google-generativeai>=0.3.0
+
+# Music Service Dependencies  
+# Uncomment for Spotify integration:
+# spotipy>=2.22.1
+
+# GitHub Service Dependencies
+# Uncomment for GitHub gist integration:
+# PyGithub>=1.59.0
+
+# Development and Testing
+# Uncomment for development:
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.0.0
+# flake8>=6.0.0
+
+# Additional Optional Dependencies
+# Uncomment as needed:
+# matplotlib>=3.7.0  # For advanced weather charts
+# pillow>=10.0.0     # For image processing
+# schedule>=1.2.0    # For automated tasks

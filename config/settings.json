@@ -1,0 +1,49 @@
+{
+  "database": {
+    "path": "data/weather_dashboard.db",
+    "backup_enabled": true,
+    "backup_interval_hours": 24
+  },
+  "weather": {
+    "default_location": "New York",
+    "update_interval_minutes": 30,
+    "cache_duration_hours": 1,
+    "providers": {
+      "openweathermap": {
+        "enabled": true,
+        "priority": 1
+      },
+      "weatherapi": {
+        "enabled": true,
+        "priority": 2
+      }
+    }
+  },
+  "ui": {
+    "theme": "dark",
+    "auto_refresh": true,
+    "show_notifications": true,
+    "temperature_unit": "celsius"
+  },
+  "logging": {
+    "level": "INFO",
+    "file_enabled": true,
+    "file_path": "logs/weather_dashboard.log",
+    "max_file_size_mb": 10,
+    "backup_count": 5
+  },
+  "services": {
+    "github": {
+      "enabled": false,
+      "cache_duration_hours": 6
+    },
+    "spotify": {
+      "enabled": false,
+      "cache_duration_hours": 1
+    },
+    "gemini": {
+      "enabled": false,
+      "model": "gemini-pro"
+    }
+  }
+}
