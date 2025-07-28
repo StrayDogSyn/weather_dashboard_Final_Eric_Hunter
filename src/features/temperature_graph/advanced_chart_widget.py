@@ -37,7 +37,7 @@ from .models import (
     ChartAnalytics, ExportSettings
 )
 from .chart_controller import ChartController
-from ...ui.components.base_components import GlassFrame, GlassButton
+from ...ui.components.glass import GlassFrame, GlassButton
 from ...utils.logger import LoggerMixin
 
 

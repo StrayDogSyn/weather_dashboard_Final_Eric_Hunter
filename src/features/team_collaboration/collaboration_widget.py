@@ -13,7 +13,7 @@ import asyncio
 import threading
 from datetime import datetime
 
-from ...ui.components.base_components import (
+from ...ui.components.glass import (
     GlassFrame, GlassButton, GlassLabel, GlassEntry, GlassProgressBar
 )
 from ...utils.logger import LoggerMixin
