@@ -67,9 +67,12 @@
 
 ### 🔧 **Technical Excellence**
 
-- Agent-powered development via TRAE IDE
-- Unit tested with `pytest` and linted using `flake8`
-- Modular, scalable architecture with clean code principles
+- **Enterprise Architecture**: Clean Architecture with professional dependency injection
+- **Comprehensive Testing**: 49+ tests with full service coverage
+- **Error Handling**: Circuit breaker patterns, retry logic, graceful degradation
+- **Service Health**: Built-in monitoring and health checks
+- **Code Quality**: Linted with `flake8`, formatted with `black`
+- **Agent-Powered Development**: Built using TRAE IDE with AI assistance
 
 ---
 
@@ -88,13 +91,23 @@ Built with TRAE IDE's advanced AI-powered development environment featuring real
 
 ## 🌟 Overview
 
-CodeFront Weather Capstone is a sophisticated, AI-powered desktop application that transforms weather data into actionable insights. Built with modern Python technologies using clean architecture principles, it combines real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
+CodeFront Weather Capstone is a sophisticated, enterprise-grade AI-powered desktop application that transforms weather data into actionable insights. Built with **Clean Architecture and Dependency Injection**, it demonstrates professional software development practices while combining real-time weather monitoring, intelligent activity suggestions, collaborative features, and beautiful data visualizations in a glassmorphic user interface.
+
+### 🏗️ **Architecture Highlights**
+
+- **Dependency Injection Container**: Professional IoC container managing service lifecycles
+- **Interface-Based Design**: All services implement well-defined contracts
+- **Comprehensive Error Handling**: Circuit breaker patterns and graceful degradation
+- **Extensive Testing**: 49+ tests covering all major components
+- **Service Health Monitoring**: Built-in health checks and performance tracking
 
 **Single Entry Point:** `main.py`
 
 ```bash
 python main.py
 ```
+
+The application automatically initializes all services through the dependency injection container, ensuring proper service resolution and lifecycle management.
 
 ## 🚀 Installation
 
@@ -104,7 +117,7 @@ python main.py
 - Windows 10/11 (primary support)
 - Internet connection for weather data and AI features
 
-### Setup
+### Quick Start
 
 1. **Clone and setup:**
 
@@ -124,11 +137,37 @@ python main.py
    # Edit .env with your API keys
    ```
 
-3. **Run:**
+3. **Initialize services and run:**
 
    ```bash
+   # The dependency injection container will automatically initialize all services
    python main.py
    ```
+
+### Development Setup
+
+For developers working on the codebase:
+
+1. **Install development dependencies:**
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Run tests to verify setup:**
+
+   ```bash
+   pytest tests/ -v
+   ```
+
+3. **Check code quality:**
+
+   ```bash
+   flake8 src/
+   black src/ --check
+   ```
+
+📖 **For detailed setup instructions, see [Developer Guide](docs/DEVELOPER_GUIDE.md)**
 
 ## 🔧 Configuration
 
@@ -241,24 +280,58 @@ auto_save_interval: 30  # seconds
 
 ## 🏗️ Architecture
 
-**Clean Architecture Principles** with clear separation of concerns:
+**Clean Architecture with Dependency Injection** - Professional enterprise-grade architecture:
 
-- **`main.py`** - Single application entry point and UI orchestration
-- **`config/settings.py`** - Configuration management with environment variables
-- **`services/`** - External API integrations (Weather, Gemini AI, GitHub, Spotify)
-- **`data/database.py`** - SQLite database operations
-- **`ui/`** - User interface components
-- **`.env.example`** - Template for required environment variables
+- **`main.py`** - Application entry point with service container initialization
+- **`src/core/`** - Core architecture (dependency injection, interfaces, app controller)
+- **`src/services/`** - Service implementations with interface-based design
+- **`src/ui/`** - User interface components with dependency injection
+- **`src/data/`** - Data access layer with repository pattern
+- **`src/utils/`** - Utility functions and error handling framework
+- **`tests/`** - Comprehensive test suite with 49+ tests
+
+### Key Architectural Features
+
+- **Dependency Injection Container**: Professional IoC container with service lifecycle management
+- **Interface-Based Design**: All services implement well-defined interfaces
+- **Comprehensive Error Handling**: Circuit breaker, retry patterns, graceful degradation
+- **Service Health Monitoring**: Built-in health checks and performance monitoring
+- **Clean Separation**: Clear boundaries between UI, business logic, and data layers
 
 ### Technology Stack
 
+- **Architecture**: Clean Architecture with Dependency Injection
 - **GUI Framework**: CustomTkinter (modern, themed Tkinter)
-- **AI Integration**: Google Gemini API
-- **Database**: SQLite
+- **AI Integration**: Google Gemini API with LangChain
+- **Database**: SQLite with repository pattern
 - **APIs**: OpenWeatherMap, Spotify Web API, GitHub API
-- **Configuration**: python-dotenv
+- **Configuration**: Environment-based configuration service
+- **Testing**: pytest with comprehensive test coverage
+- **Error Handling**: Professional reliability patterns
+
+### Documentation
+
+📚 **Comprehensive Documentation Available:**
+
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Detailed system architecture and design patterns
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Complete development setup and guidelines
+- **[API Reference](docs/API_REFERENCE.md)** - Service interfaces and data contracts
+- **[Testing Guide](docs/TESTING_GUIDE.md)** - Testing strategies and patterns
+- **[Configuration Guide](docs/CONFIGURATION_GUIDE.md)** - Environment and service configuration
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[Error Handling Guide](docs/ERROR_HANDLING_GUIDE.md)** - Reliability and error handling patterns
+- **[Weather Integration Guide](docs/WEATHER_INTEGRATION_GUIDE.md)** - Weather service integration details
 
 ## 🧪 Development
+
+### Architecture Overview
+
+The application uses **Clean Architecture with Dependency Injection**:
+
+- **Service Container**: Manages all service dependencies and lifecycles
+- **Interface-Based Design**: All services implement well-defined contracts
+- **Comprehensive Testing**: 49+ tests covering all major components
+- **Error Handling**: Professional reliability patterns with circuit breakers
 
 ### Environment Variables
 
@@ -272,20 +345,88 @@ auto_save_interval: 30  # seconds
 | `DATABASE_PATH` | No | Custom database file path |
 | `DEBUG_MODE` | No | Enable debug logging (true/false) |
 
-### Adding Features
+### Adding New Services
 
-1. Create feature branch: `git checkout -b feature/new-feature`
-2. Implement in appropriate service/module
-3. Test functionality
-4. Submit pull request
+1. **Define Interface** in `src/core/interfaces.py`:
+
+   ```python
+   class IMyService(ABC):
+       @abstractmethod
+       def my_method(self) -> str:
+           pass
+   ```
+
+2. **Implement Service** in `src/services/`:
+
+   ```python
+   class MyServiceImpl(IMyService):
+       def my_method(self) -> str:
+           return "Hello World"
+   ```
+
+3. **Register in Container** in `main.py`:
+
+   ```python
+   container.register_singleton(IMyService, MyServiceImpl)
+   ```
+
+4. **Write Tests** in `tests/`:
+
+   ```python
+   def test_my_service():
+       service = container.resolve(IMyService)
+       assert service.my_method() == "Hello World"
+   ```
+
+### Testing
+
+**Run all tests:**
+
+```bash
+pytest tests/ -v
+```
+
+**Run specific test categories:**
+
+```bash
+pytest tests/test_dependency_injection.py -v  # DI tests
+pytest tests/test_services.py -v              # Service tests
+pytest tests/test_ui.py -v                    # UI tests
+```
+
+**Test Coverage:**
+
+```bash
+pytest --cov=src tests/
+```
+
+### Code Quality
+
+**Linting:**
+
+```bash
+flake8 src/ tests/
+```
+
+**Code Formatting:**
+
+```bash
+black src/ tests/
+```
 
 ### Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Follow the architecture patterns (see [Developer Guide](docs/DEVELOPER_GUIDE.md))
+4. Write tests for new functionality
+5. Ensure all tests pass: `pytest tests/ -v`
+6. Check code quality: `flake8 src/` and `black src/ --check`
+7. Commit your changes (`git commit -m 'Add amazing feature'`)
+8. Push to the branch (`git push origin feature/amazing-feature`)
+9. Open a Pull Request
+
+📚 **For detailed development guidelines, see [Developer Guide](docs/DEVELOPER_GUIDE.md)**
 
 ## 🔍 Troubleshooting
 
