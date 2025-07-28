@@ -448,6 +448,7 @@ class MockConfigurationService(IConfigurationService):
         self._logger_service = logger_service
         self._settings: Dict[str, Any] = {
             'database.path': 'mock://database.db',
+            'weather.api_key': 'mock_api_key',
             'weather.default_location': 'Mock City',
             'weather.update_interval_minutes': 30,
             'ui.theme': 'dark',

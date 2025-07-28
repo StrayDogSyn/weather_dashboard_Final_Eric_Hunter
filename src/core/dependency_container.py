@@ -392,3 +392,7 @@ def reset_container() -> None:
         if _global_container is not None:
             _global_container.clear()
         _global_container = None
+        
+        # Also reset the service registry so it gets a fresh container reference
+        from .service_registry import reset_service_registry
+        reset_service_registry()

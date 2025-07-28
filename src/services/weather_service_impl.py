@@ -14,7 +14,7 @@ import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from core.interfaces import IWeatherService, WeatherDataDTO, IConfigurationService, ICacheService, ILoggingService
+from src.core.interfaces import IWeatherService, WeatherDataDTO, IConfigurationService, ICacheService, ILoggingService
 from .weather_service import WeatherService, WeatherData, WeatherProvider
 from core.config_manager import ConfigManager
 from core.exceptions import (
