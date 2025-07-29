@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from config.app_config import AppConfig
+from config.app_config import AppConfig, WeatherConfig, UIConfig
 
 
 class ConfigService:
@@ -37,6 +37,33 @@ class ConfigService:
         
         Returns:
             Application configuration object
+        """
+        return self._config
+    
+    @property
+    def weather(self) -> WeatherConfig:
+        """Get the weather configuration.
+        
+        Returns:
+            WeatherConfig instance
+        """
+        return self._config.weather
+    
+    @property
+    def ui(self) -> UIConfig:
+        """Get the UI configuration.
+        
+        Returns:
+            UIConfig instance
+        """
+        return self._config.ui
+    
+    @property
+    def app(self) -> AppConfig:
+        """Get the app configuration.
+        
+        Returns:
+            AppConfig instance
         """
         return self._config
     

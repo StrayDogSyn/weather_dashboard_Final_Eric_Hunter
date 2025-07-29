@@ -7,6 +7,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
 import logging
+import requests
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import threading
@@ -109,7 +110,7 @@ class WeatherDashboard(ctk.CTk):
             icon_path = Path.cwd() / 'assets' / 'icon.ico'
             if icon_path.exists():
                 self.iconbitmap(str(icon_path))
-        except Exception:
+        except (OSError, FileNotFoundError):
             pass  # Icon not critical
         
         # Bind window resize events for responsive behavior
@@ -306,8 +307,9 @@ class WeatherDashboard(ctk.CTk):
                 weather_data = self.weather_service.get_enhanced_weather(city)
                 try:
                     forecast_data = self.weather_service.get_forecast(city, days=5)
-                except:
+                except (requests.exceptions.RequestException, ValueError, KeyError) as e:
                     # Fallback to basic forecast if enhanced fails
+                    self.logger.warning(f"Enhanced forecast failed, using basic: {e}")
                     basic_service = WeatherService(self.config)
                     forecast_data = basic_service.get_forecast(city, days=5)
             else:

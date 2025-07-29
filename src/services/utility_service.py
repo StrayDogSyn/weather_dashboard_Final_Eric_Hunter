@@ -478,8 +478,11 @@ class CacheService:
                     if entry['expires'] <= current_time:
                         cache_file.unlink()
                         removed_count += 1
-                except Exception:
+                except (pickle.PickleError, OSError, KeyError) as e:
                     # Remove corrupted cache files
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Removing corrupted cache file {cache_file}: {e}")
                     cache_file.unlink()
                     removed_count += 1
             

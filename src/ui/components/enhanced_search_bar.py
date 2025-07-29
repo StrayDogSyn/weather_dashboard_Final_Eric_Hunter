@@ -31,7 +31,7 @@ class FavoritesManager:
             if self.favorites_file.exists():
                 with open(self.favorites_file, 'r', encoding='utf-8') as f:
                     self.favorites = json.load(f)
-        except Exception:
+        except (json.JSONDecodeError, OSError, FileNotFoundError):
             self.favorites = []
     
     def _save_favorites(self) -> None:
@@ -40,7 +40,7 @@ class FavoritesManager:
             self.favorites_file.parent.mkdir(exist_ok=True)
             with open(self.favorites_file, 'w', encoding='utf-8') as f:
                 json.dump(self.favorites, f, indent=2)
-        except Exception:
+        except (OSError, json.JSONEncodeError):
             pass
     
     def add_favorite(self, location: Dict[str, str]) -> None:
@@ -82,7 +82,7 @@ class RecentSearchesManager:
             if self.recent_file.exists():
                 with open(self.recent_file, 'r', encoding='utf-8') as f:
                     self.recent_searches = json.load(f)
-        except Exception:
+        except (json.JSONDecodeError, OSError, FileNotFoundError):
             self.recent_searches = []
     
     def _save_recent(self) -> None:
@@ -91,7 +91,7 @@ class RecentSearchesManager:
             self.recent_file.parent.mkdir(exist_ok=True)
             with open(self.recent_file, 'w', encoding='utf-8') as f:
                 json.dump(self.recent_searches, f, indent=2)
-        except Exception:
+        except (OSError, json.JSONEncodeError):
             pass
     
     def add_search(self, location: Dict[str, str]) -> None:
@@ -443,7 +443,7 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
         if self.weather_service and hasattr(self.weather_service, 'search_cities'):
             try:
                 return self.weather_service.search_cities(query, limit=5)
-            except Exception:
+            except (ValueError, KeyError, TypeError):
                 pass
         
         # Fallback to sample cities
@@ -530,7 +530,7 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
         """Set initial focus to search entry."""
         try:
             self.search_entry.focus_set()
-        except Exception:
+        except (AttributeError, RuntimeError):
             pass  # Ignore focus errors during initialization
     
     def _on_click_outside(self, event) -> None:

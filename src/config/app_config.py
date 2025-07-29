@@ -5,6 +5,7 @@ Contains all constants, settings, and configuration values.
 """
 
 import os
+import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +68,8 @@ class DataConfig:
 @dataclass
 class WeatherConfig:
     """Weather-specific configuration."""
+    base_url: str = "https://api.openweathermap.org/data/2.5"
+    api_key: str = ""
     default_units: str = "metric"  # metric, imperial, kelvin
     temperature_precision: int = 1
     pressure_unit: str = "hPa"
@@ -121,12 +124,19 @@ class AppConfig:
         self.weather = WeatherConfig()
         self.logging = LoggingConfig()
         
+        # Application-level settings
+        self.default_city = "New York"
+        
         # Load from environment variables
         self._load_from_environment()
         
         # Load from config file if provided
         if config_file:
             self._load_from_file(config_file)
+        
+        # Sync weather api_key with API configuration
+        self.weather.api_key = self.api.openweather_api_key
+        self.weather.base_url = self.api.openweather_base_url
     
     def _load_from_environment(self) -> None:
         """Load configuration from environment variables."""
@@ -175,7 +185,8 @@ class AppConfig:
                     self._update_dataclass(self.logging, config_data['logging'])
         
         except Exception as e:
-            print(f"Warning: Could not load config file {config_file}: {e}")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not load config file {config_file}: {e}")
     
     def _update_dataclass(self, obj: Any, data: Dict[str, Any]) -> None:
         """Update dataclass fields from dictionary.
@@ -207,18 +218,20 @@ class AppConfig:
         Returns:
             True if configuration is valid, False otherwise
         """
+        logger = logging.getLogger(__name__)
+        
         # Check required API key
         if not self.api.openweather_api_key:
-            print("Error: OpenWeather API key is required")
+            logger.error("OpenWeather API key is required")
             return False
         
         # Validate numeric values
         if self.api.request_timeout <= 0:
-            print("Error: API timeout must be positive")
+            logger.error("API timeout must be positive")
             return False
         
         if self.ui.window_width <= 0 or self.ui.window_height <= 0:
-            print("Error: Window dimensions must be positive")
+            logger.error("Window dimensions must be positive")
             return False
         
         return True

@@ -8,6 +8,7 @@ import customtkinter as ctk
 from typing import Optional, List
 import threading
 from datetime import datetime
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -48,7 +49,8 @@ class WeatherDisplayEnhancer:
             self.add_weather_details_section()
             
         except Exception as e:
-            print(f"Enhancement error (non-critical): {e}")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Enhancement error (non-critical): {e}")
     
     def add_weather_icons(self):
         """Add weather icons to existing display."""
@@ -68,7 +70,8 @@ class WeatherDisplayEnhancer:
             self.dashboard.condition_label.configure(text=enhanced_text)
             
         except Exception as e:
-            print(f"Icon enhancement error: {e}")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Icon enhancement error: {e}")
     
     def improve_temperature_display(self):
         """Improve temperature display formatting."""
@@ -84,7 +87,8 @@ class WeatherDisplayEnhancer:
                     self.dashboard.temp_label.configure(text=enhanced_temp)
             
         except Exception as e:
-            print(f"Temperature enhancement error: {e}")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Temperature enhancement error: {e}")
     
     def add_weather_details_section(self):
         """Add enhanced weather details to existing display."""
@@ -135,7 +139,8 @@ class WeatherDisplayEnhancer:
                 uv_label.pack(pady=5)
                 
         except Exception as e:
-            print(f"Details enhancement error: {e}")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Details enhancement error: {e}")
 
 
 class ProfessionalWeatherDashboard(ctk.CTk):

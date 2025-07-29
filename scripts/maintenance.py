@@ -219,7 +219,8 @@ class ProjectMaintenance:
                     
             return meaningful_statements == 0
             
-        except:
+        except (SyntaxError, ValueError, TypeError) as e:
+            self.logger.warning(f"Could not parse file: {e}")
             return False
             
     def validate_imports(self) -> Dict[str, List[str]]:
@@ -291,8 +292,8 @@ class ProjectMaintenance:
             elif (module_path.parent / f"{module_path.name}.py").exists():
                 return module_path.parent / f"{module_path.name}.py"
                 
-        except Exception:
-            pass
+        except (OSError, ValueError) as e:
+            self.logger.debug(f"Could not resolve relative import {module}: {e}")
             
         return None
         
@@ -311,8 +312,8 @@ class ProjectMaintenance:
             elif (module_path.parent / f"{module_path.name}.py").exists():
                 return module_path.parent / f"{module_path.name}.py"
                 
-        except Exception:
-            pass
+        except (OSError, ValueError) as e:
+            self.logger.debug(f"Could not resolve absolute import {module}: {e}")
             
         return None
         
@@ -514,40 +515,43 @@ def main():
     if len(sys.argv) > 1:
         command = sys.argv[1]
         
+        logger = logging.getLogger(__name__)
+        
         if command == 'clean-cache':
             removed = maintenance.clean_cache_files()
-            print(f"Removed {len(removed)} cache files/directories")
+            logger.info(f"Removed {len(removed)} cache files/directories")
             
         elif command == 'check-imports':
             unused = maintenance.find_unused_imports()
             broken = maintenance.validate_imports()
-            print(f"Unused imports in {len(unused)} files")
-            print(f"Broken imports in {len(broken)} files")
+            logger.info(f"Unused imports in {len(unused)} files")
+            logger.info(f"Broken imports in {len(broken)} files")
             
         elif command == 'organize-tests':
             moved = maintenance.organize_test_files()
-            print(f"Moved {len(moved)} test files")
+            logger.info(f"Moved {len(moved)} test files")
             
         elif command == 'validate-structure':
             issues = maintenance.validate_project_structure()
             if issues:
-                print("Structure issues found:")
+                logger.warning("Structure issues found:")
                 for issue_type, items in issues.items():
-                    print(f"  {issue_type}: {len(items)} items")
+                    logger.warning(f"  {issue_type}: {len(items)} items")
             else:
-                print("Project structure is valid")
+                logger.info("Project structure is valid")
                 
         elif command == 'full-cleanup':
             report = maintenance.run_full_cleanup()
-            print("Full cleanup completed. Check cleanup_report.txt for details.")
+            logger.info("Full cleanup completed. Check cleanup_report.txt for details.")
             
         else:
-            print(f"Unknown command: {command}")
-            print("Available commands: clean-cache, check-imports, organize-tests, validate-structure, full-cleanup")
+            logger.error(f"Unknown command: {command}")
+            logger.info("Available commands: clean-cache, check-imports, organize-tests, validate-structure, full-cleanup")
     else:
         # Run full cleanup by default
+        logger = logging.getLogger(__name__)
         report = maintenance.run_full_cleanup()
-        print("Full cleanup completed. Check cleanup_report.txt for details.")
+        logger.info("Full cleanup completed. Check cleanup_report.txt for details.")
 
 
 if __name__ == '__main__':
