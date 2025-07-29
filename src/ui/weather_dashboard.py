@@ -51,16 +51,31 @@ class WeatherDashboard(ctk.CTk):
         self.logger.info("🎨 Weather Dashboard initialized")
     
     def _setup_window(self) -> None:
-        """Configure main window properties."""
+        """Configure main window properties with responsive design."""
         # Window configuration
-        self.title("Weather Dashboard - Data Terminal")
-        self.geometry(f"{self.config.ui.window_width}x{self.config.ui.window_height}")
-        self.minsize(800, 600)
+        self.title("JTC Capstone Application")
         
-        # Center window on screen
-        self.center_window()
+        # Get screen dimensions for responsive design
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
         
-        # Configure grid
+        # Calculate responsive window size (80% of screen for better UX)
+        window_width = min(self.config.ui.window_width, int(screen_width * 0.8))
+        window_height = min(self.config.ui.window_height, int(screen_height * 0.8))
+        
+        # Ensure minimum size requirements
+        window_width = max(window_width, self.config.ui.min_width)
+        window_height = max(window_height, self.config.ui.min_height)
+        
+        # Center the window on screen
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        # Set window geometry (centered by default)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        self.minsize(self.config.ui.min_width, self.config.ui.min_height)
+        
+        # Configure responsive grid weights
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
         
@@ -74,6 +89,9 @@ class WeatherDashboard(ctk.CTk):
                 self.iconbitmap(str(icon_path))
         except Exception:
             pass  # Icon not critical
+        
+        # Bind window resize events for responsive behavior
+        self.bind('<Configure>', self._on_window_resize)
     
     def center_window(self) -> None:
         """Center the window on the screen."""
@@ -83,6 +101,23 @@ class WeatherDashboard(ctk.CTk):
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f"{width}x{height}+{x}+{y}")
+    
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize events for responsive design."""
+        # Only handle resize events for the main window
+        if event.widget == self:
+            # Get current window dimensions
+            current_width = self.winfo_width()
+            current_height = self.winfo_height()
+            
+            # Ensure minimum size constraints
+            if current_width < self.config.ui.min_width or current_height < self.config.ui.min_height:
+                new_width = max(current_width, self.config.ui.min_width)
+                new_height = max(current_height, self.config.ui.min_height)
+                self.geometry(f"{new_width}x{new_height}")
+            
+            # Update grid weights for responsive layout
+            self.update_idletasks()
     
     def _create_widgets(self) -> None:
         """Create all UI widgets."""
@@ -95,7 +130,7 @@ class WeatherDashboard(ctk.CTk):
         # Title
         self.title_label = ctk.CTkLabel(
             self.header_frame,
-            text="⚡ WEATHER TERMINAL",
+            text="⚡ Project CodeFront",
             **DataTerminalTheme.get_label_style("title")
         )
         
@@ -145,31 +180,37 @@ class WeatherDashboard(ctk.CTk):
         self.loading_overlay = LoadingOverlay(self)
     
     def _setup_layout(self) -> None:
-        """Arrange widgets in the window."""
+        """Arrange widgets in the window with responsive design."""
+        # Configure main window grid for responsive behavior
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)  # Content area expands
+        
         # Header
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+        self.header_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 8))
         self.header_frame.grid_columnconfigure(1, weight=1)
         
-        # Header content
-        self.title_label.grid(row=0, column=0, padx=(10, 20), pady=10, sticky="w")
-        self.search_frame.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        # Header content with improved spacing
+        self.title_label.grid(row=0, column=0, padx=(15, 25), pady=12, sticky="w")
+        self.search_frame.grid(row=0, column=1, padx=12, pady=12, sticky="ew")
         
-        # Status bar
-        self.status_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 0))
+        # Status bar with responsive layout
+        self.status_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(8, 0))
         self.status_frame.grid_columnconfigure(1, weight=1)
         
-        self.status_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.last_update_label.grid(row=0, column=1, padx=10, pady=5, sticky="e")
+        self.status_label.grid(row=0, column=0, padx=12, pady=6, sticky="w")
+        self.last_update_label.grid(row=0, column=1, padx=12, pady=6, sticky="e")
         
-        # Main content
-        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(5, 10))
-        self.content_frame.grid_columnconfigure(0, weight=1)
-        self.content_frame.grid_columnconfigure(1, weight=1)
+        # Main content with responsive grid weights
+        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=12, pady=(8, 12))
+        
+        # Responsive content layout - left panel (weather) gets 40%, right panel (charts) gets 60%
+        self.content_frame.grid_columnconfigure(0, weight=2, minsize=350)  # Weather display
+        self.content_frame.grid_columnconfigure(1, weight=3, minsize=400)  # Chart display
         self.content_frame.grid_rowconfigure(0, weight=1)
         
-        # Content layout
-        self.weather_display.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
-        self.chart_display.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        # Content layout with improved spacing
+        self.weather_display.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        self.chart_display.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
     
     def _setup_bindings(self) -> None:
         """Setup event bindings."""
