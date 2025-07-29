@@ -25,7 +25,7 @@ from services.logging_service import LoggingService
 # Enhanced features availability check
 try:
     from enhanced_search_bar import EnhancedSearchBarFrame
-    from enhanced_weather_display import EnhancedWeatherDisplayFrame
+    # from enhanced_weather_display import EnhancedWeatherDisplayFrame
     from enhanced_weather_service import EnhancedWeatherService
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError:
