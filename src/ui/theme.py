@@ -120,7 +120,7 @@ class DataTerminalTheme:
                 "font": cls.get_font(cls.FONT_SIZE_MEDIUM, "bold")
             },
             "secondary": {
-                "fg_color": "transparent",
+                "fg_color": cls.BACKGROUND,
                 "hover_color": cls.HOVER,
                 "text_color": cls.PRIMARY,
                 "border_color": cls.PRIMARY,
@@ -152,7 +152,7 @@ class DataTerminalTheme:
             },
             "main": {
                 "fg_color": cls.BACKGROUND,
-                "border_color": "transparent",
+                "border_color": cls.BACKGROUND,
                 "border_width": 0,
                 "corner_radius": 0
             },

@@ -10,11 +10,11 @@ import logging
 from pathlib import Path
 
 # Add src directory to Python path
-src_dir = Path(__file__).parent
+src_dir = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_dir))
 
 from dotenv import load_dotenv
-from ui.dashboard import WeatherDashboard
+from ui.weather_dashboard import WeatherDashboard
 from services.config_service import ConfigService
 from services.logging_service import LoggingService
 

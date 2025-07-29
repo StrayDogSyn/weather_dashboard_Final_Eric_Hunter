@@ -6,14 +6,14 @@ Displays weather charts using matplotlib with Data Terminal styling.
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from matplotlib.backends.backend_tkagg import FigureCanvasTkinter
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
 from typing import List, Optional
 from datetime import datetime, timedelta
 
-from ..theme import DataTerminalTheme
-from ...services.weather_service import ForecastData
+from ui.theme import DataTerminalTheme
+from models.weather_models import ForecastData
 
 
 class ChartDisplayFrame(ctk.CTkFrame):
@@ -89,7 +89,7 @@ class ChartDisplayFrame(ctk.CTkFrame):
         self.ax.set_facecolor(DataTerminalTheme.CARD_BG)
         
         # Create canvas
-        self.canvas = FigureCanvasTkinter(self.figure, self.chart_frame)
+        self.canvas = FigureCanvasTkAgg(self.figure, self.chart_frame)
         self.canvas.get_tk_widget().configure(
             bg=DataTerminalTheme.BACKGROUND,
             highlightthickness=0

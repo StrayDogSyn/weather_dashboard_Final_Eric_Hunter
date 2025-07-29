@@ -3,7 +3,7 @@
 Defines structured data classes for weather information and application state.
 """
 
-from .weather_models import (
+from models.weather_models import (
     WeatherData,
     ForecastData,
     WeatherCondition,
@@ -11,7 +11,7 @@ from .weather_models import (
     WeatherAlert
 )
 
-from .app_models import (
+from models.app_models import (
     AppState,
     UserPreferences,
     CacheEntry,

@@ -7,8 +7,8 @@ import customtkinter as ctk
 from typing import Optional, Callable
 from datetime import datetime
 
-from ..theme import DataTerminalTheme
-from ...services.weather_service import WeatherData
+from ui.theme import DataTerminalTheme
+from models.weather_models import WeatherData
 
 
 class WeatherMetricCard(ctk.CTkFrame):

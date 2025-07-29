@@ -9,7 +9,7 @@ from typing import Optional
 import threading
 import time
 
-from ..theme import DataTerminalTheme
+from ui.theme import DataTerminalTheme
 
 
 class LoadingSpinner(ctk.CTkFrame):
@@ -166,6 +166,8 @@ class LoadingOverlay(ctk.CTkToplevel):
         # Content frame
         self.content_frame = ctk.CTkFrame(
             self.container,
+            width=400,
+            height=250,
             **DataTerminalTheme.get_frame_style("highlight")
         )
         
@@ -173,7 +175,7 @@ class LoadingOverlay(ctk.CTkToplevel):
         self.spinner = LoadingSpinner(
             self.content_frame,
             size=60,
-            fg_color="transparent"
+            fg_color=DataTerminalTheme.CARD_BG
         )
         
         # Loading message
@@ -209,8 +211,7 @@ class LoadingOverlay(ctk.CTkToplevel):
         # Content frame (centered)
         self.content_frame.place(
             relx=0.5, rely=0.5,
-            anchor="center",
-            width=400, height=250
+            anchor="center"
         )
         self.content_frame.grid_columnconfigure(0, weight=1)
         

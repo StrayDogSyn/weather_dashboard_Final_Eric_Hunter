@@ -12,14 +12,15 @@ from datetime import datetime
 import threading
 from pathlib import Path
 
-from .theme import DataTerminalTheme
-from .components.weather_display import WeatherDisplayFrame
-from .components.chart_display import ChartDisplayFrame
-from .components.search_bar import SearchBarFrame
-from .components.loading_overlay import LoadingOverlay
-from ..services.config_service import ConfigService
-from ..services.weather_service import WeatherService, WeatherData
-from ..services.logging_service import LoggingService
+from ui.theme import DataTerminalTheme
+from ui.components.weather_display import WeatherDisplayFrame
+from ui.components.chart_display import ChartDisplayFrame
+from ui.components.search_bar import SearchBarFrame
+from ui.components.loading_overlay import LoadingOverlay
+from ui.components.status_bar import StatusBarFrame
+from services.config_service import ConfigService
+from services.weather_service import WeatherService, WeatherData
+from services.logging_service import LoggingService
 
 
 class WeatherDashboard(ctk.CTk):
@@ -185,7 +186,7 @@ class WeatherDashboard(ctk.CTk):
     
     def _load_initial_weather(self) -> None:
         """Load weather for default city."""
-        default_city = self.config.weather.default_city
+        default_city = self.config.app.default_city
         if default_city:
             self._fetch_weather(default_city)
         else:

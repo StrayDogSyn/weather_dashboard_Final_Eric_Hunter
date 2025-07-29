@@ -10,7 +10,8 @@ from typing import Optional, Dict, Any
 import threading
 import time
 
-from ..theme import DataTerminalTheme
+from ui.theme import DataTerminalTheme
+from utils.formatters import format_file_size
 
 
 class StatusIndicator(ctk.CTkFrame):

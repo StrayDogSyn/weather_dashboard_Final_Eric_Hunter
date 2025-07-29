@@ -99,8 +99,17 @@ class WeatherService:
         """Save weather cache to file."""
         try:
             self._cache_file.parent.mkdir(exist_ok=True)
+            
+            # Create a serializable copy of the cache
+            serializable_cache = {}
+            for key, value in self._cache.items():
+                serializable_cache[key] = {
+                    'data': value['data'],  # Already converted by to_dict()
+                    'timestamp': value['timestamp'] if isinstance(value['timestamp'], str) else value['timestamp'].isoformat()
+                }
+            
             with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump(self._cache, f, indent=2)
+                json.dump(serializable_cache, f, indent=2)
             self.logger.debug("💾 Cache saved successfully")
         except Exception as e:
             self.logger.warning(f"Failed to save cache: {e}")

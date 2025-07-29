@@ -9,7 +9,8 @@ from typing import Callable, Optional, List, Dict, Any
 import threading
 import time
 
-from ..theme import DataTerminalTheme
+from ui.theme import DataTerminalTheme
+from utils.helpers import Debouncer
 
 
 class SearchSuggestionFrame(ctk.CTkFrame):
