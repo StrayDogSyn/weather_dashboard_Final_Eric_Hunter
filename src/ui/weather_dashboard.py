@@ -15,7 +15,7 @@ from pathlib import Path
 
 from ui.theme import DataTerminalTheme
 from ui.components.weather_display import WeatherDisplayFrame
-from ui.components.chart_display import ChartDisplayFrame
+from ui.components.temperature_chart import TemperatureChart
 from ui.components.enhanced_search_bar import EnhancedSearchBarFrame as SearchBarFrame
 from ui.components.loading_overlay import LoadingOverlay
 from ui.components.status_bar import StatusBarFrame
@@ -74,29 +74,16 @@ class WeatherDashboard(ctk.CTk):
         self.logger.info("🎨 Weather Dashboard initialized")
     
     def _setup_window(self) -> None:
-        """Configure main window properties with responsive design."""
+        """Configure main window properties with responsive design and fullscreen default."""
         # Window configuration
         self.title("JTC Capstone Application")
         
-        # Get screen dimensions for responsive design
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
+        # Set fullscreen default launch
+        self.geometry("1920x1080")  # Default large size
+        self.state('zoomed')  # Windows fullscreen
         
-        # Calculate responsive window size (80% of screen for better UX)
-        window_width = min(self.config.ui.window_width, int(screen_width * 0.8))
-        window_height = min(self.config.ui.window_height, int(screen_height * 0.8))
-        
-        # Ensure minimum size requirements
-        window_width = max(window_width, self.config.ui.min_width)
-        window_height = max(window_height, self.config.ui.min_height)
-        
-        # Center the window on screen
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-        
-        # Set window geometry (centered by default)
-        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        self.minsize(self.config.ui.min_width, self.config.ui.min_height)
+        # Set minimum window size for usability
+        self.minsize(1200, 800)
         
         # Configure responsive grid weights
         self.grid_columnconfigure(0, weight=1)
@@ -141,6 +128,64 @@ class WeatherDashboard(ctk.CTk):
             
             # Update grid weights for responsive layout
             self.update_idletasks()
+            
+            # Update component scaling
+            self._update_component_scaling(current_width, current_height)
+            
+            # Adjust grid weights based on aspect ratio
+            if current_width > current_height * 1.5:  # Wide screen
+                self.content_frame.grid_columnconfigure(0, weight=2)
+                self.content_frame.grid_columnconfigure(1, weight=3)
+            else:  # Standard or tall screen
+                self.content_frame.grid_columnconfigure(0, weight=2)
+                self.content_frame.grid_columnconfigure(1, weight=3)
+    
+    def _update_component_scaling(self, width, height):
+        """Scale components based on window dimensions."""
+        # Adjust font sizes based on window size
+        base_font_size = max(12, min(16, width // 120))
+        
+        # Update chart dimensions
+        if hasattr(self, 'chart_display') and self.chart_display:
+            chart_width = max(600, width * 0.6)
+            chart_height = max(400, height * 0.4)
+            if hasattr(self.chart_display, 'update_size'):
+                self.chart_display.update_size(chart_width, chart_height)
+            else:
+                # Fallback for older chart components
+                self.chart_display.configure(width=int(chart_width), height=int(chart_height))
+        
+        # Update weather display scaling
+        if hasattr(self, 'weather_display'):
+            display_width = max(300, width * 0.25)
+            self.weather_display.configure(width=int(display_width))
+        
+        # Update search frame scaling
+        if hasattr(self, 'search_frame'):
+            search_width = max(250, min(400, width * 0.25))
+            # Update search entry if it exists within search_frame
+            for child in self.search_frame.winfo_children():
+                if hasattr(child, 'configure'):
+                    try:
+                        config_options = child.configure()
+                        if config_options and 'width' in config_options:
+                            child.configure(width=int(search_width))
+                    except (AttributeError, TypeError):
+                        pass  # Skip widgets that don't support width configuration
+        
+        # Update main content frame padding
+        if hasattr(self, 'content_frame'):
+            padding = max(10, min(30, width // 80))
+            self.content_frame.grid_configure(padx=padding, pady=padding)
+        
+        # Update title font size for responsive text
+        title_font_size = max(18, min(24, width // 100))
+        if hasattr(self, 'title_label'):
+            current_font = self.title_label.cget('font')
+            if isinstance(current_font, tuple) and len(current_font) >= 2:
+                font_family = current_font[0]
+                font_weight = current_font[2] if len(current_font) > 2 else 'bold'
+                self.title_label.configure(font=(font_family, title_font_size, font_weight))
     
     def _create_widgets(self) -> None:
         """Create all UI widgets."""
@@ -194,8 +239,8 @@ class WeatherDashboard(ctk.CTk):
             on_refresh=self._refresh_weather
         )
         
-        # Chart display (right side)
-        self.chart_display = ChartDisplayFrame(
+        # Enhanced temperature chart (right side)
+        self.chart_display = TemperatureChart(
             self.content_frame
         )
         

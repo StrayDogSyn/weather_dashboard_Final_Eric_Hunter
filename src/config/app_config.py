@@ -85,6 +85,24 @@ class WeatherConfig:
     # Air Quality Index thresholds
     aqi_thresholds: Dict[str, tuple] = None
     
+    @property
+    def units(self) -> str:
+        """Get the units for weather data.
+        
+        Returns:
+            Units string (metric, imperial, kelvin)
+        """
+        return self.default_units
+    
+    @property
+    def timeout(self) -> int:
+        """Get the request timeout for weather API calls.
+        
+        Returns:
+            Timeout in seconds
+        """
+        return 30  # Default timeout for weather API requests
+    
     def __post_init__(self):
         if self.aqi_thresholds is None:
             self.aqi_thresholds = {

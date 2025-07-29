@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
+from ui.components.temperature_chart import TemperatureChart
 
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.config_service import ConfigService
@@ -170,7 +171,6 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.current_weather: Optional[WeatherData] = None
         self.forecast_data: Optional[List[ForecastData]] = None
         self.current_city: str = "London"
-        self.chart_timeframe = "24h"
         
         # Initialize enhancer
         self.display_enhancer = None
@@ -190,11 +190,56 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         
         self.logger.info("Professional Weather Dashboard initialized")
     
+    def on_window_resize(self, event):
+        """Handle window resize for responsive design."""
+        if event.widget == self:  # Only handle main window resize
+            width = self.winfo_width()
+            height = self.winfo_height()
+            
+            # Update component sizes based on window size
+            self.update_component_scaling(width, height)
+    
+    def update_component_scaling(self, width, height):
+        """Scale components based on window dimensions."""
+        # Adjust font sizes based on window size
+        base_font_size = max(12, min(16, width // 120))
+        
+        # Update chart dimensions
+        if hasattr(self, 'temperature_chart'):
+            chart_width = max(600, width * 0.6)
+            chart_height = max(400, height * 0.4)
+            self.temperature_chart.update_size(chart_width, chart_height)
+        
+        # Update weather card scaling
+        if hasattr(self, 'weather_card'):
+            card_width = max(300, width * 0.25)
+            self.weather_card.configure(width=card_width)
+        
+        # Update header elements scaling
+        if hasattr(self, 'search_entry'):
+            search_width = max(250, min(400, width * 0.25))
+            self.search_entry.configure(width=search_width)
+        
+        # Update main frame padding based on screen size
+        if hasattr(self, 'main_frame'):
+            padding = max(10, min(30, width // 80))
+            self.main_frame.grid_configure(padx=padding, pady=padding)
+        
+        # Update font sizes for responsive text
+        title_font_size = max(20, min(28, width // 80))
+        if hasattr(self, 'title_label'):
+            self.title_label.configure(font=(DataTerminalTheme.FONT_FAMILY, title_font_size, "bold"))
+
     def _configure_window(self) -> None:
-        """Configure main window with professional styling."""
+        """Configure main window with professional styling and fullscreen default."""
         self.title("JTC Capstone Application")
-        self.geometry("1200x800")
-        self.minsize(1000, 700)
+        
+        # Set fullscreen default launch
+        self.geometry("1920x1080")  # Default large size
+        self.state('zoomed')  # Windows fullscreen
+        
+        # Set minimum window size for usability
+        self.minsize(1200, 800)
         
         # Set dark theme
         ctk.set_appearance_mode("dark")
@@ -203,15 +248,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Configure background
         self.configure(fg_color=self.BACKGROUND)
         
-        # Center window
-        self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (1200 // 2)
-        y = (self.winfo_screenheight() // 2) - (800 // 2)
-        self.geometry(f"1200x800+{x}+{y}")
-        
-        # Configure grid
+        # Configure responsive grid weights
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
+        
+        # Bind resize event for responsive updates
+        self.bind('<Configure>', self.on_window_resize)
     
     def _create_widgets(self) -> None:
         """Create all UI widgets with clean design."""
@@ -505,91 +547,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Position the section in the main frame
         self.analytics_section.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         
-        # Timeframe buttons
-        self.timeframe_frame = ctk.CTkFrame(
-            self.analytics_card,
-            fg_color="transparent"
+        # Chart container - Enhanced Temperature Chart
+        self.temperature_chart = TemperatureChart(
+            self.analytics_card
         )
-        
-        self.btn_24h = ctk.CTkButton(
-            self.timeframe_frame,
-            text="24h",
-            width=60,
-            height=32,
-            corner_radius=16,
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            fg_color=self.ACCENT_COLOR,
-            command=lambda: self._set_timeframe("24h")
-        )
-        
-        self.btn_7d = ctk.CTkButton(
-            self.timeframe_frame,
-            text="7d",
-            width=60,
-            height=32,
-            corner_radius=16,
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            fg_color=self.BACKGROUND,
-            text_color=self.TEXT_SECONDARY,
-            hover_color=self.BORDER_COLOR,
-            command=lambda: self._set_timeframe("7d")
-        )
-        
-        self.btn_30d = ctk.CTkButton(
-            self.timeframe_frame,
-            text="30d",
-            width=60,
-            height=32,
-            corner_radius=16,
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            fg_color=self.BACKGROUND,
-            text_color=self.TEXT_SECONDARY,
-            hover_color=self.BORDER_COLOR,
-            command=lambda: self._set_timeframe("30d")
-        )
-        
-        # Chart container
-        self.chart_frame = ctk.CTkFrame(
-            self.analytics_card,
-            fg_color="transparent"
-        )
-        
-        # Create matplotlib chart
-        self._create_chart()
+        self.temperature_chart.pack(fill="both", expand=True, padx=10, pady=10)
     
-    def _create_chart(self) -> None:
-        """Create Data Terminal styled temperature chart."""
-        # Create figure with dark styling
-        self.fig = Figure(figsize=(6, 4), dpi=100, facecolor=DataTerminalTheme.CARD_BG)
-        self.ax = self.fig.add_subplot(111)
-        
-        # Sample data (replace with real data)
-        hours = np.arange(24)
-        temps = 20 + 5 * np.sin(hours * np.pi / 12) + np.random.normal(0, 1, 24)
-        
-        # Plot with Data Terminal styling
-        self.ax.plot(hours, temps, color=self.ACCENT_COLOR, linewidth=3, alpha=0.9)
-        self.ax.fill_between(hours, temps, alpha=0.2, color=self.ACCENT_COLOR)
-        
-        # Data Terminal styling
-        self.ax.set_xlabel('Hour', fontsize=12, color=self.TEXT_SECONDARY, fontfamily='monospace')
-        self.ax.set_ylabel('Temperature (°C)', fontsize=12, color=self.TEXT_SECONDARY, fontfamily='monospace')
-        self.ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5, color=DataTerminalTheme.CHART_GRID)
-        self.ax.spines['top'].set_visible(False)
-        self.ax.spines['right'].set_visible(False)
-        self.ax.spines['left'].set_color(self.BORDER_COLOR)
-        self.ax.spines['bottom'].set_color(self.BORDER_COLOR)
-        self.ax.tick_params(colors=self.TEXT_SECONDARY, labelsize=10)
-        
-        # Dark background
-        self.ax.set_facecolor(DataTerminalTheme.CARD_BG)
-        
-        # Tight layout
-        self.fig.tight_layout(pad=2.0)
-        
-        # Embed in tkinter
-        self.canvas = FigureCanvasTkAgg(self.fig, self.chart_frame)
-        self.canvas.draw()
+
     
     def _create_status_bar(self) -> None:
         """Create clean status bar."""
@@ -717,62 +681,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.search_entry.delete(0, 'end')
             threading.Thread(target=self._fetch_weather_data, daemon=True).start()
     
-    def _set_timeframe(self, timeframe: str) -> None:
-        """Set chart timeframe and update styling."""
-        self.chart_timeframe = timeframe
-        
-        # Reset all buttons
-        for btn in [self.btn_24h, self.btn_7d, self.btn_30d]:
-            btn.configure(
-                fg_color=self.BACKGROUND,
-                text_color=self.TEXT_SECONDARY
-            )
-        
-        # Highlight selected button
-        if timeframe == "24h":
-            self.btn_24h.configure(fg_color=self.ACCENT_COLOR, text_color="white")
-        elif timeframe == "7d":
-            self.btn_7d.configure(fg_color=self.ACCENT_COLOR, text_color="white")
-        elif timeframe == "30d":
-            self.btn_30d.configure(fg_color=self.ACCENT_COLOR, text_color="white")
-        
-        # Update chart (implement with real data)
-        self._update_chart()
-    
-    def _update_chart(self) -> None:
-        """Update chart based on selected timeframe."""
-        # Clear and redraw chart with new timeframe data
-        self.ax.clear()
-        
-        # Sample data based on timeframe
-        if self.chart_timeframe == "24h":
-            x_data = np.arange(24)
-            y_data = 20 + 5 * np.sin(x_data * np.pi / 12) + np.random.normal(0, 1, 24)
-            xlabel = "Hour"
-        elif self.chart_timeframe == "7d":
-            x_data = np.arange(7)
-            y_data = 18 + 8 * np.sin(x_data * np.pi / 3.5) + np.random.normal(0, 2, 7)
-            xlabel = "Day"
-        else:  # 30d
-            x_data = np.arange(30)
-            y_data = 15 + 10 * np.sin(x_data * np.pi / 15) + np.random.normal(0, 3, 30)
-            xlabel = "Day"
-        
-        # Plot with consistent styling
-        self.ax.plot(x_data, y_data, color=self.ACCENT_COLOR, linewidth=2.5, alpha=0.8)
-        self.ax.fill_between(x_data, y_data, alpha=0.1, color=self.ACCENT_COLOR)
-        
-        # Clean styling
-        self.ax.set_xlabel(xlabel, fontsize=12, color=self.TEXT_SECONDARY)
-        self.ax.set_ylabel('Temperature (°C)', fontsize=12, color=self.TEXT_SECONDARY)
-        self.ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
-        self.ax.spines['top'].set_visible(False)
-        self.ax.spines['right'].set_visible(False)
-        self.ax.spines['left'].set_color(self.BORDER_COLOR)
-        self.ax.spines['bottom'].set_color(self.BORDER_COLOR)
-        
-        self.fig.tight_layout(pad=2.0)
-        self.canvas.draw()
+
     
     def run(self) -> None:
         """Start the application."""
@@ -787,11 +696,5 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.logger.info("Professional Weather Dashboard stopped")
 
 
-def main():
-    """Main entry point for professional dashboard."""
-    app = ProfessionalWeatherDashboard()
-    app.run()
-
-
-if __name__ == "__main__":
-    main()
+# Removed duplicate main() function and __main__ block
+# Main application entry point is now exclusively in main.py
