@@ -1,146 +1,160 @@
 """Configuration Service - Application Settings Management
 
 Handles environment variables, API keys, and application configuration.
+Updated to work with the new centralized configuration system.
 """
 
 import os
+import logging
 from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from pathlib import Path
 
-
-@dataclass
-class WeatherConfig:
-    """Weather API configuration."""
-    api_key: str
-    base_url: str = "https://api.openweathermap.org/data/2.5"
-    units: str = "metric"  # metric, imperial, kelvin
-    timeout: int = 10
-
-
-@dataclass
-class UIConfig:
-    """UI configuration and theming."""
-    theme: str = "dark"
-    window_width: int = 1200
-    window_height: int = 800
-    min_width: int = 800
-    min_height: int = 600
-    
-    # Data Terminal Color Scheme
-    bg_color: str = "#121212"
-    primary_color: str = "#00FFAB"
-    accent_color: str = "#2C2C2C"
-    text_color: str = "#EAEAEA"
-    font_family: str = "JetBrains Mono"
-    font_size: int = 12
-
-
-@dataclass
-class AppConfig:
-    """Application configuration."""
-    debug_mode: bool = False
-    log_level: str = "INFO"
-    cache_duration: int = 300  # 5 minutes
-    auto_refresh: bool = True
-    refresh_interval: int = 600  # 10 minutes
-    default_city: str = "London"
+from config.app_config import AppConfig, WeatherConfig, UIConfig
 
 
 class ConfigService:
     """Configuration service for managing application settings."""
     
-    def __init__(self):
-        """Initialize configuration service."""
-        self._weather_config: Optional[WeatherConfig] = None
-        self._ui_config: Optional[UIConfig] = None
-        self._app_config: Optional[AppConfig] = None
-        self._load_config()
+    def __init__(self, config_file: Optional[str] = None):
+        """Initialize the configuration service.
+        
+        Args:
+            config_file: Optional path to configuration file
+        """
+        self.logger = logging.getLogger(__name__)
+        self._config = AppConfig(config_file)
+        
+        # Validate configuration on initialization
+        if not self._config.validate():
+            self.logger.error("Configuration validation failed")
+            raise ValueError("Invalid configuration")
+        
+        self.logger.info("Configuration service initialized")
     
-    def _load_config(self) -> None:
-        """Load configuration from environment variables."""
-        # Weather API configuration
-        api_key = os.getenv('OPENWEATHER_API_KEY', '')
-        self._weather_config = WeatherConfig(
-            api_key=api_key,
-            base_url=os.getenv('WEATHER_API_URL', "https://api.openweathermap.org/data/2.5"),
-            units=os.getenv('WEATHER_UNITS', 'metric'),
-            timeout=int(os.getenv('API_TIMEOUT', '10'))
-        )
+    @property
+    def config(self) -> AppConfig:
+        """Get the application configuration.
         
-        # UI configuration
-        self._ui_config = UIConfig(
-            theme=os.getenv('UI_THEME', 'dark'),
-            window_width=int(os.getenv('WINDOW_WIDTH', '1200')),
-            window_height=int(os.getenv('WINDOW_HEIGHT', '800')),
-            font_size=int(os.getenv('FONT_SIZE', '12'))
-        )
-        
-        # Application configuration
-        self._app_config = AppConfig(
-            debug_mode=os.getenv('DEBUG_MODE', 'false').lower() == 'true',
-            log_level=os.getenv('LOG_LEVEL', 'INFO'),
-            cache_duration=int(os.getenv('CACHE_DURATION', '300')),
-            auto_refresh=os.getenv('AUTO_REFRESH', 'true').lower() == 'true',
-            refresh_interval=int(os.getenv('REFRESH_INTERVAL', '600')),
-            default_city=os.getenv('DEFAULT_CITY', 'London')
-        )
+        Returns:
+            Application configuration object
+        """
+        return self._config
     
     @property
     def weather(self) -> WeatherConfig:
-        """Get weather API configuration."""
-        return self._weather_config
+        """Get the weather configuration.
+        
+        Returns:
+            WeatherConfig instance
+        """
+        return self._config.weather
     
     @property
     def ui(self) -> UIConfig:
-        """Get UI configuration."""
-        return self._ui_config
+        """Get the UI configuration.
+        
+        Returns:
+            UIConfig instance
+        """
+        return self._config.ui
     
     @property
     def app(self) -> AppConfig:
-        """Get application configuration."""
-        return self._app_config
+        """Get the app configuration.
+        
+        Returns:
+            AppConfig instance
+        """
+        return self._config
     
-    def get_config_dict(self) -> Dict[str, Any]:
-        """Get all configuration as dictionary."""
+    def get_api_key(self) -> str:
+        """Get the OpenWeather API key.
+        
+        Returns:
+            API key string
+        """
+        return self._config.api.openweather_api_key
+    
+    def get_api_base_url(self) -> str:
+        """Get the OpenWeather API base URL.
+        
+        Returns:
+            API base URL string
+        """
+        return self._config.api.openweather_base_url
+    
+    def get_request_timeout(self) -> int:
+        """Get the API request timeout.
+        
+        Returns:
+            Timeout in seconds
+        """
+        return self._config.api.request_timeout
+    
+    def get_window_config(self) -> Dict[str, Any]:
+        """Get window configuration settings.
+        
+        Returns:
+            Dictionary with window configuration
+        """
         return {
-            'weather': {
-                'api_key': '***' if self._weather_config.api_key else None,
-                'base_url': self._weather_config.base_url,
-                'units': self._weather_config.units,
-                'timeout': self._weather_config.timeout
-            },
-            'ui': {
-                'theme': self._ui_config.theme,
-                'window_size': f"{self._ui_config.window_width}x{self._ui_config.window_height}",
-                'font': f"{self._ui_config.font_family} {self._ui_config.font_size}pt"
-            },
-            'app': {
-                'debug_mode': self._app_config.debug_mode,
-                'log_level': self._app_config.log_level,
-                'cache_duration': self._app_config.cache_duration,
-                'auto_refresh': self._app_config.auto_refresh
-            }
+            'title': self._config.ui.window_title,
+            'width': self._config.ui.window_width,
+            'height': self._config.ui.window_height,
+            'min_width': self._config.ui.min_width,
+            'min_height': self._config.ui.min_height
         }
     
-    def validate_config(self) -> tuple[bool, list[str]]:
-        """Validate configuration and return status with any errors."""
-        errors = []
+    def get_ui_colors(self) -> Dict[str, str]:
+        """Get UI color configuration.
         
-        # Validate API key
-        if not self._weather_config.api_key:
-            errors.append("OpenWeather API key is required")
-        elif self._weather_config.api_key == 'your_api_key_here':
-            errors.append("Please replace placeholder API key with actual key")
+        Returns:
+            Dictionary with color settings
+        """
+        return {
+            'primary': self._config.ui.primary_color,
+            'secondary': self._config.ui.secondary_color,
+            'background': self._config.ui.background_color,
+            'text': self._config.ui.text_color,
+            'accent': self._config.ui.accent_color
+        }
+    
+    def get_data_directory(self) -> Path:
+        """Get the data directory path.
         
-        # Validate UI settings
-        if self._ui_config.window_width < self._ui_config.min_width:
-            errors.append(f"Window width must be at least {self._ui_config.min_width}px")
+        Returns:
+            Path to data directory
+        """
+        return Path(self._config.data.data_directory)
+    
+    def get_favorites_file_path(self) -> Path:
+        """Get the favorites file path.
         
-        if self._ui_config.window_height < self._ui_config.min_height:
-            errors.append(f"Window height must be at least {self._ui_config.min_height}px")
+        Returns:
+            Path to favorites file
+        """
+        return self._config.get_data_path(self._config.data.favorites_file)
+    
+    def get_recent_searches_file_path(self) -> Path:
+        """Get the recent searches file path.
         
-        # Validate app settings
-        if self._app_config.cache_duration < 60:
-            errors.append("Cache duration must be at least 60 seconds")
+        Returns:
+            Path to recent searches file
+        """
+        return self._config.get_data_path(self._config.data.recent_searches_file)
+    
+    def get_weather_units(self) -> str:
+        """Get the default weather units.
         
-        return len(errors) == 0, errors
+        Returns:
+            Units string (metric, imperial, kelvin)
+        """
+        return self._config.weather.default_units
+    
+    def is_debug_mode(self) -> bool:
+        """Check if debug mode is enabled.
+        
+        Returns:
+            True if debug mode is enabled, False otherwise
+        """
+        return self._config.logging.log_level.upper() == "DEBUG"

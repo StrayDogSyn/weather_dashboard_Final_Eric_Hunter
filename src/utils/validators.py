@@ -189,7 +189,7 @@ def validate_url(url: Optional[str]) -> Tuple[bool, Optional[str]]:
         
         return True, None
         
-    except Exception:
+    except (ValueError, TypeError):
         return False, "Invalid URL format"
 
 
