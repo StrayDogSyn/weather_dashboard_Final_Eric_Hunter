@@ -421,5 +421,5 @@ class TestWeatherDataModels(unittest.TestCase):
         self.assertEqual(direction, "S")
 
 
-if __name__ == '__main__':
-    unittest.main()
+# Test file - run via pytest or unittest discovery
+# No standalone execution needed

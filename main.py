@@ -1,113 +1,107 @@
-#!/usr/bin/env python3
-"""Weather Dashboard - Main Application Entry Point
-
-Modern weather dashboard with CustomTkinter UI and real-time data visualization.
-"""
-
-import os
 import sys
+import os
 import logging
 from pathlib import Path
-from typing import Optional
 
-# Add src directory to Python path
-src_dir = Path(__file__).parent / 'src'
-sys.path.insert(0, str(src_dir))
+# Add src to path
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
 
-from dotenv import load_dotenv
-from ui.weather_dashboard import WeatherDashboard
-from ui.professional_weather_dashboard import ProfessionalWeatherDashboard
+# Single import - choose ONE GUI framework
+from ui.weather_dashboard import WeatherDashboard  # OR professional_weather_dashboard
 from services.config_service import ConfigService
-from services.logging_service import LoggingService
+from dotenv import load_dotenv
 
+logger = logging.getLogger(__name__)
 
-def setup_environment() -> None:
-    """Setup environment variables and configuration."""
-    logger = logging.getLogger(__name__)
-    
-    # Load environment variables
-    env_path = src_dir.parent / '.env'
-    if env_path.exists():
-        load_dotenv(env_path)
-        logger.info("Loaded environment variables from .env")
-    else:
-        # Load from .env.example as fallback
-        example_env = src_dir.parent / '.env.example'
-        if example_env.exists():
-            load_dotenv(example_env)
-            logger.warning("Using .env.example - Please create .env with your API keys")
-        else:
-            logger.error("No environment configuration found")
-
-
-def setup_logging() -> logging.Logger:
-    """Setup application logging."""
-    log_level = os.getenv('LOG_LEVEL', 'INFO')
-    debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
-    
-    logging_service = LoggingService()
-    logging_service.setup_logging(
-        level=getattr(logging, log_level.upper()),
-        debug_mode=debug_mode
-    )
-    
-    return logging_service.get_logger(__name__)
-
-
-def main() -> int:
-    """Main application entry point.
-    
-    Returns:
-        int: Exit code (0 for success, 1 for error)
-    """
-    try:
-        # Setup environment and logging
-        setup_environment()
-        logger = setup_logging()
+class SingleInstanceApp:
+    def __init__(self):
+        self.lock_file = "weather_app.lock"
         
+    def is_running(self):
+        """Check if app is already running."""
+        if os.path.exists(self.lock_file):
+            try:
+                with open(self.lock_file, 'r') as f:
+                    pid = int(f.read().strip())
+                    
+                # Check if process is still running
+                try:
+                    os.kill(pid, 0)  # Signal 0 checks if process exists
+                    return True
+                except OSError:
+                    # Process doesn't exist, remove stale lock
+                    os.remove(self.lock_file)
+                    return False
+            except:
+                # Invalid lock file, remove it
+                try:
+                    os.remove(self.lock_file)
+                except:
+                    pass
+                return False
+        return False
+    
+    def create_lock(self):
+        """Create lock file with current PID."""
+        with open(self.lock_file, 'w') as f:
+            f.write(str(os.getpid()))
+    
+    def remove_lock(self):
+        """Remove lock file."""
+        try:
+            if os.path.exists(self.lock_file):
+                os.remove(self.lock_file)
+        except:
+            pass
+
+def main():
+    """Main application entry with optimized window startup."""
+    # Check for existing instance
+    app_instance = SingleInstanceApp()
+    
+    if app_instance.is_running():
+        print("Weather Dashboard is already running!")
+        return
+    
+    # Create lock file
+    app_instance.create_lock()
+    
+    try:
+        # Load environment variables
+        load_dotenv()
+        
+        # Initialize logging ONCE
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(levelname)s [%(asctime)s] %(name)s: %(message)s',
+            datefmt='%H:%M:%S'
+        )
+        
+        logger.info("📝 Logging initialized - Level: INFO")
         logger.info("Starting Weather Dashboard...")
         
-        # Validate API key
-        api_key = os.getenv('OPENWEATHER_API_KEY')
-        if not api_key or api_key == 'your_api_key_here':
-            logger.error("OpenWeather API key not configured")
-            logger.error("Error: OpenWeather API key not found!")
-            logger.error("Please:")
-            logger.error("1. Copy .env.example to .env")
-            logger.error("2. Add your OpenWeather API key to .env")
-            logger.error("3. Get a free API key at: https://openweathermap.org/api")
-            return 1
-        
-        # Initialize and run dashboard with professional design
+        # Initialize required services
         config_service = ConfigService()
         
-        # Check for professional mode preference
-        use_professional = os.getenv('USE_PROFESSIONAL_UI', 'true').lower() == 'true'
+        # Create SINGLE GUI instance with optimized startup
+        app = WeatherDashboard(config_service)
         
-        if use_professional:
-            try:
-                dashboard = ProfessionalWeatherDashboard()
-                logger.info("Professional Weather Dashboard initialized successfully")
-            except Exception as e:
-                logger.warning(f"Professional dashboard unavailable, using standard: {e}")
-                dashboard = WeatherDashboard(config_service, use_enhanced_features=True)
-                logger.info("Standard Weather Dashboard initialized successfully")
-        else:
-            dashboard = WeatherDashboard(config_service, use_enhanced_features=True)
-            logger.info("Standard Weather Dashboard initialized successfully")
+        # Force window to front after creation
+        app.after(50, lambda: app.focus_force())
         
-        dashboard.run()
+        logger.info("Weather Dashboard initialized successfully")
         
-        return 0
+        # Start SINGLE event loop
+        app.mainloop()
         
-    except KeyboardInterrupt:
-        logger.info("Dashboard closed by user")
-        return 0
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
-        logger.exception("Fatal error in main application")
-        return 1
-
+        logger.error(f"Application error: {e}")
+        
+    finally:
+        # Always clean up lock file
+        app_instance.remove_lock()
+        logger.info("👋 Weather Dashboard closed")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

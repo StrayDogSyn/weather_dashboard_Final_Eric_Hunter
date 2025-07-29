@@ -9,6 +9,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 import json
+import os
+import shutil
 from pathlib import Path
 
 from .config_service import ConfigService
@@ -73,6 +75,118 @@ class ForecastData:
         return cls(**data)
 
 
+class WeatherCache:
+    """Enhanced weather cache with corruption recovery and backup management."""
+    
+    def __init__(self, cache_file="data/weather_cache.json"):
+        self.cache_file = cache_file
+        self.backup_file = cache_file.replace('.json', '_backup.json')
+        self.cache_data = {}
+        self.logger = logging.getLogger('weather_dashboard.weather_cache')
+        self.load_cache_with_recovery()
+    
+    def load_cache_with_recovery(self):
+        """Load cache with automatic corruption recovery."""
+        try:
+            # Try loading main cache file
+            self.cache_data = self._load_cache_file(self.cache_file)
+            self.logger.info("Cache loaded successfully")
+            
+        except Exception as e:
+            self.logger.warning(f"Main cache corrupted: {e}")
+            
+            try:
+                # Try loading backup cache
+                self.cache_data = self._load_cache_file(self.backup_file)
+                self.logger.info("Backup cache loaded successfully")
+                
+                # Restore main cache from backup
+                shutil.copy2(self.backup_file, self.cache_file)
+                
+            except Exception as backup_error:
+                self.logger.warning(f"Backup cache also corrupted: {backup_error}")
+                
+                # Reset to empty cache
+                self.cache_data = {}
+                self._create_fresh_cache()
+                self.logger.info("Created fresh cache file")
+    
+    def _load_cache_file(self, file_path):
+        """Load and validate a specific cache file."""
+        if not os.path.exists(file_path):
+            return {}
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            
+            if not content:
+                return {}
+            
+            # Validate JSON structure
+            data = json.loads(content)
+            
+            # Validate data structure
+            if not isinstance(data, dict):
+                raise ValueError("Cache data must be a dictionary")
+            
+            return data
+    
+    def _create_fresh_cache(self):
+        """Create a fresh, empty cache file."""
+        try:
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            
+            fresh_cache = {
+                "created": datetime.now().isoformat(),
+                "version": "1.0",
+                "weather_data": {},
+                "metadata": {
+                    "last_cleanup": datetime.now().isoformat(),
+                    "total_entries": 0
+                }
+            }
+            
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(fresh_cache, f, indent=2, ensure_ascii=False)
+            
+            self.cache_data = fresh_cache
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create fresh cache: {e}")
+            self.cache_data = {}
+    
+    def save_cache_safely(self):
+        """Save cache with backup and validation."""
+        try:
+            # Create backup before saving
+            if os.path.exists(self.cache_file):
+                shutil.copy2(self.cache_file, self.backup_file)
+            
+            # Save to temporary file first
+            temp_file = self.cache_file + '.tmp'
+            
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(self.cache_data, f, indent=2, ensure_ascii=False, default=str)
+            
+            # Validate the written file
+            with open(temp_file, 'r', encoding='utf-8') as f:
+                json.load(f)  # Validate JSON structure
+            
+            # Replace main cache file
+            shutil.move(temp_file, self.cache_file)
+            self.logger.info("Cache saved successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save cache: {e}")
+            
+            # Clean up temp file if it exists
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
+
+
 class WeatherService:
     """Service for fetching weather data from OpenWeather API."""
     
@@ -80,37 +194,35 @@ class WeatherService:
         """Initialize weather service."""
         self.config = config_service
         self.logger = logging.getLogger('weather_dashboard.weather_service')
-        self._cache: Dict[str, Dict[str, Any]] = {}
-        self._cache_file = Path.cwd() / 'cache' / 'weather_cache.json'
-        self._load_cache()
-    
-    def _load_cache(self) -> None:
-        """Load weather cache from file."""
-        try:
-            if self._cache_file.exists():
-                with open(self._cache_file, 'r', encoding='utf-8') as f:
-                    self._cache = json.load(f)
-                self.logger.debug(f"📁 Loaded cache with {len(self._cache)} entries")
-        except Exception as e:
-            self.logger.warning(f"Failed to load cache: {e}")
-            self._cache = {}
+        
+        # Initialize enhanced cache
+        cache_path = str(Path.cwd() / 'cache' / 'weather_cache.json')
+        self.cache = WeatherCache(cache_path)
+        
+        # Legacy cache property for backward compatibility
+        self._cache = self.cache.cache_data.get('weather_data', {})
     
     def _save_cache(self) -> None:
-        """Save weather cache to file."""
+        """Save weather cache using enhanced cache system."""
         try:
-            self._cache_file.parent.mkdir(exist_ok=True)
+            # Update the cache data structure
+            if 'weather_data' not in self.cache.cache_data:
+                self.cache.cache_data['weather_data'] = {}
             
-            # Create a serializable copy of the cache
-            serializable_cache = {}
-            for key, value in self._cache.items():
-                serializable_cache[key] = {
-                    'data': value['data'],  # Already converted by to_dict()
-                    'timestamp': value['timestamp'] if isinstance(value['timestamp'], str) else value['timestamp'].isoformat()
-                }
+            self.cache.cache_data['weather_data'] = self._cache
             
-            with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump(serializable_cache, f, indent=2)
-            self.logger.debug("💾 Cache saved successfully")
+            # Update metadata
+            if 'metadata' not in self.cache.cache_data:
+                self.cache.cache_data['metadata'] = {}
+            
+            self.cache.cache_data['metadata'].update({
+                'last_update': datetime.now().isoformat(),
+                'total_entries': len(self._cache)
+            })
+            
+            # Use enhanced save method
+            self.cache.save_cache_safely()
+            
         except Exception as e:
             self.logger.warning(f"Failed to save cache: {e}")
     
@@ -301,6 +413,19 @@ class WeatherService:
     def clear_cache(self) -> None:
         """Clear weather cache."""
         self._cache.clear()
-        if self._cache_file.exists():
-            self._cache_file.unlink()
+        
+        # Clear the enhanced cache data
+        self.cache.cache_data = {
+            "created": datetime.now().isoformat(),
+            "version": "1.0",
+            "weather_data": {},
+            "metadata": {
+                "last_cleanup": datetime.now().isoformat(),
+                "total_entries": 0
+            }
+        }
+        
+        # Save the cleared cache
+        self.cache.save_cache_safely()
+        
         self.logger.info("🗑️ Weather cache cleared")

@@ -39,6 +39,7 @@ ratelimit>=2.2.1              # Rate limiting for API calls
 cachetools>=5.3.0             # Advanced caching utilities
 typing-extensions>=4.8.0      # Extended type hints for Python
 dataclasses-json>=0.6.0       # JSON serialization for dataclasses
+psutil>=5.9.0                 # System and process utilities
 
 # Development & Code Quality
 flake8>=6.0.0                  # Code linting for Python standards

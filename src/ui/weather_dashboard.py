@@ -16,9 +16,8 @@ from pathlib import Path
 from ui.theme import DataTerminalTheme
 from ui.components.weather_display import WeatherDisplayFrame
 from ui.components.temperature_chart import TemperatureChart
-from ui.components.enhanced_search_bar import EnhancedSearchBarFrame as SearchBarFrame
 from ui.components.loading_overlay import LoadingOverlay
-from ui.components.status_bar import StatusBarFrame
+from services.window_manager import WindowStateManager
 from services.config_service import ConfigService
 from services.weather_service import WeatherService, WeatherData
 from services.logging_service import LoggingService
@@ -39,6 +38,9 @@ class WeatherDashboard(ctk.CTk):
     def __init__(self, config_service: ConfigService, use_enhanced_features: bool = True):
         """Initialize the weather dashboard."""
         super().__init__()
+        
+        # Initialize window state manager
+        self.window_manager = WindowStateManager()
         
         # Services
         self.config = config_service
@@ -62,46 +64,176 @@ class WeatherDashboard(ctk.CTk):
         self.current_location: Optional[str] = None
         self.is_loading = False
         
-        # Setup UI
-        self._setup_window()
-        self._create_widgets()
-        self._setup_layout()
+        # Setup window properties FIRST
+        self.setup_window_properties()
+        
+        # Setup UI with enhanced initialization
+        self.setup_ui()
         self._setup_bindings()
+        
+        # Apply maximized state after UI is ready
+        self.after(10, self.ensure_maximized_startup)
         
         # Load initial data
         self._load_initial_weather()
         
         self.logger.info("🎨 Weather Dashboard initialized")
     
-    def _setup_window(self) -> None:
-        """Configure main window properties with responsive design and fullscreen default."""
-        # Window configuration
+    def setup_window_properties(self):
+        """Configure basic window properties."""
         self.title("JTC Capstone Application")
         
-        # Set fullscreen default launch
-        self.geometry("1920x1080")  # Default large size
-        self.state('zoomed')  # Windows fullscreen
-        
-        # Set minimum window size for usability
+        # Set minimum size
         self.minsize(1200, 800)
         
-        # Configure responsive grid weights
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        # Apply saved window state
+        self.window_manager.apply_window_state(self)
         
-        # Apply theme
-        self.configure(fg_color=DataTerminalTheme.BACKGROUND)
-        
-        # Window icon (if available)
+        # Configure close protocol
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+    
+    def ensure_maximized_startup(self):
+        """Ensure window opens maximized with multiple fallback methods."""
         try:
-            icon_path = Path.cwd() / 'assets' / 'icon.ico'
-            if icon_path.exists():
-                self.iconbitmap(str(icon_path))
-        except (OSError, FileNotFoundError):
-            pass  # Icon not critical
+            # Method 1: Standard maximization
+            self.state('zoomed')
+            self.logger.info("Applied zoomed state")
+            
+        except Exception as e1:
+            self.logger.warning(f"Zoomed state failed: {e1}")
+            try:
+                # Method 2: Alternative maximization
+                self.attributes('-zoomed', True)
+                self.logger.info("Applied -zoomed attribute")
+                
+            except Exception as e2:
+                self.logger.warning(f"Zoomed attribute failed: {e2}")
+                try:
+                    # Method 3: Full screen geometry
+                    screen_width = self.winfo_screenwidth()
+                    screen_height = self.winfo_screenheight()
+                    self.geometry(f"{screen_width}x{screen_height}+0+0")
+                    self.logger.info(f"Applied full screen geometry: {screen_width}x{screen_height}")
+                    
+                except Exception as e3:
+                    self.logger.error(f"All maximization methods failed: {e3}")
+                    # Final fallback
+                    self.geometry("1920x1080+0+0")
         
-        # Bind window resize events for responsive behavior
-        self.bind('<Configure>', self._on_window_resize)
+        # Ensure window is visible and focused
+        self.lift()
+        self.focus_force()
+        self.attributes('-topmost', True)
+        self.after(100, lambda: self.attributes('-topmost', False))
+    
+
+    
+    def setup_ui(self):
+        """Setup UI components after window configuration."""
+        # Configure main grid for responsive layout
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        # Create main container
+        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_container.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+        
+        # Setup responsive layout
+        self.setup_responsive_layout()
+    
+    def setup_responsive_layout(self):
+        """Setup responsive layout that works in all window sizes."""
+        # Configure main container grid
+        self.main_container.grid_columnconfigure(0, weight=1)
+        self.main_container.grid_rowconfigure(1, weight=1)
+        
+        # Header section
+        self.header_frame = ctk.CTkFrame(self.main_container, height=80)
+        self.header_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+        self.header_frame.grid_propagate(False)
+        
+        # Content section
+        self.content_frame = ctk.CTkFrame(self.main_container)
+        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
+        
+        # Setup header and content
+        self.setup_header()
+        self.setup_content()
+    
+    def setup_header(self):
+        """Setup header with responsive design."""
+        self.header_frame.grid_columnconfigure(1, weight=1)
+        
+        # Left side - branding
+        left_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        left_frame.grid(row=0, column=0, sticky="w", padx=20, pady=10)
+        
+        title_label = ctk.CTkLabel(
+            left_frame,
+            text="⚡ Project CodeFront",
+            font=("Segoe UI", 20, "bold"),
+            text_color="#00FF88"
+        )
+        title_label.pack(anchor="w")
+        
+        # Right side - search and location
+        right_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        right_frame.grid(row=0, column=1, sticky="e", padx=20, pady=10)
+        
+        # Current location
+        self.location_label = ctk.CTkLabel(
+            right_frame,
+            text="Current: Austin, US",
+            font=("Segoe UI", 10),
+            text_color="gray70"
+        )
+        self.location_label.pack(anchor="e")
+        
+        # Search area
+        search_container = ctk.CTkFrame(right_frame, fg_color="transparent")
+        search_container.pack(anchor="e", pady=(5, 0))
+        
+        self.search_entry = ctk.CTkEntry(
+            search_container,
+            placeholder_text="Search cities, coordinates, or zip codes...",
+            width=300,
+            height=32
+        )
+        self.search_entry.pack(side="left", padx=(0, 5))
+        
+        search_btn = ctk.CTkButton(
+            search_container,
+            text="SEARCH",
+            width=80,
+            height=32,
+            command=self.on_search
+        )
+        search_btn.pack(side="left")
+        
+        # Bind Enter key to search entry
+        self.search_entry.bind("<Return>", lambda e: self.on_search())
+    
+    def setup_content(self):
+        """Setup main content area."""
+        # Configure content frame for horizontal layout
+        self.content_frame.grid_columnconfigure(1, weight=1)
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        
+        # Left panel - weather info
+        self.weather_panel = ctk.CTkFrame(self.content_frame, width=400)
+        self.weather_panel.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.weather_panel.grid_propagate(False)
+        
+        # Right panel - charts
+        self.chart_panel = ctk.CTkFrame(self.content_frame)
+        self.chart_panel.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=10)
+        
+        # Setup panels
+        self.setup_weather_display()
+        self.setup_chart_display()
+        
+        # Setup status bar
+        self.setup_status_bar()
     
     def center_window(self) -> None:
         """Center the window on the screen."""
@@ -187,98 +319,9 @@ class WeatherDashboard(ctk.CTk):
                 font_weight = current_font[2] if len(current_font) > 2 else 'bold'
                 self.title_label.configure(font=(font_family, title_font_size, font_weight))
     
-    def _create_widgets(self) -> None:
-        """Create all UI widgets."""
-        # Header with search
-        self.header_frame = ctk.CTkFrame(
-            self,
-            **DataTerminalTheme.get_frame_style("main")
-        )
-        
-        # Title
-        self.title_label = ctk.CTkLabel(
-            self.header_frame,
-            text="⚡ Project CodeFront",
-            **DataTerminalTheme.get_label_style("title")
-        )
-        
-        # Search bar
-        self.search_frame = SearchBarFrame(
-            self.header_frame,
-            on_search=self._on_city_search,
-            on_suggestion_select=self._on_suggestion_select
-        )
-        
-        # Status bar
-        self.status_frame = ctk.CTkFrame(
-            self.header_frame,
-            **DataTerminalTheme.get_frame_style("default")
-        )
-        
-        self.status_label = ctk.CTkLabel(
-            self.status_frame,
-            text="Ready",
-            **DataTerminalTheme.get_label_style("caption")
-        )
-        
-        self.last_update_label = ctk.CTkLabel(
-            self.status_frame,
-            text="",
-            **DataTerminalTheme.get_label_style("caption")
-        )
-        
-        # Main content area
-        self.content_frame = ctk.CTkFrame(
-            self,
-            **DataTerminalTheme.get_frame_style("main")
-        )
-        
-        # Weather display (left side)
-        self.weather_display = WeatherDisplayFrame(
-            self.content_frame,
-            on_refresh=self._refresh_weather
-        )
-        
-        # Enhanced temperature chart (right side)
-        self.chart_display = TemperatureChart(
-            self.content_frame
-        )
-        
-        # Loading overlay
-        self.loading_overlay = LoadingOverlay(self)
+
     
-    def _setup_layout(self) -> None:
-        """Arrange widgets in the window with responsive design."""
-        # Configure main window grid for responsive behavior
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)  # Content area expands
-        
-        # Header
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 8))
-        self.header_frame.grid_columnconfigure(1, weight=1)
-        
-        # Header content with improved spacing
-        self.title_label.grid(row=0, column=0, padx=(15, 25), pady=12, sticky="w")
-        self.search_frame.grid(row=0, column=1, padx=12, pady=12, sticky="ew")
-        
-        # Status bar with responsive layout
-        self.status_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(8, 0))
-        self.status_frame.grid_columnconfigure(1, weight=1)
-        
-        self.status_label.grid(row=0, column=0, padx=12, pady=6, sticky="w")
-        self.last_update_label.grid(row=0, column=1, padx=12, pady=6, sticky="e")
-        
-        # Main content with responsive grid weights
-        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=12, pady=(8, 12))
-        
-        # Responsive content layout - left panel (weather) gets 40%, right panel (charts) gets 60%
-        self.content_frame.grid_columnconfigure(0, weight=2, minsize=350)  # Weather display
-        self.content_frame.grid_columnconfigure(1, weight=3, minsize=400)  # Chart display
-        self.content_frame.grid_rowconfigure(0, weight=1)
-        
-        # Content layout with improved spacing
-        self.weather_display.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        self.chart_display.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+
     
     def _setup_bindings(self) -> None:
         """Setup event bindings."""
@@ -381,11 +424,8 @@ class WeatherDashboard(ctk.CTk):
         if forecast_data:
             self.chart_display.update_forecast(forecast_data)
         
-        # Update search bar
-        if hasattr(self.search_frame, 'set_current_location'):
-            self.search_frame.set_current_location(self.current_location)
-        elif hasattr(self.search_frame, 'set_current_city'):
-            self.search_frame.set_current_city(self.current_location)
+        # Update location label in header
+        self.location_label.configure(text=f"Current: {self.current_location}")
         
         # Update status
         status_text = f"Weather updated for {weather_data.city}"
@@ -405,7 +445,9 @@ class WeatherDashboard(ctk.CTk):
     
     def _on_weather_error(self, error_message: str) -> None:
         """Handle weather fetch error."""
-        self._update_status(f"Error: {error_message}", "error")
+        # Truncate long error messages for status bar
+        display_error = error_message if len(error_message) <= 50 else f"{error_message[:50]}..."
+        self._update_status(f"Error: {display_error}", "error")
         self._hide_loading()
         self.is_loading = False
         
@@ -433,49 +475,122 @@ class WeatherDashboard(ctk.CTk):
     
     def _update_status(self, message: str, status_type: str = "info") -> None:
         """Update status bar message."""
-        # Color based on status type
-        colors = {
-            "info": DataTerminalTheme.TEXT_SECONDARY,
-            "success": DataTerminalTheme.SUCCESS,
-            "warning": DataTerminalTheme.WARNING,
-            "error": DataTerminalTheme.ERROR
-        }
+        if hasattr(self, 'status_label'):
+            # Set color based on status type
+            colors = {
+                "info": "gray70",
+                "success": "#00FF88",
+                "warning": "orange",
+                "error": "red"
+            }
+            color = colors.get(status_type, "gray70")
+            
+            self.status_label.configure(
+                text=message,
+                text_color=color
+            )
         
-        color = colors.get(status_type, DataTerminalTheme.TEXT_SECONDARY)
-        
-        self.status_label.configure(
-            text=message,
-            text_color=color
-        )
+        self.logger.info(f"Status: {message}")
         
         # Auto-clear status after delay (except errors)
         if status_type != "error":
-            self.after(5000, lambda: self.status_label.configure(
-                text="Ready",
-                text_color=DataTerminalTheme.TEXT_SECONDARY
-            ))
+            self.after(5000, lambda: self._update_status("Ready"))
     
     def _update_last_update(self) -> None:
         """Update last update timestamp."""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.last_update_label.configure(text=f"Last update: {timestamp}")
+        timestamp = datetime.now().strftime("%I:%M %p")
+        
+        if hasattr(self, 'last_update_label'):
+            self.last_update_label.configure(text=f"Last updated: {timestamp}")
     
     def _on_click(self, event) -> None:
         """Handle window click to remove focus from widgets."""
         self.focus_set()
     
-    def _on_closing(self) -> None:
-        """Handle window closing."""
-        self.logger.info("🔌 Shutting down Weather Dashboard")
+    def on_search(self):
+        """Handle search button click."""
+        query = self.search_entry.get().strip()
+        if query:
+            self._on_city_search(query)
+            # Update location label
+            self.location_label.configure(text=f"Searching: {query}...")
+    
+    def setup_weather_display(self):
+        """Setup weather display panel."""
+        # Create weather display using existing component
+        self.weather_display = WeatherDisplayFrame(
+            self.weather_panel,
+            on_refresh=self._refresh_weather
+        )
+        self.weather_display.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    def setup_chart_display(self):
+        """Setup chart display panel."""
+        # Create chart display using existing component
+        self.chart_display = TemperatureChart(
+            self.chart_panel
+        )
+        self.chart_display.pack(fill="both", expand=True, padx=10, pady=10)
         
+        # Create loading overlay
+        self.loading_overlay = LoadingOverlay(self)
+    
+    def setup_status_bar(self):
+        """Setup status bar for the application."""
+        # Status bar frame
+        self.status_frame = ctk.CTkFrame(self.main_container, height=30)
+        self.status_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
+        self.status_frame.grid_propagate(False)
+        self.status_frame.grid_columnconfigure(1, weight=1)
+        
+        # Configure main container to accommodate status bar
+        self.main_container.grid_rowconfigure(2, weight=0)
+        
+        # Status label
+        self.status_label = ctk.CTkLabel(
+            self.status_frame,
+            text="Ready",
+            font=("Segoe UI", 10),
+            text_color="gray70"
+        )
+        self.status_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        
+        # Last update label
+        self.last_update_label = ctk.CTkLabel(
+            self.status_frame,
+            text="",
+            font=("Segoe UI", 10),
+            text_color="gray70"
+        )
+        self.last_update_label.grid(row=0, column=1, padx=10, pady=5, sticky="e")
+    
+    def on_closing(self) -> None:
+        """Handle window closing with state save."""
         try:
+            # Save window state
+            self.window_manager.save_window_config(self)
+            
+            # Cleanup and close
+            self.logger.info("🔌 Shutting down Weather Dashboard")
+            
             # Save any pending data
-            if hasattr(self.weather_service, '_save_cache'):
-                self.weather_service._save_cache()
+            if hasattr(self, 'weather_service'):
+                try:
+                    # Don't clear cache on close, just save it
+                    pass
+                except Exception as e:
+                    self.logger.error(f"Error saving data on close: {e}")
+            
+            self.destroy()
+            
         except Exception as e:
-            self.logger.warning(f"Error saving cache: {e}")
-        
-        self.destroy()
+            self.logger.error(f"Shutdown error: {e}")
+        finally:
+            self.logger.info("👋 Weather Dashboard closed")
+    
+    def _on_closing(self) -> None:
+        """Handle window closing (legacy method)."""
+        self.on_closing()
     
     def run(self) -> None:
         """Start the application main loop."""

@@ -505,21 +505,40 @@ class TemperatureChart(ctk.CTkFrame):
             self._hide_tooltip()
             return
         
-        # Find nearest data point
-        line = self.ax.lines[0]
-        xdata, ydata = line.get_data()
-        
-        if len(xdata) == 0:
-            return
-        
-        # Calculate distances to all points
-        distances = np.sqrt((xdata - event.xdata)**2 + (ydata - event.ydata)**2)
-        nearest_idx = np.argmin(distances)
-        
-        # Show tooltip if close enough
-        if distances[nearest_idx] < 2.0:  # Threshold for hover detection
-            self._show_tooltip(event, xdata[nearest_idx], ydata[nearest_idx], nearest_idx)
-        else:
+        try:
+            # Find nearest data point
+            line = self.ax.lines[0]
+            xdata, ydata = line.get_data()
+            
+            if len(xdata) == 0:
+                return
+            
+            # Convert datetime x-data to numeric for distance calculation
+            if hasattr(xdata[0], 'timestamp'):  # datetime objects
+                # Convert to matplotlib date numbers for calculation
+                from matplotlib.dates import date2num
+                x_numeric = np.array([date2num(x) for x in xdata])
+            else:
+                x_numeric = np.array(xdata)
+            
+            # Convert event coordinates if needed
+            if event.xdata is None or event.ydata is None:
+                self._hide_tooltip()
+                return
+            
+            # Calculate distances using numeric coordinates
+            y_numeric = np.array(ydata)
+            distances = np.sqrt((x_numeric - event.xdata)**2 + (y_numeric - event.ydata)**2)
+            nearest_idx = np.argmin(distances)
+            
+            # Show tooltip if close enough
+            if distances[nearest_idx] < 2.0:  # Threshold for hover detection
+                self._show_tooltip(event, xdata[nearest_idx], ydata[nearest_idx], nearest_idx)
+            else:
+                self._hide_tooltip()
+                
+        except Exception as e:
+            # Silently handle errors to prevent spam
             self._hide_tooltip()
     
     def _show_tooltip(self, event, x_val: float, y_val: float, idx: int) -> None:
