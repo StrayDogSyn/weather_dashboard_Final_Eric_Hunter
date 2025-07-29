@@ -15,7 +15,7 @@ from pathlib import Path
 from ui.theme import DataTerminalTheme
 from ui.components.weather_display import WeatherDisplayFrame
 from ui.components.chart_display import ChartDisplayFrame
-from ui.components.search_bar import SearchBarFrame
+from ui.components.enhanced_search_bar import EnhancedSearchBarFrame as SearchBarFrame
 from ui.components.loading_overlay import LoadingOverlay
 from ui.components.status_bar import StatusBarFrame
 from services.config_service import ConfigService

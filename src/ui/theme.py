@@ -206,6 +206,42 @@ class DataTerminalTheme:
         return styles.get(variant, styles["default"])
     
     @classmethod
+    def get_switch_style(cls) -> Dict[str, Any]:
+        """Get switch/toggle styling configuration."""
+        return {
+            "fg_color": cls.ACCENT,
+            "progress_color": cls.PRIMARY,
+            "button_color": cls.TEXT,
+            "button_hover_color": cls.PRIMARY,
+            "text_color": cls.TEXT,
+            "font": cls.get_font(cls.FONT_SIZE_SMALL)
+        }
+    
+    @classmethod
+    def get_checkbox_style(cls) -> Dict[str, Any]:
+        """Get checkbox styling configuration."""
+        return {
+            "fg_color": cls.CARD_BG,
+            "border_color": cls.BORDER,
+            "checkmark_color": cls.PRIMARY,
+            "hover_color": cls.HOVER,
+            "text_color": cls.TEXT,
+            "font": cls.get_font(cls.FONT_SIZE_SMALL)
+        }
+    
+    @classmethod
+    def get_textbox_style(cls) -> Dict[str, Any]:
+        """Get textbox styling configuration."""
+        return {
+            "fg_color": cls.CARD_BG,
+            "border_color": cls.BORDER,
+            "border_width": 1,
+            "text_color": cls.TEXT,
+            "corner_radius": cls.RADIUS_SMALL,
+            "font": cls.get_font(cls.FONT_SIZE_SMALL)
+        }
+    
+    @classmethod
     def get_matplotlib_style(cls) -> Dict[str, Any]:
         """Get matplotlib styling configuration."""
         return {

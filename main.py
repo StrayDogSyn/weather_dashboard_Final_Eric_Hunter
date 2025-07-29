@@ -15,6 +15,7 @@ sys.path.insert(0, str(src_dir))
 
 from dotenv import load_dotenv
 from ui.weather_dashboard import WeatherDashboard
+from ui.professional_weather_dashboard import ProfessionalWeatherDashboard
 from services.config_service import ConfigService
 from services.logging_service import LoggingService
 
@@ -67,17 +68,23 @@ def main():
             print("3. Get a free API key at: https://openweathermap.org/api\n")
             return 1
         
-        # Initialize and run dashboard with enhanced features
+        # Initialize and run dashboard with professional design
         config_service = ConfigService()
         
-        # Try to use enhanced features, fallback to basic if not available
-        try:
+        # Check for professional mode preference
+        use_professional = os.getenv('USE_PROFESSIONAL_UI', 'true').lower() == 'true'
+        
+        if use_professional:
+            try:
+                dashboard = ProfessionalWeatherDashboard()
+                logger.info("✅ Professional Weather Dashboard initialized successfully")
+            except Exception as e:
+                logger.warning(f"⚠️ Professional dashboard unavailable, using standard: {e}")
+                dashboard = WeatherDashboard(config_service, use_enhanced_features=True)
+                logger.info("✅ Standard Weather Dashboard initialized successfully")
+        else:
             dashboard = WeatherDashboard(config_service, use_enhanced_features=True)
-            logger.info("✅ Enhanced Weather Dashboard initialized successfully")
-        except Exception as e:
-            logger.warning(f"⚠️ Enhanced features unavailable, using basic dashboard: {e}")
-            dashboard = WeatherDashboard(config_service, use_enhanced_features=False)
-            logger.info("✅ Basic Weather Dashboard initialized successfully")
+            logger.info("✅ Standard Weather Dashboard initialized successfully")
         
         dashboard.run()
         
