@@ -7,7 +7,7 @@
 
 A modern weather dashboard application with voice assistant integration, built using Python and CustomTkinter. Features real-time weather data, interactive visualizations, and an intuitive glassmorphic interface.
 
-> **📋 Status**: ✅ Production Ready | 🎯 All Features Implemented | 🔧 CI/CD Enabled
+> **📋 Status**: ✅ Production Ready | 🎯 All Features Implemented | 🔧 CI/CD Enabled | 🛠️ Recently Updated
 
 ## **Screenshots**
 
@@ -16,6 +16,7 @@ A modern weather dashboard application with voice assistant integration, built u
 ## ✨ Features
 
 ### 🌤️ Weather Data
+
 - **Real-time conditions** for any city worldwide
 - **5-day forecasts** with detailed hourly data
 - **Favorite locations** with quick access
@@ -26,12 +27,14 @@ A modern weather dashboard application with voice assistant integration, built u
 - **🆕 Multi-location Support**: Compare weather across multiple cities
 
 ### 📊 Visualization & Analytics
+
 - **Interactive charts** with keyboard shortcuts (Ctrl+1-4)
 - **Weather trends** and historical data
 - **City comparison** side-by-side view
 - **Data export** capabilities
 
 ### 🎨 User Experience
+
 - **Glassmorphic UI** with modern dark theme
 - **Responsive design** adapts to window size
 - **Voice assistant** integration (Cortana)
@@ -40,6 +43,7 @@ A modern weather dashboard application with voice assistant integration, built u
 - **AI-generated poetry** inspired by weather
 
 ### 🔧 Technical Features
+
 - **Clean Architecture** with modular design
 - **SQLite database** for data persistence
 - **Intelligent caching** for performance
@@ -48,12 +52,32 @@ A modern weather dashboard application with voice assistant integration, built u
 - **🆕 Enhanced Services**: Rate limiting, advanced caching, error recovery
 - **🆕 Progressive Loading**: Basic data first, enhanced details after
 - **🆕 Offline Support**: Cached data display when network unavailable
+- **🆕 Robust Configuration**: Fixed ConfigService with proper property access
+- **🆕 Exception Handling**: Specific exception handling replacing generic catches
 
 > 📖 **Detailed Documentation**: See [Architecture Guide](docs/architecture/architecture.md) and [Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md)
+
+## 🔧 Recent Improvements
+
+### Configuration Service Fixes (Latest)
+
+- **✅ ConfigService AttributeError Resolution**: Fixed missing property methods for weather, UI, and app configurations
+- **✅ Enhanced Configuration Structure**: Added missing attributes (api_key, base_url, default_city) to configuration classes
+- **✅ Automatic Configuration Sync**: Weather API key and base URL now sync automatically from API configuration
+- **✅ Type Safety**: Added proper type hints to all configuration property methods
+- **✅ Exception Handling**: Replaced generic exception handlers with specific exception types throughout codebase
+
+### Code Quality Improvements
+
+- **Specific Exception Handling**: Enhanced error handling in search components, validators, and services
+- **Type Annotations**: Improved type safety across public API functions
+- **Configuration Robustness**: Eliminated AttributeError crashes during application startup
+- **Service Integration**: Seamless integration between configuration and weather services
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.8+ with tkinter
 - [OpenWeatherMap API key](https://openweathermap.org/api) (free)
 
@@ -83,6 +107,7 @@ python main.py
 ## 🎨 Interface Overview
 
 ### Navigation Tabs
+
 - **Weather** - Current conditions and basic info
 - **Forecast** - 5-day detailed forecasts
 - **Comparison** - Multi-city weather comparison
@@ -92,6 +117,7 @@ python main.py
 - **Favorites** - Quick access to saved locations
 
 ### Design Highlights
+
 - **Glassmorphic theme** with transparency effects
 - **Responsive layout** adapts to window size
 - **Custom animations** and hover effects
@@ -103,12 +129,14 @@ python main.py
 ## 📱 Usage
 
 ### Basic Operations
+
 1. Enter city name → Click "Get Weather"
 2. Navigate tabs for different features
 3. Toggle temperature units (°C/°F)
 4. Save cities to favorites for quick access
 
 ### Keyboard Shortcuts
+
 - **Ctrl+1** - Temperature trends chart
 - **Ctrl+2** - Weather metrics comparison
 - **Ctrl+3** - Forecast visualization
@@ -129,6 +157,7 @@ python main.py
 ## 🛠️ Technical Stack
 
 ### Architecture
+
 - **Clean Architecture** with MVC pattern
 - **Service layer** for API and data management
 - **SQLite database** with SQLAlchemy ORM
@@ -136,7 +165,8 @@ python main.py
 - **Matplotlib** for data visualization
 
 ### Key Dependencies
-```
+
+```txt
 customtkinter     # Modern UI framework
 requests         # HTTP client
 matplotlib       # Charts and graphs
@@ -173,6 +203,7 @@ weather_dashboard_Final_Eric_Hunter/
 ## 🌟 Project Highlights
 
 ### Technical Excellence
+
 - **Clean Architecture** with modular design
 - **Modern UI/UX** with glassmorphic styling
 - **Data visualization** with interactive charts
@@ -181,6 +212,7 @@ weather_dashboard_Final_Eric_Hunter/
 - **Extensive documentation** and quality standards
 
 ### Innovation Features
+
 - **AI-generated poetry** based on weather
 - **Mood tracking** with weather correlation
 - **Multi-city comparison** analytics
@@ -198,6 +230,7 @@ weather_dashboard_Final_Eric_Hunter/
 ## 📚 Documentation
 
 ### Quick Links
+
 - **[Architecture Guide](docs/architecture/architecture.md)** - System design and patterns
 - **[Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md)** - Setup and deployment
 - **[Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md)** - Development details
@@ -206,6 +239,7 @@ weather_dashboard_Final_Eric_Hunter/
 - **[Security Guide](docs/configuration/security.md)** - Best practices
 
 ### Development Resources
+
 - **[Project Structure](docs/development/project_structure.md)** - File organization
 - **[Dependencies](docs/development/dependencies.md)** - Library details
 - **[Testing Guide](docs/development/testing.md)** - Test procedures
@@ -228,7 +262,7 @@ python -m pytest tests/test_weather_service.py
 
 > 🧪 **Testing Details**: See [Testing Guide](docs/development/testing.md) for comprehensive test procedures and CI/CD information
 
-## 📚 Documentation
+## 📖 Additional Resources
 
 ### Architecture & Design
 
@@ -302,6 +336,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🚀 CI/CD & Quality
 
 ### Automated Pipeline
+
 - **Cross-platform testing** (Linux, Windows, macOS)
 - **Python versions** 3.8-3.11 support
 - **Code quality checks** (Black, flake8, mypy)
@@ -309,6 +344,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **85%+ test coverage** maintained
 
 ### Local Quality Checks
+
 ```bash
 # Install dev dependencies
 pip install -r tests/requirements-test.txt
@@ -321,7 +357,7 @@ python scripts/pre_commit_check.py
 
 ---
 
-**Built with Python • CustomTkinter • OpenWeatherMap API**
+### Built with Python • CustomTkinter • OpenWeatherMap API
 
 ---
 
