@@ -101,6 +101,7 @@ class SearchBarFrame(ctk.CTkFrame):
             self.search_container,
             placeholder_text="🔍 Enter city name...",
             height=40,
+            state="normal",  # Ensure entry is enabled
             **DataTerminalTheme.get_entry_style()
         )
         
@@ -147,9 +148,13 @@ class SearchBarFrame(ctk.CTkFrame):
         self.search_entry.bind("<Return>", self._on_enter_key)
         self.search_entry.bind("<KeyRelease>", self._on_key_release)
         self.search_entry.bind("<FocusOut>", self._on_focus_out)
+        self.search_entry.bind("<Button-1>", self._on_entry_click)
         
         # Click outside to hide suggestions
         self.bind("<Button-1>", self._on_click_outside)
+        
+        # Set initial focus to search entry
+        self.after(100, self._set_initial_focus)
     
     def _on_search_click(self) -> None:
         """Handle search button click."""
@@ -249,6 +254,18 @@ class SearchBarFrame(ctk.CTkFrame):
         """Handle focus out event."""
         # Delay hiding suggestions to allow clicking on them
         self.after(200, self._check_and_hide_suggestions)
+    
+    def _on_entry_click(self, event) -> None:
+        """Handle entry click event."""
+        self.search_entry.focus_set()
+        return "break"
+    
+    def _set_initial_focus(self) -> None:
+        """Set initial focus to search entry."""
+        try:
+            self.search_entry.focus_set()
+        except Exception:
+            pass  # Ignore focus errors during initialization
     
     def _on_click_outside(self, event) -> None:
         """Handle click outside search area."""

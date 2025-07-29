@@ -21,6 +21,9 @@ A modern weather dashboard application with voice assistant integration, built u
 - **Favorite locations** with quick access
 - **Temperature units** (Celsius/Fahrenheit toggle)
 - **Location detection** for local weather
+- **🆕 Enhanced Features**: Air quality data, astronomical information, weather alerts
+- **🆕 Advanced Search**: Autocomplete, recent searches, favorites management
+- **🆕 Multi-location Support**: Compare weather across multiple cities
 
 ### 📊 Visualization & Analytics
 - **Interactive charts** with keyboard shortcuts (Ctrl+1-4)
@@ -42,6 +45,9 @@ A modern weather dashboard application with voice assistant integration, built u
 - **Intelligent caching** for performance
 - **Comprehensive testing** with CI/CD
 - **Cross-platform** compatibility
+- **🆕 Enhanced Services**: Rate limiting, advanced caching, error recovery
+- **🆕 Progressive Loading**: Basic data first, enhanced details after
+- **🆕 Offline Support**: Cached data display when network unavailable
 
 > 📖 **Detailed Documentation**: See [Architecture Guide](docs/architecture/architecture.md) and [Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md)
 
@@ -65,7 +71,10 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env and add: OPENWEATHER_API_KEY=your_key_here
 
-# 4. Run application
+# 4. Install enhanced dependencies (optional)
+pip install geopy geocoder ratelimit cachetools
+
+# 5. Run application
 python main.py
 ```
 

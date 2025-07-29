@@ -67,11 +67,18 @@ def main():
             print("3. Get a free API key at: https://openweathermap.org/api\n")
             return 1
         
-        # Initialize and run dashboard
+        # Initialize and run dashboard with enhanced features
         config_service = ConfigService()
-        dashboard = WeatherDashboard(config_service)
         
-        logger.info("✅ Dashboard initialized successfully")
+        # Try to use enhanced features, fallback to basic if not available
+        try:
+            dashboard = WeatherDashboard(config_service, use_enhanced_features=True)
+            logger.info("✅ Enhanced Weather Dashboard initialized successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Enhanced features unavailable, using basic dashboard: {e}")
+            dashboard = WeatherDashboard(config_service, use_enhanced_features=False)
+            logger.info("✅ Basic Weather Dashboard initialized successfully")
+        
         dashboard.run()
         
         return 0

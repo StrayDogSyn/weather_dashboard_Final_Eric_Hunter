@@ -22,21 +22,43 @@ from services.config_service import ConfigService
 from services.weather_service import WeatherService, WeatherData
 from services.logging_service import LoggingService
 
+# Enhanced features availability check
+try:
+    from enhanced_search_bar import EnhancedSearchBarFrame
+    from enhanced_weather_display import EnhancedWeatherDisplayFrame
+    from enhanced_weather_service import EnhancedWeatherService
+    ENHANCED_FEATURES_AVAILABLE = True
+except ImportError:
+    ENHANCED_FEATURES_AVAILABLE = False
+
 
 class WeatherDashboard(ctk.CTk):
-    """Main weather dashboard application window."""
+    """Main weather dashboard application window with enhanced features support."""
     
-    def __init__(self, config_service: ConfigService):
+    def __init__(self, config_service: ConfigService, use_enhanced_features: bool = True):
         """Initialize the weather dashboard."""
         super().__init__()
         
         # Services
         self.config = config_service
-        self.weather_service = WeatherService(config_service)
-        self.logger = logging.getLogger('weather_dashboard.ui')
+        self.use_enhanced_features = use_enhanced_features and ENHANCED_FEATURES_AVAILABLE
+        
+        if self.use_enhanced_features:
+            try:
+                from enhanced_weather_service import EnhancedWeatherService
+                self.weather_service = EnhancedWeatherService(config_service)
+                self.logger = logging.getLogger('weather_dashboard.enhanced_ui')
+            except ImportError:
+                self.use_enhanced_features = False
+                self.weather_service = WeatherService(config_service)
+                self.logger = logging.getLogger('weather_dashboard.ui')
+        else:
+            self.weather_service = WeatherService(config_service)
+            self.logger = logging.getLogger('weather_dashboard.ui')
         
         # State
         self.current_weather: Optional[WeatherData] = None
+        self.current_location: Optional[str] = None
         self.is_loading = False
         
         # Setup UI
@@ -241,6 +263,15 @@ class WeatherDashboard(ctk.CTk):
         self.logger.info(f"🔍 Searching for city: {query}")
         self._fetch_weather(query.strip())
     
+    def _on_location_detect(self) -> None:
+        """Handle location detection request (enhanced features only)."""
+        if not self.use_enhanced_features:
+            return
+        
+        self.logger.info("📍 Location detection requested")
+        # For demo, use London as detected location
+        self._fetch_weather("London", auto_detected=True)
+    
     def _on_suggestion_select(self, city_data: Dict[str, str]) -> None:
         """Handle city suggestion selection."""
         city_name = city_data.get('name', '')
@@ -248,57 +279,82 @@ class WeatherDashboard(ctk.CTk):
             self.logger.info(f"📍 Selected city: {city_name}")
             self._fetch_weather(city_name)
     
-    def _fetch_weather(self, city: str) -> None:
+    def _fetch_weather(self, city: str, auto_detected: bool = False) -> None:
         """Fetch weather data for a city."""
         if self.is_loading:
             return
         
         self.is_loading = True
-        self._show_loading(f"Fetching weather for {city}...")
+        status_text = f"Fetching weather for {city}..."
+        if auto_detected:
+            status_text += " (auto-detected)"
+        self._show_loading(status_text)
         
         # Run in background thread
         thread = threading.Thread(
             target=self._fetch_weather_thread,
-            args=(city,),
+            args=(city, auto_detected),
             daemon=True
         )
         thread.start()
     
-    def _fetch_weather_thread(self, city: str) -> None:
+    def _fetch_weather_thread(self, city: str, auto_detected: bool = False) -> None:
         """Fetch weather data in background thread."""
         try:
-            # Fetch current weather
-            weather_data = self.weather_service.get_current_weather(city)
-            
-            # Fetch forecast for charts
-            forecast_data = self.weather_service.get_forecast(city, days=5)
+            if self.use_enhanced_features:
+                # Fetch enhanced weather data
+                weather_data = self.weather_service.get_enhanced_weather(city)
+                try:
+                    forecast_data = self.weather_service.get_forecast(city, days=5)
+                except:
+                    # Fallback to basic forecast if enhanced fails
+                    basic_service = WeatherService(self.config)
+                    forecast_data = basic_service.get_forecast(city, days=5)
+            else:
+                # Fetch current weather
+                weather_data = self.weather_service.get_current_weather(city)
+                
+                # Fetch forecast for charts
+                forecast_data = self.weather_service.get_forecast(city, days=5)
             
             # Update UI on main thread
-            self.after(0, self._on_weather_success, weather_data, forecast_data)
+            self.after(0, self._on_weather_success, weather_data, forecast_data, auto_detected)
             
         except Exception as e:
             self.logger.error(f"❌ Weather fetch failed: {e}")
             self.after(0, self._on_weather_error, str(e))
     
-    def _on_weather_success(self, weather_data: WeatherData, forecast_data: List) -> None:
+    def _on_weather_success(self, weather_data: WeatherData, forecast_data: List, auto_detected: bool = False) -> None:
         """Handle successful weather fetch."""
         self.current_weather = weather_data
+        self.current_location = f"{weather_data.city}, {weather_data.country}"
         
         # Update displays
         self.weather_display.update_weather(weather_data)
-        self.chart_display.update_forecast(forecast_data)
+        if forecast_data:
+            self.chart_display.update_forecast(forecast_data)
         
         # Update search bar
-        self.search_frame.set_current_city(f"{weather_data.city}, {weather_data.country}")
+        if hasattr(self.search_frame, 'set_current_location'):
+            self.search_frame.set_current_location(self.current_location)
+        elif hasattr(self.search_frame, 'set_current_city'):
+            self.search_frame.set_current_city(self.current_location)
         
         # Update status
-        self._update_status(f"Weather updated for {weather_data.city}", "success")
+        status_text = f"Weather updated for {weather_data.city}"
+        if auto_detected:
+            status_text += " (auto-detected location)"
+        if self.use_enhanced_features:
+            status_text += " - Enhanced data loaded"
+        
+        self._update_status(status_text, "success")
         self._update_last_update()
         
         self._hide_loading()
         self.is_loading = False
         
-        self.logger.info(f"✅ Weather display updated for {weather_data.city}")
+        feature_type = "Enhanced" if self.use_enhanced_features else "Basic"
+        self.logger.info(f"✅ {feature_type} weather display updated for {weather_data.city}")
     
     def _on_weather_error(self, error_message: str) -> None:
         """Handle weather fetch error."""
