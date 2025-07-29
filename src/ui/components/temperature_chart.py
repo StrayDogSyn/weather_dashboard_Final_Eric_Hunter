@@ -6,6 +6,7 @@ animations, and advanced visualization features.
 
 import customtkinter as ctk
 import matplotlib.pyplot as plt
+import matplotlib
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -20,6 +21,21 @@ import time
 
 from ui.theme import DataTerminalTheme
 from models.weather_models import ForecastData
+
+# Configure matplotlib with safe fonts at module level
+matplotlib.use('TkAgg')
+plt.rcParams.update({
+    'font.family': ['Segoe UI', 'Arial', 'DejaVu Sans', 'sans-serif'],
+    'font.size': 10,
+    'figure.facecolor': '#1a1a1a',
+    'axes.facecolor': '#1a1a1a',
+    'text.color': 'white',
+    'axes.labelcolor': 'white',
+    'xtick.color': 'white',
+    'ytick.color': 'white',
+    'axes.unicode_minus': False,  # Prevent unicode minus issues
+    'svg.fonttype': 'none'  # Use system fonts
+})
 
 
 class TemperatureChart(ctk.CTkFrame):
@@ -84,7 +100,7 @@ class TemperatureChart(ctk.CTkFrame):
         # Title with enhanced typography
         self.title_label = ctk.CTkLabel(
             self.header_frame,
-            text="🌡️ INTERACTIVE TEMPERATURE ANALYSIS",
+            text="INTERACTIVE TEMPERATURE ANALYSIS",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
             text_color=DataTerminalTheme.PRIMARY
         )
@@ -279,7 +295,7 @@ class TemperatureChart(ctk.CTkFrame):
         # Add placeholder text
         self.ax.text(
             0.5, 0.95,
-            "🌡️ Hover over data points for detailed information",
+            "Hover over data points for detailed information",
             transform=self.ax.transAxes,
             ha='center',
             va='top',
@@ -557,9 +573,9 @@ class TemperatureChart(ctk.CTkFrame):
         
         # Create rich tooltip content
         tooltip_text = (
-            f"🌡️ {y_val:.1f}°C\n"
-            f"⏰ {time_str}\n"
-            f"📊 {detail}"
+            f"Temperature: {y_val:.1f}°C\n"
+            f"Time: {time_str}\n"
+            f"Details: {detail}"
         )
         
         self.tooltip_label.configure(text=tooltip_text)

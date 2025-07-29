@@ -161,7 +161,7 @@ class WeatherDashboard(ctk.CTk):
         self.setup_content()
     
     def setup_header(self):
-        """Setup header with responsive design."""
+        """Setup header with working search functionality."""
         self.header_frame.grid_columnconfigure(1, weight=1)
         
         # Left side - branding
@@ -201,17 +201,18 @@ class WeatherDashboard(ctk.CTk):
         )
         self.search_entry.pack(side="left", padx=(0, 5))
         
+        # Bind Enter key to search
+        self.search_entry.bind("<Return>", self.on_search_enter)
+        self.search_entry.bind("<KP_Enter>", self.on_search_enter)  # Numpad Enter
+        
         search_btn = ctk.CTkButton(
             search_container,
             text="SEARCH",
             width=80,
             height=32,
-            command=self.on_search
+            command=self.on_search_click
         )
         search_btn.pack(side="left")
-        
-        # Bind Enter key to search entry
-        self.search_entry.bind("<Return>", lambda e: self.on_search())
     
     def setup_content(self):
         """Setup main content area."""
@@ -507,13 +508,86 @@ class WeatherDashboard(ctk.CTk):
         """Handle window click to remove focus from widgets."""
         self.focus_set()
     
-    def on_search(self):
+    def on_search_enter(self, event):
+        """Handle Enter key press in search entry."""
+        self.perform_search()
+        return "break"  # Prevent default behavior
+    
+    def on_search_click(self):
         """Handle search button click."""
-        query = self.search_entry.get().strip()
-        if query:
-            self._on_city_search(query)
-            # Update location label
-            self.location_label.configure(text=f"Searching: {query}...")
+        self.perform_search()
+    
+    def on_search(self):
+        """Handle search button click (legacy method)."""
+        self.perform_search()
+    
+    def perform_search(self):
+        """Perform the actual search operation."""
+        try:
+            # Get search term
+            search_term = self.search_entry.get().strip()
+            
+            if not search_term:
+                self._update_status("Please enter a city name", "warning")
+                return
+            
+            # Update status
+            self._update_status(f"Searching for {search_term}...")
+            
+            # Clear search entry
+            self.search_entry.delete(0, 'end')
+            
+            # Perform weather search
+            self._on_city_search(search_term)
+            
+        except Exception as e:
+             self.logger.error(f"Search error: {e}")
+             self._update_status("Search failed. Please try again.", "error")
+    
+    def search_weather(self, city_name):
+        """Search for weather data for specified city."""
+        try:
+            # Log search attempt
+            self.logger.info(f"📍 Searching for weather in: {city_name}")
+            
+            # Update location display
+            self.location_label.configure(text=f"Current: {city_name}")
+            
+            # Get weather service instance
+            if hasattr(self, 'weather_service'):
+                # Fetch weather data
+                weather_data = self.weather_service.get_current_weather(city_name)
+                
+                if weather_data:
+                    # Update weather display
+                    self.update_weather_display(weather_data)
+                    
+                    # Get forecast data
+                    forecast_data = self.weather_service.get_forecast(city_name)
+                    if forecast_data:
+                        self.update_chart_display(forecast_data)
+                    
+                    self._update_status(f"Weather updated for {city_name}")
+                    self.logger.info(f"✅ Weather data updated for {city_name}")
+                else:
+                    self._update_status(f"No weather data found for {city_name}", "warning")
+                    self.logger.warning(f"❌ No weather data found for {city_name}")
+            else:
+                self._update_status("Weather service not available", "error")
+                self.logger.error("Weather service not initialized")
+                
+        except Exception as e:
+            self.logger.error(f"Weather search error: {e}")
+            self._update_status(f"Failed to get weather for {city_name}", "error")
+    
+    def update_status(self, message):
+        """Update status bar message."""
+        try:
+            if hasattr(self, 'status_label'):
+                self.status_label.configure(text=message)
+            self.logger.info(f"Status: {message}")
+        except Exception as e:
+            self.logger.error(f"Status update error: {e}")
     
     def setup_weather_display(self):
         """Setup weather display panel."""

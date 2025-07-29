@@ -8,9 +8,11 @@ logger = logging.getLogger(__name__)
 class WindowStateManager:
     def __init__(self, config_file="data/window_config.json"):
         self.config_file = config_file
+        self.window_locked = False  # Add lock flag
         self.default_config = {
             "start_maximized": True,
-            "remember_size": True,
+            "remember_size": False,  # Changed to False to always maximize
+            "lock_maximized": True,  # Add lock flag
             "last_width": 1920,
             "last_height": 1080,
             "last_x": 0,
@@ -58,24 +60,47 @@ class WindowStateManager:
             logger.error(f"Failed to save window config: {e}")
     
     def apply_window_state(self, window):
-        """Apply saved window state to window."""
+        """Apply window state with locking mechanism."""
         config = self.load_window_config()
         
         try:
-            if config.get("start_maximized", True):
-                # Force maximized startup
-                window.state('zoomed')
-                logger.info("Window set to maximized state")
-            else:
-                # Use saved dimensions
-                width = config.get("last_width", 1920)
-                height = config.get("last_height", 1080)
-                x = config.get("last_x", 0)
-                y = config.get("last_y", 0)
-                window.geometry(f"{width}x{height}+{x}+{y}")
-                logger.info(f"Window set to saved dimensions: {width}x{height}")
-                
+            # Always start maximized for professional appearance
+            self.lock_window_state(window)
+            window.state('zoomed')
+            logger.info("Window set to maximized state with lock")
+            
+            # Prevent resizing during initialization
+            window.resizable(False, False)
+            window.after(2000, lambda: self.unlock_window_state(window))  # Unlock after 2 seconds
+            
         except Exception as e:
             logger.error(f"Failed to apply window state: {e}")
-            # Fallback to large geometry
             window.geometry("1920x1080+0+0")
+    
+    def lock_window_state(self, window):
+        """Lock window state to prevent unwanted resizing."""
+        self.window_locked = True
+        # Override window manager events
+        window.bind('<Configure>', self.on_configure_locked)
+    
+    def unlock_window_state(self, window):
+        """Unlock window state and allow normal resizing."""
+        self.window_locked = False
+        window.resizable(True, True)
+        # Restore normal configure event handling
+        window.bind('<Configure>', lambda e: self.on_configure_normal(e, window))
+        logger.info("Window state unlocked - normal resizing enabled")
+    
+    def on_configure_locked(self, event):
+        """Handle configure events while locked - prevent resizing."""
+        if self.window_locked and event.widget.winfo_class() == 'Tk':
+            # Force back to maximized if someone tries to resize
+            try:
+                event.widget.state('zoomed')
+            except:
+                pass
+    
+    def on_configure_normal(self, event, window):
+        """Handle normal configure events after unlock."""
+        # Allow normal window behavior
+        pass
