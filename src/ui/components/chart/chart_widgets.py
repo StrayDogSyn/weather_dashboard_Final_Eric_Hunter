@@ -70,7 +70,7 @@ class ChartWidgetsMixin:
             fg_color="#2a2a2a",
             hover_color="#3a3a3a",
             text_color="#00ff88",
-            command=lambda: self.export_chart('png')
+            command=self._export_png
         )
         self.png_button.grid(row=0, column=0, padx=5)
         
@@ -84,7 +84,7 @@ class ChartWidgetsMixin:
             fg_color="#2a2a2a",
             hover_color="#3a3a3a",
             text_color="#00ff88",
-            command=lambda: self.export_chart('pdf')
+            command=self._export_pdf
         )
         self.pdf_button.grid(row=0, column=1, padx=5)
         
@@ -252,3 +252,11 @@ class ChartWidgetsMixin:
         
         # Update tooltip label
         self.tooltip_label.configure(text_color=colors['accent'])
+    
+    def _export_png(self):
+        """Helper method to export chart as PNG."""
+        self.export_chart('png')
+    
+    def _export_pdf(self):
+        """Helper method to export chart as PDF."""
+        self.export_chart('pdf')

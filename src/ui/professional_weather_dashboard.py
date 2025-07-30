@@ -73,6 +73,7 @@ def patched_report_callback_exception(self, exc, val, tb):
 tk.Tk.report_callback_exception = patched_report_callback_exception
 
 from ui.components.temperature_chart import TemperatureChart
+from ui.components.weather_journal import WeatherJournal
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.config_service import ConfigService
 from models.weather_models import WeatherData, ForecastData
@@ -522,28 +523,57 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_analytics_in_tab()
     
     def _create_current_weather_in_tab(self) -> None:
-        """Create current weather section within the weather tab."""
+        """Create current weather section with refresh capability."""
         # Create a container for the section
         self.weather_section = ctk.CTkFrame(
             self.weather_content,
             fg_color="transparent"
         )
         
+        # Add header frame for title and refresh button
+        header_frame = ctk.CTkFrame(self.weather_section, fg_color="transparent")
+        header_frame.pack(fill="x", padx=10, pady=(0, 10))
+        
         # Section title
         self.weather_title = ctk.CTkLabel(
-            self.weather_section,
+            header_frame,
             text="CURRENT WEATHER",
             font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
             text_color=self.ACCENT_COLOR,
             anchor="w"
         )
-        self.weather_title.pack(anchor="w", padx=10, pady=(0, 10))
+        self.weather_title.pack(side="left")
+        
+        # Refresh button
+        self.refresh_button = ctk.CTkButton(
+            header_frame,
+            text="🔄 Refresh",
+            width=100,
+            height=30,
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            fg_color=self.ACCENT_COLOR,
+            hover_color=DataTerminalTheme.SUCCESS,
+            command=self._manual_refresh
+        )
+        self.refresh_button.pack(side="right", padx=(0, 10))
+        
+        # Last update label
+        self.last_update_label = ctk.CTkLabel(
+            header_frame,
+            text="",
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=self.TEXT_SECONDARY
+        )
+        self.last_update_label.pack(side="right", padx=(0, 10))
         
         # Create the weather card
         self._create_weather_card()
         
         # Position the section in the weather tab
         self.weather_section.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        
+        # Setup auto-refresh
+        self._setup_auto_refresh()
     
     def _create_weather_card(self) -> None:
         """Create large current weather card."""
@@ -612,9 +642,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Store metric widgets for updates
         self.metric_widgets = {}
         
-        # Configure grid
+        # Configure grid with better spacing
         for i in range(3):
-            self.metrics_grid.grid_columnconfigure(i, weight=1, uniform="col")
+            self.metrics_grid.grid_columnconfigure(i, weight=1, uniform="col", minsize=120)
         
         # Define metrics with keys for updates
         metrics_config = [
@@ -636,52 +666,63 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 corner_radius=8,
                 border_width=1,
                 border_color=self.BORDER_COLOR,
-                height=70  # Slightly taller for icon
+                height=80,  # Increased height
+                width=140   # Set minimum width
             )
-            metric_frame.grid(row=row, column=col, padx=2, pady=2, sticky="ew")
+            metric_frame.grid(row=row, column=col, padx=3, pady=3, sticky="ew")
             metric_frame.grid_propagate(False)
             
             # Container for vertical layout
             content_frame = ctk.CTkFrame(metric_frame, fg_color="transparent")
-            content_frame.pack(expand=True)
+            content_frame.pack(expand=True, fill="both", padx=5, pady=5)
             
-            # Label with icon
-            label_text = f"{icon} {label}"
+            # Icon and label on same line
+            label_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+            label_frame.pack()
+            
             ctk.CTkLabel(
-                content_frame,
-                text=label_text,
-                font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
+                label_frame,
+                text=f"{icon} {label}",
+                font=(DataTerminalTheme.FONT_FAMILY, 9, "bold"),
                 text_color=self.TEXT_SECONDARY
             ).pack()
             
-            # Value (store for updates)
+            # Value with better spacing
             value_label = ctk.CTkLabel(
                 content_frame,
                 text=default_value,
-                font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+                font=(DataTerminalTheme.FONT_FAMILY, 13, "bold"),
                 text_color=self.ACCENT_COLOR
             )
-            value_label.pack()
+            value_label.pack(pady=(2, 0))
             
             self.metric_widgets[key] = value_label
 
     def _update_metrics_grid(self, weather_data) -> None:
         """Update metrics grid with real weather data."""
-        updates = {
-            "humidity": f"{weather_data.humidity}%",
-            "pressure": f"{weather_data.pressure} hPa",
-            "visibility": f"{weather_data.visibility} km" if weather_data.visibility else "N/A",
-            "wind_speed": f"{weather_data.wind_speed_kmh:.0f} km/h" if weather_data.wind_speed else "0 km/h",
-            "wind_dir": weather_data.wind_direction_text,
-            "cloudiness": f"{weather_data.cloudiness}%" if weather_data.cloudiness else "N/A",
-            "temp_min": f"{weather_data.raw_data.get('main', {}).get('temp_min', 'N/A')}°C",
-            "temp_max": f"{weather_data.raw_data.get('main', {}).get('temp_max', 'N/A')}°C",
-            "uv_index": str(weather_data.uv_index) if weather_data.uv_index else "N/A"
-        }
-        
-        for key, value in updates.items():
-            if key in self.metric_widgets:
-                self.metric_widgets[key].configure(text=value)
+        try:
+            # Handle temperature conversion
+            temp_min = weather_data.raw_data.get('main', {}).get('temp_min', weather_data.temperature)
+            temp_max = weather_data.raw_data.get('main', {}).get('temp_max', weather_data.temperature)
+            
+            updates = {
+                "humidity": f"{weather_data.humidity}%",
+                "pressure": f"{weather_data.pressure} hPa",
+                "visibility": f"{weather_data.visibility:.1f} km" if weather_data.visibility else "10+ km",
+                "wind_speed": f"{weather_data.wind_speed_kmh:.0f} km/h" if weather_data.wind_speed else "0 km/h",
+                "wind_dir": weather_data.wind_direction_text if weather_data.wind_direction else "N/A",
+                "cloudiness": f"{weather_data.cloudiness}%" if weather_data.cloudiness is not None else "N/A",
+                "temp_min": f"{temp_min:.0f}°C",
+                "temp_max": f"{temp_max:.0f}°C",
+                "uv_index": str(weather_data.uv_index) if weather_data.uv_index else "N/A"
+            }
+            
+            for key, value in updates.items():
+                if key in self.metric_widgets and self.metric_widgets[key].winfo_exists():
+                    self.metric_widgets[key].configure(text=value)
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating metrics: {e}")
     
     def _create_analytics_in_tab(self) -> None:
         """Create temperature forecast panel within the weather tab."""
@@ -730,44 +771,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create the journal tab content for weather diary and mood tracking."""
         # Configure journal tab
         self.journal_tab.grid_columnconfigure(0, weight=1)
-        self.journal_tab.grid_rowconfigure(1, weight=1)
+        self.journal_tab.grid_rowconfigure(0, weight=1)
         
-        # Journal title
-        journal_title = ctk.CTkLabel(
+        # Create the WeatherJournal component
+        self.weather_journal = WeatherJournal(
             self.journal_tab,
-            text="WEATHER JOURNAL",
-            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
-            text_color=self.ACCENT_COLOR
+            weather_service=self.weather_service
         )
-        journal_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
-        
-        # Create scrollable frame for journal content
-        self.journal_scrollable = ctk.CTkScrollableFrame(
-            self.journal_tab,
-            fg_color=self.CARD_COLOR,
-            corner_radius=16,
-            border_width=1,
-            border_color=self.BORDER_COLOR,
-            scrollbar_button_color=self.ACCENT_COLOR,
-            scrollbar_button_hover_color=self.TEXT_PRIMARY
-        )
-        self.journal_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
-        
-        # Journal content frame inside scrollable
-        journal_frame = ctk.CTkFrame(
-            self.journal_scrollable,
-            fg_color="transparent"
-        )
-        
-        # Placeholder content
-        placeholder_label = ctk.CTkLabel(
-            journal_frame,
-            text="📔 Weather Diary & Mood Tracking\n\nComing Soon:\n• Daily weather reflections\n• Mood correlation analysis\n• Personal weather insights\n• Historical journal entries",
-            font=(DataTerminalTheme.FONT_FAMILY, 16),
-            text_color=self.TEXT_SECONDARY,
-            justify="left"
-        )
-        placeholder_label.pack(expand=True, padx=40, pady=40)
+        self.weather_journal.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
     
     def _create_activities_tab(self) -> None:
         """Create the activities tab content for AI-powered suggestions."""
@@ -932,28 +943,49 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _fetch_weather_data(self) -> None:
         """Fetch real weather data from API."""
         try:
-            # Show loading state - check if widget exists first
+            # Show loading state
             if hasattr(self, 'status_label') and self.status_label.winfo_exists():
-                self.after(0, lambda: self._safe_update_status("Loading weather data..."))
+                self.after(0, self._schedule_loading_status)
             
-            # Get real weather data
+            # Show loading indicators
+            self.after(0, self.show_loading_state)
+            
+            # Get current weather
             weather_data = self.weather_service.get_enhanced_weather(self.current_city)
-            
-            # Store the data
             self.current_weather = weather_data
             
-            # Note: Forecast data will be implemented in future updates
-            # For now, we'll focus on current weather data
+            # Get forecast data
+            try:
+                # Fetch 5-day forecast
+                forecast_url = f"{self.weather_service.base_url}/forecast"
+                params = {
+                    'q': self.current_city,
+                    'appid': self.weather_service.api_key,
+                    'units': 'metric'
+                }
+                
+                import requests
+                response = requests.get(forecast_url, params=params, timeout=10)
+                if response.status_code == 200:
+                    forecast_json = response.json()
+                    # Process forecast data for chart
+                    self._process_forecast_data(forecast_json)
+            except Exception as e:
+                self.logger.warning(f"Forecast fetch failed: {e}")
             
-            # Update UI on main thread - check if widget exists first
+            # Update UI on main thread
             if self.winfo_exists():
-                self.after(0, lambda: self._update_weather_display_with_real_data(weather_data))
-            
+                self.after(0, self._schedule_weather_update, weather_data)
+                # Hide loading state and update timestamp
+                self.after(0, self.hide_loading_state)
+                
         except Exception as e:
             self.logger.error(f"Failed to fetch weather data: {e}")
             error_msg = self._get_user_friendly_error(str(e))
             if hasattr(self, 'status_label') and self.status_label.winfo_exists():
-                self.after(0, lambda: self._show_error_notification(error_msg))
+                self.after(0, self._schedule_error_notification, error_msg)
+            # Hide loading state on error
+            self.after(0, self.hide_loading_state)
     
     def _get_user_friendly_error(self, error: str) -> str:
         """Convert technical errors to user-friendly messages."""
@@ -965,6 +997,27 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             return "No internet connection."
         else:
             return "Unable to fetch weather data. Please try again."
+    
+    def _process_forecast_data(self, forecast_json):
+        """Process forecast data for temperature chart."""
+        try:
+            forecast_list = forecast_json.get('list', [])
+            
+            # Update chart if it exists using the correct method
+            if hasattr(self, 'temperature_chart') and self.temperature_chart.winfo_exists():
+                self.after(0, self._schedule_chart_update, forecast_list)
+                
+        except Exception as e:
+            self.logger.error(f"Error processing forecast: {e}")
+    
+    def _update_temperature_chart(self, chart_data):
+        """Update temperature chart with new data."""
+        try:
+            if hasattr(self, 'temperature_chart') and self.temperature_chart.winfo_exists():
+                self.temperature_chart.update_data_storage(chart_data)
+                self.temperature_chart.refresh_chart_display()
+        except Exception as e:
+            self.logger.error(f"Error updating temperature chart: {e}")
     
     def _update_weather_display(self) -> None:
         """Update weather display with current data."""
@@ -1080,6 +1133,68 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         finally:
             self._running = False
             self.logger.info("Professional Weather Dashboard stopped")
+    
+    def _manual_refresh(self):
+        """Manual refresh triggered by user."""
+        threading.Thread(target=self._fetch_weather_data, daemon=True).start()
+    
+    def _setup_auto_refresh(self):
+        """Setup automatic refresh every 5 minutes."""
+        # Start auto refresh cycle
+        self.after(300000, self._auto_refresh_cycle)
+    
+    def _auto_refresh_cycle(self):
+        """Auto refresh cycle method."""
+        if self.winfo_exists():
+            threading.Thread(target=self._fetch_weather_data, daemon=True).start()
+            # Schedule next refresh
+            self.after(300000, self._auto_refresh_cycle)  # 5 minutes
+    
+    def _update_refresh_timestamp(self):
+        """Update the last refresh timestamp."""
+        if hasattr(self, 'last_update_label'):
+            current_time = datetime.now().strftime("%H:%M:%S")
+            self.last_update_label.configure(text=f"Last updated: {current_time}")
+    
+    def _schedule_weather_update(self, weather_data):
+        """Helper method to schedule weather display update."""
+        self._update_weather_display_with_real_data(weather_data)
+    
+    def _schedule_error_notification(self, error_msg):
+        """Helper method to schedule error notification."""
+        self._show_error_notification(error_msg)
+    
+    def _schedule_loading_status(self):
+        """Helper method to schedule loading status update."""
+        self._safe_update_status("Loading weather data...")
+    
+    def _schedule_chart_update(self, forecast_list):
+        """Helper method to schedule chart update."""
+        if hasattr(self, 'temperature_chart'):
+            self.temperature_chart.update_forecast(forecast_list)
+    
+    def show_loading_state(self):
+        """Show loading indicators on all data fields."""
+        loading_text = "Loading..."
+        self.temp_label.configure(text=loading_text)
+        self.condition_label.configure(text=loading_text)
+        self.feels_like_label.configure(text=loading_text)
+        self.humidity_label.configure(text=loading_text)
+        
+        # Disable refresh button
+        if hasattr(self, 'refresh_button'):
+            self.refresh_button.configure(state="disabled", text="⏳ Loading...")
+    
+    def hide_loading_state(self):
+        """Hide loading indicators."""
+        # Re-enable refresh button
+        if hasattr(self, 'refresh_button'):
+            self.refresh_button.configure(state="normal", text="🔄 Refresh")
+        
+        # Update last refresh time
+        if hasattr(self, 'last_update_label'):
+            current_time = datetime.now().strftime("%H:%M")
+            self.last_update_label.configure(text=f"Updated: {current_time}")
 
 
 if __name__ == "__main__":

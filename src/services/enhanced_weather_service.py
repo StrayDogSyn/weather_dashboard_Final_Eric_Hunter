@@ -390,6 +390,7 @@ class EnhancedWeatherService:
             })
             
             if not data or 'list' not in data or not data['list']:
+                self.logger.debug(f"🌬️ No air quality data available for coordinates {lat}, {lon}")
                 return None
             
             pollution_data = data['list'][0]
@@ -419,7 +420,11 @@ class EnhancedWeatherService:
             return air_quality
             
         except Exception as e:
-            self.logger.warning(f"Air quality fetch failed: {e}")
+            # Handle specific air quality API errors more gracefully
+            if "Location not found" in str(e) or "404" in str(e):
+                self.logger.debug(f"🌬️ Air quality data not available for coordinates {lat}, {lon}")
+            else:
+                self.logger.warning(f"Air quality fetch failed: {e}")
             return None
     
     def get_astronomical_data(self, lat: float, lon: float) -> Optional[AstronomicalData]:

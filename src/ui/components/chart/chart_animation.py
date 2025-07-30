@@ -53,7 +53,7 @@ class ChartAnimationMixin:
                 interpolated_data = self._interpolate_data(old_data, new_data, eased_progress)
                 
                 # Update chart on main thread
-                self.after_idle(lambda data=interpolated_data: self._update_chart_frame(data))
+                self.after_idle(self._schedule_chart_frame_update, interpolated_data)
                 
                 # Wait for next frame
                 if frame < total_frames:
@@ -112,7 +112,7 @@ class ChartAnimationMixin:
                 interpolated_temps = self._interpolate_temperatures(old_temps, new_temps, eased_progress)
                 
                 # Update chart
-                self.after_idle(lambda temps=interpolated_temps: self._update_temperature_line(temps, new_dates))
+                self.after_idle(self._schedule_temperature_update, interpolated_temps, new_dates)
                 
                 if frame < total_frames:
                     time.sleep(frame_delay)
@@ -159,7 +159,7 @@ class ChartAnimationMixin:
                 alpha = eased_progress
                 
                 # Update chart appearance
-                self.after_idle(lambda s=scale, a=alpha: self._update_chart_scale(s, a))
+                self.after_idle(self._schedule_chart_scale_update, scale, alpha)
                 
                 if frame < total_frames:
                     time.sleep(frame_delay)
@@ -298,9 +298,9 @@ class ChartAnimationMixin:
                 
                 # Apply pulse to elements
                 if element_type == "line":
-                    self.after_idle(lambda p=pulse_value: self._apply_line_pulse(p))
+                    self.after_idle(self._schedule_line_pulse, pulse_value)
                 elif element_type == "markers":
-                    self.after_idle(lambda p=pulse_value: self._apply_marker_pulse(p))
+                    self.after_idle(self._schedule_marker_pulse, pulse_value)
                     
                 if frame < total_frames:
                     time.sleep(frame_delay)
@@ -352,3 +352,23 @@ class ChartAnimationMixin:
     def is_animation_running(self) -> bool:
         """Check if any animation is currently running."""
         return self.is_animating
+    
+    def _schedule_chart_frame_update(self, data):
+        """Helper method to schedule chart frame update."""
+        self._update_chart_frame(data)
+    
+    def _schedule_temperature_update(self, temps, dates):
+        """Helper method to schedule temperature line update."""
+        self._update_temperature_line(temps, dates)
+    
+    def _schedule_chart_scale_update(self, scale, alpha):
+        """Helper method to schedule chart scale update."""
+        self._update_chart_scale(scale, alpha)
+    
+    def _schedule_line_pulse(self, pulse_value):
+        """Helper method to schedule line pulse effect."""
+        self._apply_line_pulse(pulse_value)
+    
+    def _schedule_marker_pulse(self, pulse_value):
+        """Helper method to schedule marker pulse effect."""
+        self._apply_marker_pulse(pulse_value)

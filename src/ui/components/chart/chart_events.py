@@ -191,8 +191,8 @@ class ChartEventsMixin:
         """Handle right mouse click events (context menu)."""
         # Create context menu options
         menu_options = [
-            ("Export as PNG", lambda: self.export_chart('png')),
-            ("Export as PDF", lambda: self.export_chart('pdf')),
+            ("Export as PNG", self._context_export_png),
+            ("Export as PDF", self._context_export_pdf),
             ("Refresh Data", self._refresh_chart_data),
             ("Reset Zoom", self._reset_chart_zoom)
         ]
@@ -264,3 +264,11 @@ class ChartEventsMixin:
         
         # Hide tooltip
         self.hide_tooltip()
+    
+    def _context_export_png(self):
+        """Helper method for context menu PNG export."""
+        self.export_chart('png')
+    
+    def _context_export_pdf(self):
+        """Helper method for context menu PDF export."""
+        self.export_chart('pdf')

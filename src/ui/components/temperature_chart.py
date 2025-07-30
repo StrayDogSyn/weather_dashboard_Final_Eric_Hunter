@@ -99,9 +99,9 @@ class TemperatureChart(ctk.CTkFrame,
     def update_forecast(self, forecast_data: List[ForecastData]):
         """Update chart with new forecast data."""
         self.forecast_data = forecast_data
-        processed_data = self.process_forecast_data(forecast_data, self.current_timeframe)
-        self.update_chart_data(*processed_data)
-        self.animate_chart_update()
+        processed_data = self.process_forecast_data(forecast_data)
+        self.update_data_storage(processed_data)
+        self.refresh_chart_display()
         
     def set_timeframe(self, timeframe: str):
         """Change the chart timeframe."""
