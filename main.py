@@ -36,6 +36,13 @@ def main():
         # Create application with professional dashboard
         app = ProfessionalWeatherDashboard()
         
+        # Force window to center and update with error handling
+        try:
+            app.update()
+            app.update_idletasks()
+        except Exception as e:
+            logger.warning(f"Window update warning (non-critical): {e}")
+        
         logger.info("Weather Dashboard initialized successfully")
         
         # Small delay to ensure proper initialization

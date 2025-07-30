@@ -43,11 +43,15 @@ class WeatherDisplayEnhancer:
         }
         
     def enhance_display(self):
-        """Enhance existing weather display with better formatting."""
+        """Enhance existing weather display with better formatting - NO DUPLICATION."""
         try:
+            # Check if dashboard and widgets still exist before enhancing
+            if not hasattr(self, 'dashboard') or not self.dashboard.winfo_exists():
+                return
+                
             self.add_weather_icons()
             self.improve_temperature_display()
-            self.add_weather_details_section()
+            self.update_existing_weather_details()
             
         except Exception as e:
             logger = logging.getLogger(__name__)
@@ -56,6 +60,10 @@ class WeatherDisplayEnhancer:
     def add_weather_icons(self):
         """Add weather icons to existing display."""
         try:
+            # Check if condition label exists and is valid
+            if not hasattr(self.dashboard, 'condition_label') or not self.dashboard.condition_label.winfo_exists():
+                return
+                
             # Get current condition text
             current_condition = self.dashboard.condition_label.cget('text').lower()
             
@@ -66,9 +74,11 @@ class WeatherDisplayEnhancer:
                     icon = emoji
                     break
             
-            # Update condition label with icon
-            enhanced_text = f"{icon} {self.dashboard.condition_label.cget('text')}"
-            self.dashboard.condition_label.configure(text=enhanced_text)
+            # Update condition label with icon ONLY if not already present
+            current_text = self.dashboard.condition_label.cget('text')
+            if not any(emoji in current_text for emoji in self.weather_icons.values()):
+                enhanced_text = f"{icon} {current_text}"
+                self.dashboard.condition_label.configure(text=enhanced_text)
             
         except Exception as e:
             logger = logging.getLogger(__name__)
@@ -77,6 +87,10 @@ class WeatherDisplayEnhancer:
     def improve_temperature_display(self):
         """Improve temperature display formatting."""
         try:
+            # Check if temp label exists and is valid
+            if not hasattr(self.dashboard, 'temp_label') or not self.dashboard.temp_label.winfo_exists():
+                return
+                
             # Add degree symbol styling if not present
             temp_text = self.dashboard.temp_label.cget('text')
             if '°' not in temp_text and any(char.isdigit() for char in temp_text):
@@ -91,57 +105,23 @@ class WeatherDisplayEnhancer:
             logger = logging.getLogger(__name__)
             logger.warning(f"Temperature enhancement error: {e}")
     
-    def add_weather_details_section(self):
-        """Add enhanced weather details to existing display."""
+    def update_existing_weather_details(self):
+        """Update existing weather detail labels - NO NEW WIDGETS CREATED."""
         try:
-            # Check if details already exist to avoid duplication
-            existing_children = [child for child in self.dashboard.info_frame.winfo_children()]
+            # Only update existing labels, never create new ones
+            if hasattr(self.dashboard, 'feels_like_label') and self.dashboard.feels_like_label.winfo_exists():
+                current_text = self.dashboard.feels_like_label.cget('text')
+                if '🌡️' not in current_text:
+                    self.dashboard.feels_like_label.configure(text=f"🌡️ {current_text}")
             
-            # Add pressure info if not exists
-            pressure_exists = any('pressure' in str(child.cget('text')).lower() 
-                                for child in existing_children 
-                                if hasattr(child, 'cget'))
-            
-            if not pressure_exists:
-                pressure_label = ctk.CTkLabel(
-                    self.dashboard.info_frame,
-                    text="🌪️ Pressure: 1013 hPa",
-                    font=(DataTerminalTheme.FONT_FAMILY, 16),
-                    text_color=self.dashboard.TEXT_SECONDARY
-                )
-                pressure_label.pack(pady=5)
-            
-            # Add wind info if not exists
-            wind_exists = any('wind' in str(child.cget('text')).lower() 
-                            for child in existing_children 
-                            if hasattr(child, 'cget'))
-            
-            if not wind_exists:
-                wind_label = ctk.CTkLabel(
-                    self.dashboard.info_frame,
-                    text="💨 Wind: 8 km/h NE",
-                    font=(DataTerminalTheme.FONT_FAMILY, 16),
-                    text_color=self.dashboard.TEXT_SECONDARY
-                )
-                wind_label.pack(pady=5)
-            
-            # Add UV index if not exists
-            uv_exists = any('uv' in str(child.cget('text')).lower() 
-                          for child in existing_children 
-                          if hasattr(child, 'cget'))
-            
-            if not uv_exists:
-                uv_label = ctk.CTkLabel(
-                    self.dashboard.info_frame,
-                    text="☀️ UV Index: 5 (Moderate)",
-                    font=(DataTerminalTheme.FONT_FAMILY, 16),
-                    text_color=self.dashboard.TEXT_SECONDARY
-                )
-                uv_label.pack(pady=5)
+            if hasattr(self.dashboard, 'humidity_label') and self.dashboard.humidity_label.winfo_exists():
+                current_text = self.dashboard.humidity_label.cget('text')
+                if '💧' not in current_text:
+                    self.dashboard.humidity_label.configure(text=f"💧 {current_text}")
                 
         except Exception as e:
             logger = logging.getLogger(__name__)
-            logger.warning(f"Details enhancement error: {e}")
+            logger.warning(f"Details update error: {e}")
 
 
 class ProfessionalWeatherDashboard(ctk.CTk):
@@ -191,64 +171,108 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         
         self.logger.info("Professional Weather Dashboard initialized")
     
+    def after(self, ms, func=None, *args):
+        """Override after method to handle CustomTkinter DPI scaling errors."""
+        try:
+            return super().after(ms, func, *args)
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "invalid command name" in error_msg and ("update" in error_msg or "check_dpi_scaling" in error_msg):
+                # Suppress CustomTkinter DPI scaling errors
+                self.logger.debug(f"Suppressed CustomTkinter internal error: {e}")
+                return None
+            else:
+                # Re-raise other errors
+                raise e
+    
     def on_window_resize(self, event):
         """Handle window resize for responsive design."""
-        if event.widget == self:  # Only handle main window resize
-            width = self.winfo_width()
-            height = self.winfo_height()
-            
-            # Update component sizes based on window size
-            self.update_component_scaling(width, height)
+        try:
+            if event.widget == self and self.winfo_exists():  # Only handle main window resize
+                try:
+                    width = self.winfo_width()
+                    height = self.winfo_height()
+                    
+                    # Update component sizes based on window size
+                    self.update_component_scaling(width, height)
+                except Exception as e:
+                    self.logger.warning(f"Window resize handling warning: {e}")
+        except Exception as e:
+            # Suppress DPI scaling and update command errors
+            if "invalid command name" not in str(e).lower():
+                self.logger.warning(f"Window resize event error: {e}")
     
     def update_component_scaling(self, width, height):
         """Scale components based on window dimensions."""
-        # Adjust font sizes based on window size
-        base_font_size = max(12, min(16, width // 120))
-        
-        # Update chart dimensions
-        if hasattr(self, 'temperature_chart'):
-            chart_width = max(600, width * 0.6)
-            chart_height = max(400, height * 0.4)
-            self.temperature_chart.update_size(chart_width, chart_height)
-        
-        # Update weather card scaling
-        if hasattr(self, 'weather_card'):
-            card_width = max(300, width * 0.25)
-            self.weather_card.configure(width=card_width)
-        
-        # Update header elements scaling
-        if hasattr(self, 'search_entry'):
-            search_width = max(250, min(400, width * 0.25))
-            self.search_entry.configure(width=search_width)
-        
-        # Update main frame padding based on screen size
-        if hasattr(self, 'main_frame'):
-            padding = max(10, min(30, width // 80))
-            self.main_frame.grid_configure(padx=padding, pady=padding)
-        
-        # Update font sizes for responsive text
-        title_font_size = max(20, min(28, width // 80))
-        if hasattr(self, 'title_label'):
-            self.title_label.configure(font=(DataTerminalTheme.FONT_FAMILY, title_font_size, "bold"))
+        try:
+            # Check if window still exists
+            if not self.winfo_exists():
+                return
+                
+            # Adjust font sizes based on window size
+            base_font_size = max(12, min(16, width // 120))
+            
+            # Update chart dimensions
+            if hasattr(self, 'temperature_chart') and hasattr(self.temperature_chart, 'update_size'):
+                chart_width = max(600, width * 0.6)
+                chart_height = max(400, height * 0.4)
+                self.temperature_chart.update_size(chart_width, chart_height)
+            
+            # Update weather card scaling
+            if hasattr(self, 'weather_card') and self.weather_card.winfo_exists():
+                card_width = max(300, width * 0.25)
+                self.weather_card.configure(width=card_width)
+            
+            # Update header elements scaling
+            if hasattr(self, 'search_entry') and self.search_entry.winfo_exists():
+                search_width = max(250, min(400, width * 0.25))
+                self.search_entry.configure(width=search_width)
+            
+            # Update main frame padding based on screen size
+            if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
+                padding = max(10, min(30, width // 80))
+                self.main_frame.grid_configure(padx=padding, pady=padding)
+            
+            # Update font sizes for responsive text
+            title_font_size = max(20, min(28, width // 80))
+            if hasattr(self, 'title_label') and self.title_label.winfo_exists():
+                self.title_label.configure(font=(DataTerminalTheme.FONT_FAMILY, title_font_size, "bold"))
+                
+            # Schedule enhancement after scaling - with existence check
+            if self.display_enhancer and self.winfo_exists():
+                self.after(100, self._safe_enhance_display)
+        except Exception as e:
+            self.logger.warning(f"Component scaling error: {e}")
 
     def _configure_window(self) -> None:
         """Configure main window with professional styling and fullscreen default."""
-        self.title("JTC Capstone Application")
-        self.geometry("1920x1080")
-        self.state('zoomed')
-        self.minsize(1200, 800)
-        
-        # Set theme and appearance
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("dark-blue")
-        self.configure(fg_color=self.BACKGROUND)
-        
-        # Configure grid weights for responsive design
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)  # Main content area
-        
-        # Bind resize event
-        self.bind('<Configure>', self.on_window_resize)
+        try:
+            self.title("JTC Capstone Application")
+            self.geometry("1920x1080")
+            self.state('zoomed')
+            self.minsize(1200, 800)
+            
+            # Set theme and appearance with error handling
+            try:
+                ctk.set_appearance_mode("dark")
+                ctk.set_default_color_theme("dark-blue")
+            except Exception as e:
+                self.logger.warning(f"CustomTkinter theme configuration warning: {e}")
+                
+            self.configure(fg_color=self.BACKGROUND)
+            
+            # Configure grid weights for responsive design
+            self.grid_columnconfigure(0, weight=1)
+            self.grid_rowconfigure(1, weight=1)  # Main content area
+            
+            # Bind resize event with error handling
+            try:
+                self.bind('<Configure>', self.on_window_resize)
+            except Exception as e:
+                self.logger.warning(f"Window resize binding warning: {e}")
+                
+        except Exception as e:
+            self.logger.error(f"Window configuration error: {e}")
     
     def _create_widgets(self) -> None:
         """Create all UI widgets with clean design."""
@@ -349,28 +373,69 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
     
     def _create_main_content(self) -> None:
-        """Create main 2-column layout."""
+        """Create main tabbed interface."""
         self.main_frame = ctk.CTkFrame(
             self,
             fg_color="transparent"
         )
         
-        # Configure 2-column grid
+        # Configure main frame grid
         self.main_frame.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(1, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
         
-        # Left column - Current weather
-        self._create_current_weather_section()
+        # Create tab navigation system
+        self._create_tab_navigation()
         
-        # Right column - Analytics
-        self._create_analytics_panel()
+        # Create tab content
+        self._create_weather_tab()
+        self._create_journal_tab()
+        self._create_activities_tab()
+        self._create_settings_tab()
     
-    def _create_current_weather_section(self) -> None:
-        """Create current weather section with title and card."""
+    def _create_tab_navigation(self) -> None:
+        """Create the main tab navigation system."""
+        self.tabview = ctk.CTkTabview(
+            self.main_frame,
+            fg_color=self.CARD_COLOR,
+            segmented_button_fg_color=self.BACKGROUND,
+            segmented_button_selected_color=self.ACCENT_COLOR,
+            segmented_button_selected_hover_color=DataTerminalTheme.SUCCESS,
+            segmented_button_unselected_color=self.CARD_COLOR,
+            segmented_button_unselected_hover_color=DataTerminalTheme.HOVER,
+            text_color=self.TEXT_PRIMARY,
+            text_color_disabled=self.TEXT_SECONDARY,
+            corner_radius=12,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        
+        # Create tabs with icons
+        self.weather_tab = self.tabview.add("🌤️ Weather")
+        self.journal_tab = self.tabview.add("📔 Journal")
+        self.activities_tab = self.tabview.add("🎯 Activities")
+        self.settings_tab = self.tabview.add("⚙️ Settings")
+        
+        # Position tabview
+        self.tabview.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+    
+    def _create_weather_tab(self) -> None:
+        """Create the weather tab content with current weather and forecast."""
+        # Configure weather tab grid
+        self.weather_tab.grid_columnconfigure(0, weight=1)
+        self.weather_tab.grid_columnconfigure(1, weight=1)
+        self.weather_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create left column - Current weather
+        self._create_current_weather_in_tab()
+        
+        # Create right column - Analytics
+        self._create_analytics_in_tab()
+    
+    def _create_current_weather_in_tab(self) -> None:
+        """Create current weather section within the weather tab."""
         # Create a container for the section
         self.weather_section = ctk.CTkFrame(
-            self.main_frame,
+            self.weather_tab,
             fg_color="transparent"
         )
         
@@ -387,7 +452,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Create the weather card
         self._create_weather_card()
         
-        # Position the section in the main frame
+        # Position the section in the weather tab
         self.weather_section.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
     
     def _create_weather_card(self) -> None:
@@ -505,11 +570,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             )
             metric_value.pack()
     
-    def _create_analytics_panel(self) -> None:
-        """Create temperature forecast panel."""
+    def _create_analytics_in_tab(self) -> None:
+        """Create temperature forecast panel within the weather tab."""
         # Create a container for the analytics section
         self.analytics_section = ctk.CTkFrame(
-            self.main_frame,
+            self.weather_tab,
             fg_color="transparent"
         )
         
@@ -539,7 +604,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             text_color=self.TEXT_PRIMARY
         )
         
-        # Position the section in the main frame
+        # Position the section in the weather tab
         self.analytics_section.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         
         # Chart container - Enhanced Temperature Chart
@@ -547,6 +612,111 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.analytics_card
         )
         self.temperature_chart.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    def _create_journal_tab(self) -> None:
+        """Create the journal tab content for weather diary and mood tracking."""
+        # Configure journal tab
+        self.journal_tab.grid_columnconfigure(0, weight=1)
+        self.journal_tab.grid_rowconfigure(1, weight=1)
+        
+        # Journal title
+        journal_title = ctk.CTkLabel(
+            self.journal_tab,
+            text="WEATHER JOURNAL",
+            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
+            text_color=self.ACCENT_COLOR
+        )
+        journal_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        
+        # Journal content frame
+        journal_frame = ctk.CTkFrame(
+            self.journal_tab,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        journal_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Placeholder content
+        placeholder_label = ctk.CTkLabel(
+            journal_frame,
+            text="📔 Weather Diary & Mood Tracking\n\nComing Soon:\n• Daily weather reflections\n• Mood correlation analysis\n• Personal weather insights\n• Historical journal entries",
+            font=(DataTerminalTheme.FONT_FAMILY, 16),
+            text_color=self.TEXT_SECONDARY,
+            justify="left"
+        )
+        placeholder_label.pack(expand=True, padx=40, pady=40)
+    
+    def _create_activities_tab(self) -> None:
+        """Create the activities tab content for AI-powered suggestions."""
+        # Configure activities tab
+        self.activities_tab.grid_columnconfigure(0, weight=1)
+        self.activities_tab.grid_rowconfigure(1, weight=1)
+        
+        # Activities title
+        activities_title = ctk.CTkLabel(
+            self.activities_tab,
+            text="ACTIVITY SUGGESTIONS",
+            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
+            text_color=self.ACCENT_COLOR
+        )
+        activities_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        
+        # Activities content frame
+        activities_frame = ctk.CTkFrame(
+            self.activities_tab,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        activities_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Placeholder content
+        placeholder_label = ctk.CTkLabel(
+            activities_frame,
+            text="🎯 AI-Powered Activity Recommendations\n\nComing Soon:\n• Weather-based activity suggestions\n• Indoor/outdoor recommendations\n• Seasonal activity planning\n• Personalized suggestions based on preferences",
+            font=(DataTerminalTheme.FONT_FAMILY, 16),
+            text_color=self.TEXT_SECONDARY,
+            justify="left"
+        )
+        placeholder_label.pack(expand=True, padx=40, pady=40)
+    
+    def _create_settings_tab(self) -> None:
+        """Create the settings tab content for API keys and preferences."""
+        # Configure settings tab
+        self.settings_tab.grid_columnconfigure(0, weight=1)
+        self.settings_tab.grid_rowconfigure(1, weight=1)
+        
+        # Settings title
+        settings_title = ctk.CTkLabel(
+            self.settings_tab,
+            text="SETTINGS & PREFERENCES",
+            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
+            text_color=self.ACCENT_COLOR
+        )
+        settings_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        
+        # Settings content frame
+        settings_frame = ctk.CTkFrame(
+            self.settings_tab,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        settings_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Placeholder content
+        placeholder_label = ctk.CTkLabel(
+            settings_frame,
+            text="⚙️ Application Settings\n\nComing Soon:\n• API key management\n• Temperature unit preferences\n• Theme customization\n• Notification settings\n• Data export options",
+            font=(DataTerminalTheme.FONT_FAMILY, 16),
+            text_color=self.TEXT_SECONDARY,
+            justify="left"
+        )
+        placeholder_label.pack(expand=True, padx=40, pady=40)
     
 
     
@@ -569,7 +739,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
     
     def _setup_layout(self) -> None:
-        """Setup the layout with proper spacing."""
+        """Setup the layout with proper spacing for tabbed interface."""
         # Header
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         self.header_frame.grid_propagate(False)
@@ -599,10 +769,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Current location below search
         self.current_location_label.pack(pady=(5, 0))
         
-        # Main content
+        # Main content (now contains tabview)
         self.main_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
         
-        # Weather card layout
+        # Weather card layout (within weather tab)
         self.weather_card.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Weather card content
@@ -614,7 +784,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.feels_like_label.pack(pady=5)
         self.humidity_label.pack(pady=5)
         
-        # Analytics card layout
+        # Analytics card layout (within weather tab)
         self.analytics_card.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Status bar
@@ -626,20 +796,41 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         threading.Thread(target=self._fetch_weather_data, daemon=True).start()
     
     def _fetch_weather_data(self) -> None:
-        """Fetch weather data in background thread."""
+        """Fetch real weather data from API."""
         try:
-            self.status_label.configure(text="Loading weather data...")
+            # Show loading state - check if widget exists first
+            if hasattr(self, 'status_label') and self.status_label.winfo_exists():
+                self.after(0, lambda: self._safe_update_status("Loading weather data..."))
             
-            # Simulate API call (replace with real implementation)
-            import time
-            time.sleep(1)
+            # Get real weather data
+            weather_data = self.weather_service.get_enhanced_weather(self.current_city)
             
-            # Update UI on main thread
-            self.after(0, self._update_weather_display)
+            # Store the data
+            self.current_weather = weather_data
+            
+            # Note: Forecast data will be implemented in future updates
+            # For now, we'll focus on current weather data
+            
+            # Update UI on main thread - check if widget exists first
+            if self.winfo_exists():
+                self.after(0, lambda: self._update_weather_display_with_real_data(weather_data))
             
         except Exception as e:
             self.logger.error(f"Failed to fetch weather data: {e}")
-            self.after(0, lambda: self.status_label.configure(text="Error loading data"))
+            error_msg = self._get_user_friendly_error(str(e))
+            if hasattr(self, 'status_label') and self.status_label.winfo_exists():
+                self.after(0, lambda: self._show_error_notification(error_msg))
+    
+    def _get_user_friendly_error(self, error: str) -> str:
+        """Convert technical errors to user-friendly messages."""
+        if "401" in error or "API key" in error.lower():
+            return "Invalid API key. Please check settings."
+        elif "404" in error or "not found" in error.lower():
+            return "City not found. Please check spelling."
+        elif "connection" in error.lower():
+            return "No internet connection."
+        else:
+            return "Unable to fetch weather data. Please try again."
     
     def _update_weather_display(self) -> None:
         """Update weather display with current data."""
@@ -650,6 +841,75 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Apply display enhancements
         if self.display_enhancer:
             self.display_enhancer.enhance_display()
+    
+    def _update_weather_display_with_real_data(self, weather_data) -> None:
+        """Update weather display with real API data."""
+        try:
+            # Update city name - handle both dict and object location
+            if hasattr(weather_data, 'location'):
+                if isinstance(weather_data.location, dict):
+                    city_name = weather_data.location.get('name', self.current_city)
+                else:
+                    city_name = weather_data.location.name
+            else:
+                city_name = self.current_city
+            self.city_label.configure(text=city_name)
+            
+            # Update temperature
+            if hasattr(weather_data, 'temperature'):
+                self.temp_label.configure(text=f"{int(weather_data.temperature)}°C")
+            
+            # Update weather condition
+            if hasattr(weather_data, 'description'):
+                self.condition_label.configure(text=weather_data.description)
+            
+            # Update feels like temperature
+            if hasattr(weather_data, 'feels_like'):
+                self.feels_like_label.configure(text=f"🌡️ Feels like: {int(weather_data.feels_like)}°C")
+            
+            # Update humidity
+            if hasattr(weather_data, 'humidity'):
+                self.humidity_label.configure(text=f"💧 Humidity: {weather_data.humidity}%")
+            
+            # Update status
+            self.status_label.configure(text="Weather data updated successfully")
+            
+            # Apply display enhancements
+            if self.display_enhancer:
+                self.display_enhancer.enhance_display()
+                
+            # Update temperature chart if available
+            if hasattr(self, 'temperature_chart') and self.forecast_data:
+                self.temperature_chart.update_chart_data(self.forecast_data)
+                
+        except Exception as e:
+            self.logger.error(f"Error updating weather display: {e}")
+            self.status_label.configure(text="Error displaying weather data")
+    
+    def _safe_update_status(self, message: str) -> None:
+        """Safely update status label with existence check."""
+        try:
+            if hasattr(self, 'status_label') and self.status_label.winfo_exists():
+                self.status_label.configure(text=message)
+        except Exception as e:
+            self.logger.warning(f"Failed to update status: {e}")
+    
+    def _safe_enhance_display(self) -> None:
+        """Safely enhance display with existence checks."""
+        try:
+            if self.display_enhancer and self.winfo_exists():
+                self.display_enhancer.enhance_display()
+        except Exception as e:
+            self.logger.warning(f"Display enhancement error: {e}")
+    
+    def _show_error_notification(self, error_msg: str) -> None:
+        """Show user-friendly error notification."""
+        # Update status with error message
+        self._safe_update_status(f"Error: {error_msg}")
+        
+        # You could also implement a popup notification here
+        # For now, we'll just log and update the status bar
+        self.logger.warning(f"User notification: {error_msg}")
     
     def _on_search(self, event=None) -> None:
         """Handle search entry return key."""
