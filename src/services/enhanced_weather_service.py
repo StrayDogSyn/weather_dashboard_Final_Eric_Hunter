@@ -14,7 +14,7 @@ import asyncio
 import aiohttp
 
 from .config_service import ConfigService
-from models.weather_models import WeatherData, ForecastData
+from models.weather_models import WeatherData, ForecastData, Location, WeatherCondition
 
 
 @dataclass
@@ -498,22 +498,32 @@ class EnhancedWeatherService:
             raise Exception("No weather data received")
         
         # Parse basic weather data
-        weather_data = EnhancedWeatherData(
-            city=data['name'],
+        location = Location(
+            name=data['name'],
             country=data['sys']['country'],
+            latitude=data['coord']['lat'],
+            longitude=data['coord']['lon']
+        )
+        
+        condition = WeatherCondition.from_openweather(
+            data['weather'][0]['main'],
+            data['weather'][0]['description']
+        )
+        
+        weather_data = EnhancedWeatherData(
+            location=location,
+            timestamp=datetime.now(),
+            condition=condition,
+            description=data['weather'][0]['description'].title(),
             temperature=round(data['main']['temp'], 1),
             feels_like=round(data['main']['feels_like'], 1),
             humidity=data['main']['humidity'],
             pressure=data['main']['pressure'],
-            visibility=data.get('visibility', 0) // 1000,
-            wind_speed=round(data['wind']['speed'], 1),
-            wind_direction=data['wind'].get('deg', 0),
-            description=data['weather'][0]['description'].title(),
-            icon=data['weather'][0]['icon'],
-            temp_min=round(data['main']['temp_min'], 1),
-            temp_max=round(data['main']['temp_max'], 1),
-            clouds=data['clouds']['all'],
-            timestamp=datetime.now()
+            visibility=data.get('visibility', 0) // 1000 if data.get('visibility') else None,
+            wind_speed=round(data['wind']['speed'], 1) if 'wind' in data else None,
+            wind_direction=data['wind'].get('deg', 0) if 'wind' in data else None,
+            cloudiness=data['clouds']['all'] if 'clouds' in data else None,
+            raw_data=data
         )
         
         # Get coordinates for additional data
