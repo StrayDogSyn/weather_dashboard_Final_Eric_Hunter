@@ -171,8 +171,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.current_weather: Optional[WeatherData] = None
         self.forecast_data: Optional[List[ForecastData]] = None
         self.current_city: str = "London"
+        self.chart_timeframe = "24h"
         
-        # Initialize enhancer
+        # DON'T initialize enhancer here
         self.display_enhancer = None
         
         # Configure window
@@ -182,11 +183,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_widgets()
         self._setup_layout()
         
+        # Initialize display enhancer ONLY after UI is created
+        self.display_enhancer = WeatherDisplayEnhancer(self)
+        
         # Load initial data
         self._load_initial_data()
-        
-        # Initialize display enhancer after UI is created
-        self.display_enhancer = WeatherDisplayEnhancer(self)
         
         self.logger.info("Professional Weather Dashboard initialized")
     
@@ -685,6 +686,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     
     def run(self) -> None:
         """Start the application."""
+        if hasattr(self, '_running') and self._running:
+            self.logger.warning("Application is already running")
+            return
+            
+        self._running = True
         self.logger.info("Starting Professional Weather Dashboard")
         try:
             self.mainloop()
@@ -693,6 +699,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Application error: {str(e)}")
         finally:
+            self._running = False
             self.logger.info("Professional Weather Dashboard stopped")
 
 

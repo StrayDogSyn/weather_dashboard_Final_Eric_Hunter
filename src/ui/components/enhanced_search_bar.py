@@ -260,13 +260,20 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
             **DataTerminalTheme.get_frame_style("main")
         )
         
-        # Search entry with enhanced placeholder
+        # Search entry with enhanced placeholder and improved styling
+        entry_style = DataTerminalTheme.get_entry_style()
+        # Remove font from theme to avoid conflicts
+        if 'font' in entry_style:
+            del entry_style['font']
+        
         self.search_entry = ctk.CTkEntry(
             self.search_container,
             placeholder_text="🔍 Search cities, coordinates, or zip codes...",
-            height=40,
+            width=300,
+            height=42,
             state="normal",  # Ensure entry is enabled
-            **DataTerminalTheme.get_entry_style()
+            font=("Segoe UI", 12),
+            **entry_style
         )
         
         # Button container
@@ -275,34 +282,49 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
             **DataTerminalTheme.get_frame_style("main")
         )
         
-        # Search button
+        # Search button with improved styling
+        primary_style = DataTerminalTheme.get_button_style("primary")
+        if 'font' in primary_style:
+            del primary_style['font']
+        
         self.search_button = ctk.CTkButton(
             self.button_container,
             text="SEARCH",
-            width=80,
-            height=40,
+            width=85,
+            height=42,
+            font=("Segoe UI", 12, "bold"),
             command=self._on_search_click,
-            **DataTerminalTheme.get_button_style("primary")
+            **primary_style
         )
         
-        # Favorites toggle button
+        # Favorites toggle button with improved styling
+        secondary_style = DataTerminalTheme.get_button_style("secondary")
+        if 'font' in secondary_style:
+            del secondary_style['font']
+        
         self.favorites_button = ctk.CTkButton(
             self.button_container,
             text="⭐",
-            width=40,
-            height=40,
+            width=42,
+            height=42,
+            font=("Segoe UI", 14),
             command=self._toggle_favorites,
-            **DataTerminalTheme.get_button_style("secondary")
+            **secondary_style
         )
         
-        # GPS location button
+        # GPS location button with improved styling
+        secondary_style2 = DataTerminalTheme.get_button_style("secondary")
+        if 'font' in secondary_style2:
+            del secondary_style2['font']
+        
         self.gps_button = ctk.CTkButton(
             self.button_container,
             text="📍",
-            width=40,
-            height=40,
+            width=42,
+            height=42,
+            font=("Segoe UI", 14),
             command=self._get_current_location,
-            **DataTerminalTheme.get_button_style("secondary")
+            **secondary_style2
         )
         
         # Current city display with favorite toggle
@@ -335,28 +357,28 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
         )
     
     def _setup_layout(self) -> None:
-        """Arrange widgets."""
-        # Search container
+        """Arrange widgets with enhanced spacing and alignment."""
+        # Main search container with refined padding
         self.search_container.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         self.search_container.grid_columnconfigure(0, weight=1)
         
-        # Search entry and buttons
+        # Search entry and buttons with optimized spacing
         self.search_entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         self.button_container.grid(row=0, column=1, sticky="e")
         
-        # Button container layout
-        self.search_button.grid(row=0, column=0, padx=(0, 5))
-        self.favorites_button.grid(row=0, column=1, padx=(0, 5))
+        # Button container with tighter, more professional spacing
+        self.search_button.grid(row=0, column=0, padx=(0, 4))
+        self.favorites_button.grid(row=0, column=1, padx=(0, 4))
         self.gps_button.grid(row=0, column=2)
         
-        # Current city container
-        self.current_city_container.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(5, 0))
+        # Current city container with refined layout
+        self.current_city_container.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         self.current_city_container.grid_columnconfigure(0, weight=1)
         
-        self.current_city_label.grid(row=0, column=0, sticky="w")
-        self.favorite_toggle_button.grid(row=0, column=1, sticky="e")
+        self.current_city_label.grid(row=0, column=0, sticky="w", padx=(3, 0))
+        self.favorite_toggle_button.grid(row=0, column=1, sticky="e", padx=(0, 3))
         
-        # Suggestion dropdown
+        # Suggestion dropdown with precise positioning
         self.suggestion_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
     
     def _setup_bindings(self) -> None:
@@ -371,8 +393,8 @@ class EnhancedSearchBarFrame(ctk.CTkFrame):
         # Click outside to hide suggestions
         self.bind("<Button-1>", self._on_click_outside)
         
-        # Set initial focus to search entry
-        self.after(100, self._set_initial_focus)
+        # Set initial focus to search entry with longer delay
+        self.after(500, self._set_initial_focus)  # Increased from 100ms
     
     def _on_search_click(self) -> None:
         """Handle search button click."""

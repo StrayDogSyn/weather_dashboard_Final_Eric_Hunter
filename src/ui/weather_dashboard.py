@@ -24,7 +24,7 @@ from services.logging_service import LoggingService
 
 # Enhanced features availability check
 try:
-    from enhanced_search_bar import EnhancedSearchBarFrame
+    from ui.components.enhanced_search_bar import EnhancedSearchBarFrame
     # from enhanced_weather_display import EnhancedWeatherDisplayFrame
     from enhanced_weather_service import EnhancedWeatherService
     ENHANCED_FEATURES_AVAILABLE = True
@@ -58,6 +58,9 @@ class WeatherDashboard(ctk.CTk):
         else:
             self.weather_service = WeatherService(config_service)
             self.logger = logging.getLogger('weather_dashboard.ui')
+        
+        # Add flag to prevent recursive resize events
+        self._resizing = False
         
         # State
         self.current_weather: Optional[WeatherData] = None
@@ -120,11 +123,8 @@ class WeatherDashboard(ctk.CTk):
                     # Final fallback
                     self.geometry("1920x1080+0+0")
         
-        # Ensure window is visible and focused
+        # Ensure window is visible
         self.lift()
-        self.focus_force()
-        self.attributes('-topmost', True)
-        self.after(100, lambda: self.attributes('-topmost', False))
     
 
     
@@ -161,58 +161,102 @@ class WeatherDashboard(ctk.CTk):
         self.setup_content()
     
     def setup_header(self):
-        """Setup header with working search functionality."""
+        """Setup header with branding and search."""
+        # Configure header grid with proper spacing and alignment
         self.header_frame.grid_columnconfigure(1, weight=1)
+        self.header_frame.configure(height=90)  # Increased height for better proportions
         
-        # Left side - branding
-        left_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
-        left_frame.grid(row=0, column=0, sticky="w", padx=20, pady=10)
+        # Main header container for better control
+        header_container = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        header_container.grid(row=0, column=0, columnspan=2, sticky="ew", padx=25, pady=20)
+        header_container.grid_columnconfigure(1, weight=1)
         
+        # Left section - branding with enhanced styling
+        branding_frame = ctk.CTkFrame(header_container, fg_color="transparent")
+        branding_frame.grid(row=0, column=0, sticky="w")
+        
+        # App title with improved typography
         title_label = ctk.CTkLabel(
-            left_frame,
-            text="⚡ Project CodeFront",
-            font=("Segoe UI", 20, "bold"),
+            branding_frame,
+            text="🌤️ Project CodeFront",
+            font=("Segoe UI", 22, "bold"),
             text_color="#00FF88"
         )
-        title_label.pack(anchor="w")
+        title_label.pack(side="left")
         
-        # Right side - search and location
-        right_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
-        right_frame.grid(row=0, column=1, sticky="e", padx=20, pady=10)
+        # Subtitle for context
+        subtitle_label = ctk.CTkLabel(
+            branding_frame,
+            text="Weather Dashboard",
+            font=("Segoe UI", 11),
+            text_color="gray60"
+        )
+        subtitle_label.pack(side="left", padx=(10, 0))
+
         
-        # Current location
+        # Right section - search area with better organization
+        search_area = ctk.CTkFrame(header_container, fg_color="transparent")
+        search_area.grid(row=0, column=1, sticky="e")
+        search_area.grid_rowconfigure(0, weight=1)
+        
+        # Location indicator with improved styling
+        location_container = ctk.CTkFrame(search_area, fg_color="transparent")
+        location_container.grid(row=0, column=0, sticky="ne", padx=(0, 20))
+        
         self.location_label = ctk.CTkLabel(
-            right_frame,
-            text="Current: Austin, US",
-            font=("Segoe UI", 10),
-            text_color="gray70"
+            location_container,
+            text="📍 Select Location",
+            font=("Segoe UI", 11),
+            text_color="gray65"
         )
         self.location_label.pack(anchor="e")
         
-        # Search area
-        search_container = ctk.CTkFrame(right_frame, fg_color="transparent")
-        search_container.pack(anchor="e", pady=(5, 0))
+        # Search container with enhanced layout
+        search_container = ctk.CTkFrame(search_area, fg_color="transparent")
+        search_container.grid(row=0, column=1, sticky="e")
         
-        self.search_entry = ctk.CTkEntry(
-            search_container,
-            placeholder_text="Search cities, coordinates, or zip codes...",
-            width=300,
-            height=32
-        )
-        self.search_entry.pack(side="left", padx=(0, 5))
+        # Try to use enhanced search bar, fallback to basic
+        try:
+            self.search_frame = EnhancedSearchBarFrame(
+                search_container,
+                on_search=self.perform_search,
+                on_suggestion_select=self._on_location_select,
+                weather_service=self.weather_service
+            )
+            self.search_frame.pack(side="right", padx=5)
+            self.logger.info("✅ Enhanced search bar created successfully")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Enhanced search unavailable, using basic search: {e}")
+            # Fallback to basic search with enhanced styling
+            fallback_frame = ctk.CTkFrame(search_container, fg_color="transparent")
+            fallback_frame.pack(side="right", padx=5, pady=5)
+            
+            self.search_entry = ctk.CTkEntry(
+                fallback_frame,
+                placeholder_text="Enter city name...",
+                width=300,
+                height=42,
+                font=("Segoe UI", 12),
+                corner_radius=8
+            )
+            self.search_entry.pack(side="left", padx=(0, 8))
+            self.search_entry.bind("<Return>", lambda e: self.perform_search())
+            
+            # Search button with enhanced styling
+            self.search_button = ctk.CTkButton(
+                fallback_frame,
+                text="SEARCH",
+                width=85,
+                height=42,
+                command=self.perform_search,
+                font=("Segoe UI", 11, "bold"),
+                fg_color="#00FF88",
+                hover_color="#00DD77",
+                corner_radius=8
+            )
+            self.search_button.pack(side="left")
         
-        # Bind Enter key to search
-        self.search_entry.bind("<Return>", self.on_search_enter)
-        self.search_entry.bind("<KP_Enter>", self.on_search_enter)  # Numpad Enter
-        
-        search_btn = ctk.CTkButton(
-            search_container,
-            text="SEARCH",
-            width=80,
-            height=32,
-            command=self.on_search_click
-        )
-        search_btn.pack(side="left")
+        self.logger.info("🔍 Search header setup completed with improved layout")
     
     def setup_content(self):
         """Setup main content area."""
@@ -247,31 +291,35 @@ class WeatherDashboard(ctk.CTk):
     
     def _on_window_resize(self, event) -> None:
         """Handle window resize events for responsive design."""
-        # Only handle resize events for the main window
-        if event.widget == self:
-            # Get current window dimensions
-            current_width = self.winfo_width()
-            current_height = self.winfo_height()
-            
-            # Ensure minimum size constraints
-            if current_width < self.config.ui.min_width or current_height < self.config.ui.min_height:
-                new_width = max(current_width, self.config.ui.min_width)
-                new_height = max(current_height, self.config.ui.min_height)
-                self.geometry(f"{new_width}x{new_height}")
-            
-            # Update grid weights for responsive layout
-            self.update_idletasks()
-            
-            # Update component scaling
-            self._update_component_scaling(current_width, current_height)
-            
-            # Adjust grid weights based on aspect ratio
-            if current_width > current_height * 1.5:  # Wide screen
-                self.content_frame.grid_columnconfigure(0, weight=2)
-                self.content_frame.grid_columnconfigure(1, weight=3)
-            else:  # Standard or tall screen
-                self.content_frame.grid_columnconfigure(0, weight=2)
-                self.content_frame.grid_columnconfigure(1, weight=3)
+        # Only handle resize events for the main window and prevent recursion
+        if event.widget == self and not self._resizing:
+            self._resizing = True
+            try:
+                # Get current window dimensions
+                current_width = self.winfo_width()
+                current_height = self.winfo_height()
+                
+                # Ensure minimum size constraints
+                if current_width < self.config.ui.min_width or current_height < self.config.ui.min_height:
+                    new_width = max(current_width, self.config.ui.min_width)
+                    new_height = max(current_height, self.config.ui.min_height)
+                    self.geometry(f"{new_width}x{new_height}")
+                
+                # Update grid weights for responsive layout
+                self.update_idletasks()
+                
+                # Update component scaling
+                self._update_component_scaling(current_width, current_height)
+                
+                # Adjust grid weights based on aspect ratio
+                if current_width > current_height * 1.5:  # Wide screen
+                    self.content_frame.grid_columnconfigure(0, weight=2)
+                    self.content_frame.grid_columnconfigure(1, weight=3)
+                else:  # Standard or tall screen
+                    self.content_frame.grid_columnconfigure(0, weight=2)
+                    self.content_frame.grid_columnconfigure(1, weight=3)
+            finally:
+                self._resizing = False
     
     def _update_component_scaling(self, width, height):
         """Scale components based on window dimensions."""
@@ -508,41 +556,312 @@ class WeatherDashboard(ctk.CTk):
         """Handle window click to remove focus from widgets."""
         self.focus_set()
     
+    def test_search_widget(self):
+        """Test search widget functionality after creation."""
+        try:
+            # Test widget state
+            state = self.search_entry.cget("state")
+            self.logger.info(f"🔍 Search widget state: {state}")
+            
+            # Focus management handled by EnhancedSearchBarFrame
+            # self.search_entry.focus_set()  # Removed to prevent conflicts
+            self.logger.info("🔍 Search widget focus managed by EnhancedSearchBarFrame")
+            
+            # Test insert capability
+            current_text = self.search_entry.get()
+            self.logger.info(f"🔍 Current search text: '{current_text}'")
+            
+        except Exception as e:
+            self.logger.error(f"🔍 Search widget test failed: {e}")
+    
+    def create_fallback_search_entry(self, parent):
+        """Create fallback search entry using standard tkinter."""
+        try:
+            import tkinter as tk
+            
+            # Create standard tkinter Entry as fallback
+            self.search_entry = tk.Entry(
+                parent,
+                width=40,
+                font=("Segoe UI", 12),
+                bg="white",
+                fg="black",
+                relief="solid",
+                bd=1
+            )
+            
+            # Test immediately
+            self.search_entry.insert(0, "TEST")
+            test_val = self.search_entry.get()
+            self.search_entry.delete(0, 'end')
+            
+            self.logger.info(f"DEBUG: Fallback entry test: '{test_val}'")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"DEBUG: Fallback entry creation failed: {e}")
+            return False
+    
+    def force_search_focus(self):
+        """Set focus to search widget after initialization."""
+        try:
+            if hasattr(self, 'search_entry') and self.search_entry:
+                # Focus management handled by EnhancedSearchBarFrame
+                # self.search_entry.focus_set()  # Removed to prevent conflicts
+                self.logger.info("DEBUG: Search widget focus managed by EnhancedSearchBarFrame")
+        except Exception as e:
+            self.logger.error(f"DEBUG: Focus setting failed: {e}")
+    
+    def _on_key_input(self, event):
+        """Handle key input events with comprehensive logging"""
+        try:
+            key = event.keysym if hasattr(event, 'keysym') else str(event.char)
+            char = event.char if hasattr(event, 'char') else ''
+            self.logger.info(f"🔧 KEY INPUT: Key '{key}' (char: '{char}') pressed")
+            
+            # Verify widget state and force normal if needed
+            try:
+                current_state = self.search_entry.cget("state")
+                if current_state != "normal":
+                    self.logger.warning(f"🔧 KEY INPUT: Widget state is '{current_state}', forcing to normal")
+                    self.search_entry.configure(state="normal")
+            except Exception as state_e:
+                self.logger.error(f"❌ KEY INPUT: State check failed: {state_e}")
+            
+            # Log current text content
+            try:
+                current_text = self.search_entry.get()
+                self.logger.info(f"🔧 KEY INPUT: Current text: '{current_text}'")
+            except Exception as text_e:
+                self.logger.error(f"❌ KEY INPUT: Text retrieval failed: {text_e}")
+            
+            # Don't interfere with normal processing
+            return None
+        except Exception as e:
+            self.logger.error(f"❌ KEY INPUT ERROR: {e}")
+            return None
+    
+    def _on_key_release(self, event):
+        """Monitor keyboard release events and text changes."""
+        try:
+            current_text = self.search_entry.get()
+            self.logger.info(f"🔧 RELEASE: Key released. Updated text: '{current_text}'")
+            
+            # Validate text is actually appearing
+            if hasattr(self, '_last_known_text'):
+                if current_text != self._last_known_text:
+                    self.logger.info(f"✅ RELEASE: Text change detected: '{self._last_known_text}' -> '{current_text}'")
+                else:
+                    self.logger.warning(f"⚠️ RELEASE: No text change detected")
+            
+            self._last_known_text = current_text
+            
+        except Exception as e:
+            self.logger.error(f"❌ RELEASE: Key release monitoring failed: {e}")
+    
+    def _on_widget_click(self, event):
+        """Monitor widget click events and focus."""
+        try:
+            self.logger.info("🔧 CLICK: Search widget clicked")
+            
+            # Focus management handled by EnhancedSearchBarFrame
+            # self.search_entry.focus_set()  # Removed to prevent conflicts
+            
+            # Verify focus
+            focused = self.focus_get()
+            if focused == self.search_entry:
+                self.logger.info("✅ CLICK: Widget focus confirmed")
+            else:
+                self.logger.warning(f"⚠️ CLICK: Focus verification failed - focused: {focused}")
+                
+        except Exception as e:
+            self.logger.error(f"❌ CLICK: Click monitoring failed: {e}")
+    
+    def _on_widget_focus_in(self, event):
+        """Monitor widget focus in events."""
+        try:
+            self.logger.info("🔧 FOCUS: Search widget gained focus")
+            
+            # Verify widget state when focused
+            state = self.search_entry.cget("state")
+            self.logger.info(f"🔧 FOCUS: Widget state on focus: {state}")
+            
+            if state != "normal":
+                self.logger.warning(f"⚠️ FOCUS: Forcing widget to normal state")
+                self.search_entry.configure(state="normal")
+                
+        except Exception as e:
+            self.logger.error(f"❌ FOCUS: Focus in monitoring failed: {e}")
+    
+    def _on_widget_focus_out(self, event):
+        """Monitor widget focus out events."""
+        try:
+            current_text = self.search_entry.get()
+            self.logger.info(f"🔧 FOCUS: Search widget lost focus. Final text: '{current_text}'")
+            
+        except Exception as e:
+            self.logger.error(f"❌ FOCUS: Focus out monitoring failed: {e}")
+    
+    def _validate_search_widget(self):
+        """Comprehensive widget validation after creation."""
+        try:
+            self.logger.info("🔧 VALIDATE: Starting comprehensive widget validation...")
+            
+            # Check widget existence
+            if not hasattr(self, 'search_entry') or not self.search_entry:
+                self.logger.error("❌ VALIDATE: Search entry widget does not exist")
+                return False
+            
+            # Check widget state
+            try:
+                state = self.search_entry.cget("state")
+                self.logger.info(f"🔧 VALIDATE: Widget state: {state}")
+                
+                if state != "normal":
+                    self.logger.warning(f"⚠️ VALIDATE: Widget state is '{state}' - correcting to normal")
+                    self.search_entry.configure(state="normal")
+                    
+            except Exception as state_e:
+                self.logger.error(f"❌ VALIDATE: State check failed: {state_e}")
+            
+            # Test input/output functionality
+            try:
+                # Clear widget
+                self.search_entry.delete(0, 'end')
+                
+                # Insert test text
+                test_text = "VALIDATION_TEST"
+                self.search_entry.insert(0, test_text)
+                
+                # Retrieve text
+                retrieved_text = self.search_entry.get()
+                
+                # Clear test text
+                self.search_entry.delete(0, 'end')
+                
+                if retrieved_text == test_text:
+                    self.logger.info(f"✅ VALIDATE: Input/output test PASSED - '{test_text}' -> '{retrieved_text}'")
+                    return True
+                else:
+                    self.logger.error(f"❌ VALIDATE: Input/output test FAILED - expected '{test_text}', got '{retrieved_text}'")
+                    return False
+                    
+            except Exception as io_e:
+                self.logger.error(f"❌ VALIDATE: Input/output test failed: {io_e}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"❌ VALIDATE: Widget validation failed: {e}")
+            return False
+    
+    def _enforce_search_focus(self):
+        """Focus enforcement now handled by EnhancedSearchBarFrame."""
+        # Focus management is now handled by EnhancedSearchBarFrame
+        # No manual focus enforcement needed
+        pass
+    
+    def _on_location_select(self, location_data):
+        """Handle location selection from enhanced search bar."""
+        try:
+            # Extract city name from location data
+            if isinstance(location_data, dict):
+                city = location_data.get('name', location_data.get('display', str(location_data)))
+            else:
+                city = str(location_data)
+            
+            self.logger.info(f"Location selected: {city}")
+            
+            # Update current location and fetch weather
+            self.current_location = city
+            self._fetch_weather_data(city)
+            
+        except Exception as e:
+            self.logger.error(f"Error handling location selection: {e}")
+            messagebox.showerror("Error", f"Failed to select location: {e}")
+    
+    def on_key_press(self, event):
+        """Handle key press events in search entry."""
+        self.logger.info(f"🔍 Key pressed: {event.keysym} (char: '{event.char}')")
+        return None  # Allow normal processing
+    
     def on_search_enter(self, event):
         """Handle Enter key press in search entry."""
+        self.logger.info("🔍 Enter key pressed in search entry")
         self.perform_search()
         return "break"  # Prevent default behavior
     
     def on_search_click(self):
         """Handle search button click."""
+        self.logger.info("🔍 Search button clicked")
         self.perform_search()
     
     def on_search(self):
         """Handle search button click (legacy method)."""
         self.perform_search()
     
-    def perform_search(self):
-        """Perform the actual search operation."""
+    def _get_search_entry(self):
+        """Get the correct search entry widget based on current mode."""
+        if hasattr(self, 'search_frame') and hasattr(self.search_frame, 'search_entry'):
+            return self.search_frame.search_entry
+        elif hasattr(self, 'search_entry'):
+            return self.search_entry
+        return None
+    
+    def _get_search_text(self):
+        """Get text from the correct search entry widget."""
+        entry = self._get_search_entry()
+        if entry:
+            return entry.get().strip()
+        return ""
+    
+    def _clear_search_entry(self):
+        """Clear the correct search entry widget."""
+        entry = self._get_search_entry()
+        if entry:
+            try:
+                entry.delete(0, 'end')
+                return True
+            except Exception as e:
+                self.logger.warning(f"Could not clear search entry: {e}")
+        return False
+
+    def perform_search(self, query=None):
+        """Perform search with comprehensive debugging."""
         try:
-            # Get search term
-            search_term = self.search_entry.get().strip()
+            self.logger.info("DEBUG: perform_search called")
             
+            if query is not None:
+                search_term = str(query).strip()
+                self.logger.info(f"DEBUG: Using provided query: '{search_term}'")
+            else:
+                # Get search term using helper method
+                search_term = self._get_search_text()
+                self.logger.info(f"DEBUG: Retrieved search term: '{search_term}' (length: {len(search_term)})")
+            
+            # Validate search term
             if not search_term:
+                self.logger.warning("DEBUG: Empty search term")
                 self._update_status("Please enter a city name", "warning")
                 return
             
-            # Update status
-            self._update_status(f"Searching for {search_term}...")
+            if len(search_term) < 2:
+                self.logger.warning(f"DEBUG: Search term too short: '{search_term}'")
+                self._update_status("Please enter at least 2 characters", "warning")
+                return
             
-            # Clear search entry
-            self.search_entry.delete(0, 'end')
+            # Clear search entry using helper method
+            if self._clear_search_entry():
+                self.logger.info("DEBUG: Search entry cleared")
             
-            # Perform weather search
+            # Proceed with search
+            self.logger.info(f"DEBUG: Calling _on_city_search with: '{search_term}'")
             self._on_city_search(search_term)
             
         except Exception as e:
-             self.logger.error(f"Search error: {e}")
-             self._update_status("Search failed. Please try again.", "error")
+            self.logger.error(f"DEBUG: perform_search exception: {e}")
+            import traceback
+            self.logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
     
     def search_weather(self, city_name):
         """Search for weather data for specified city."""
