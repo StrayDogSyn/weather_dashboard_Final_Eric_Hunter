@@ -3,15 +3,15 @@
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 [![Code Quality](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-A modern weather dashboard application with voice assistant integration, built using Python and CustomTkinter. Features real-time weather data, interactive visualizations, and an intuitive glassmorphic interface.
+A modern weather dashboard application with voice assistant integration, built using Python and CustomTkinter. Features real-time weather data, interactive visualizations, and a professional Data Terminal interface with neon green accents on dark backgrounds.
 
 > **📋 Status**: ✅ Production Ready | 🎯 All Features Implemented | 🔧 CI/CD Enabled | 🛠️ Recently Updated
 
 ## **Screenshots**
 
-![Dashboard Screenshot](assets/images/Main.png)
+![Weather Dashboard Screenshot](assets/images/Main.png)
 
 ## ✨ Features
 
@@ -35,7 +35,7 @@ A modern weather dashboard application with voice assistant integration, built u
 
 ### 🎨 User Experience
 
-- **Glassmorphic UI** with modern dark theme
+- **Data Terminal UI** with professional dark theme (#121212 background, #00FFAB neon green accents)
 - **Responsive design** adapts to window size
 - **Voice assistant** integration (Cortana)
 - **Weather journal** with mood tracking
@@ -55,7 +55,7 @@ A modern weather dashboard application with voice assistant integration, built u
 - **🆕 Robust Configuration**: Fixed ConfigService with proper property access
 - **🆕 Exception Handling**: Specific exception handling replacing generic catches
 
-> 📖 **Detailed Documentation**: See [Architecture Guide](docs/architecture/architecture.md) and [Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md)
+> 📖 **Project Structure**: This is a streamlined weather dashboard with clean architecture and modular design
 
 ## 🔧 Recent Improvements
 
@@ -92,8 +92,8 @@ cd weather_dashboard_Final_Eric_Hunter
 pip install -r requirements.txt
 
 # 3. Configure API key
-cp .env.example .env
-# Edit .env and add: OPENWEATHER_API_KEY=your_key_here
+# Create a .env file in the root directory
+# Add: OPENWEATHER_API_KEY=your_key_here
 
 # 4. Install enhanced dependencies (optional)
 pip install geopy geocoder ratelimit cachetools
@@ -102,7 +102,7 @@ pip install geopy geocoder ratelimit cachetools
 python main.py
 ```
 
-> 📚 **Need Help?** See [Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md) for detailed setup instructions and [Security Guide](docs/configuration/security.md) for API key best practices.
+> 📚 **API Key**: Get your free API key from [OpenWeatherMap](https://openweathermap.org/api) and add it to your .env file
 
 ## 🎨 Interface Overview
 
@@ -118,13 +118,14 @@ python main.py
 
 ### Design Highlights
 
-- **Glassmorphic theme** with transparency effects
+- **Data Terminal theme** with neon green (#00FFAB) on dark backgrounds (#121212)
+- **Professional typography** using JetBrains Mono font family
 - **Responsive layout** adapts to window size
-- **Custom animations** and hover effects
-- **Color-coded data** for quick recognition
-- **Modern typography** for readability
+- **Custom hover effects** with #2A2A2A hover states
+- **Color-coded data** with status colors (success: #00FF88, warning: #FFB800, error: #FF4444)
+- **Card-based layout** with #1E1E1E card backgrounds and #333333 borders
 
-> 🎨 **UI Details**: See [UI Components Guide](docs/development/ui_components.md) for design specifications
+> 🎨 **UI Framework**: Built with CustomTkinter for modern, responsive design
 
 ## 📱 Usage
 
@@ -142,7 +143,7 @@ python main.py
 - **Ctrl+3** - Forecast visualization
 - **Ctrl+4** - Humidity/pressure data
 
-> 📊 **Advanced Features**: See [User Guide](docs/user/USER_GUIDE.md) for detailed feature explanations and [API Reference](docs/api/API_REFERENCE.md) for integration options
+> 📊 **Charts**: Interactive visualizations powered by Matplotlib with real-time data updates
 
 ### Advanced Features
 
@@ -152,7 +153,7 @@ python main.py
 - **🎨 Weather Poetry** - AI-generated poems with visual presentation
 - **🔊 Voice Assistant** - Cortana integration for hands-free operation
 
-> 🚀 **Feature Deep Dive**: See [Features Documentation](docs/features/) for comprehensive guides on each advanced feature
+> 🚀 **Modern Interface**: Glassmorphic design with responsive layout and intuitive navigation
 
 ## 🛠️ Technical Stack
 
@@ -174,31 +175,31 @@ python-dotenv    # Environment management
 Pillow          # Image processing
 ```
 
-> 🏗️ **Architecture Details**: See [Architecture Guide](docs/architecture/architecture.md) and [Dependencies](docs/development/dependencies.md) for complete technical specifications
+> 🏗️ **Clean Architecture**: Modular design with separation of concerns - models, services, and UI components
 
 ### Project Structure
 
 ```text
 weather_dashboard_Final_Eric_Hunter/
 ├── src/                    # Source code
+│   ├── config/            # Configuration management
 │   ├── models/            # Data models
 │   ├── services/          # Business logic & APIs
-│   ├── ui/               # GUI components
-│   └── utils/            # Helper functions
-├── docs/                  # Documentation
-│   ├── architecture/     # System design
-│   ├── configuration/    # Setup guides
-│   ├── deployment/       # Deploy instructions
-│   └── development/      # Dev guides
-├── cache/                # Application cache
-├── data/                 # User data & database
-├── assets/               # Images & resources
-├── tests/                # Test suite
+│   └── ui/               # GUI components
+│       ├── components/   # Reusable UI components
+│       │   ├── chart/   # Chart-related components
+│       │   └── temperature_chart.py
+│       ├── professional_weather_dashboard.py
+│       └── theme.py     # UI theming
+├── data/                 # Application data
+│   └── window_config.json
 ├── main.py              # Entry point
-└── requirements.txt     # Dependencies
+├── requirements.txt     # Dependencies
+├── .gitignore          # Git ignore rules
+└── README.md           # This file
 ```
 
-> 📁 **Detailed Structure**: See [Project Structure](docs/development/project_structure.md) for complete file descriptions and organization details
+> 📁 **Clean Structure**: Streamlined architecture focusing on essential components with clear separation of concerns
 
 ## 🌟 Project Highlights
 
@@ -219,7 +220,7 @@ weather_dashboard_Final_Eric_Hunter/
 - **Voice-controlled interface** (Cortana)
 - **Real-time data visualization** with hotkeys
 
-> 🚀 **Roadmap**: See [Future Enhancements](docs/development/roadmap.md) for planned features and improvements
+> 🚀 **Extensible Design**: Modular architecture allows for easy feature additions and enhancements
 
 ---
 
@@ -227,76 +228,51 @@ weather_dashboard_Final_Eric_Hunter/
 **Project**: Weather Dashboard Capstone
 **Technology**: Python, TKinter, OpenWeatherMap API
 
-## 📚 Documentation
+## 📚 Key Information
 
-### Quick Links
+### Quick Reference
 
-- **[Architecture Guide](docs/architecture/architecture.md)** - System design and patterns
-- **[Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md)** - Setup and deployment
-- **[Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md)** - Development details
-- **[User Guide](docs/user/USER_GUIDE.md)** - Feature explanations
-- **[API Reference](docs/api/API_REFERENCE.md)** - Integration options
-- **[Security Guide](docs/configuration/security.md)** - Best practices
+- **API Integration**: Uses OpenWeatherMap API for real-time weather data
+- **UI Framework**: CustomTkinter for modern, responsive interface
+- **Data Visualization**: Matplotlib for interactive charts and graphs
+- **Architecture**: Clean separation with models, services, and UI layers
+- **Configuration**: Environment-based API key management
+- **Cross-Platform**: Compatible with Windows, macOS, and Linux
 
-### Development Resources
+## 🧪 Development
 
-- **[Project Structure](docs/development/project_structure.md)** - File organization
-- **[Dependencies](docs/development/dependencies.md)** - Library details
-- **[Testing Guide](docs/development/testing.md)** - Test procedures
-- **[Contributing](docs/development/contributing.md)** - Contribution guidelines
-
-## 🧪 Testing
+### Running the Application
 
 ```bash
-# Run all tests
-python -m pytest tests/
+# Start the weather dashboard
+python main.py
 
-# Run with coverage
-python -m pytest --cov=src tests/
+# Ensure all dependencies are installed
+pip install -r requirements.txt
 
-# Run specific test
-python -m pytest tests/test_weather_service.py
+# Check Python version (3.8+ required)
+python --version
 ```
 
-**Coverage**: Unit tests, integration tests, GUI tests, and API tests
+**Development**: Modular codebase with clear separation of concerns for easy maintenance and extension
 
-> 🧪 **Testing Details**: See [Testing Guide](docs/development/testing.md) for comprehensive test procedures and CI/CD information
+## 📖 Technical Details
 
-## 📖 Additional Resources
+### Core Components
 
-### Architecture & Design
+- **Configuration Service** (`src/config/`) - Centralized application configuration management
+- **Weather Models** (`src/models/`) - Data structures for weather information
+- **Enhanced Weather Service** (`src/services/`) - API integration and data processing
+- **Professional Dashboard** (`src/ui/`) - Main application interface with Data Terminal design theme
+- **Chart Components** (`src/ui/components/`) - Interactive data visualization widgets
 
-- [Architecture Documentation](docs/architecture/architecture.md) - Detailed architecture overview and design principles
-- [Project Structure](docs/architecture/project_structure.md) - Complete project organization and file structure
+### Key Features
 
-### Configuration & Setup
-
-- [Security Guidelines](docs/configuration/security.md) - Security best practices and API key management
-- [Cortana Configuration](docs/configuration/CORTANA_CONFIGURATION.md) - Cortana voice assistant setup and configuration
-- [Cortana Integration](docs/configuration/CORTANA_INTEGRATION.md) - Cortana integration details
-
-### Development & Implementation
-
-- [Implementation Guide](docs/development/IMPLEMENTATION_GUIDE.md) - Detailed implementation documentation
-- [GUI Layout Analysis](docs/development/GUI_LAYOUT_ANALYSIS_AND_IMPROVEMENTS.md) - UI design analysis and improvements
-- [GitHub Team Integration](docs/development/GITHUB_TEAM_DATA_INTEGRATION.md) - Team collaboration features
-- [SQL Database Documentation](docs/development/SQL_DATABASE.md) - Database design and implementation
-
-### Deployment
-
-- [Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md) - Production deployment instructions
-
-### Weekly Reflections
-
-- [Week 11 Reflection](docs/reflections/Week11_Reflection.md) - Clean architecture and core service implementation
-- [Week 12 Reflection](docs/reflections/Week12_Reflection.md) - Advanced features and data visualization
-- [Week 13 Reflection](docs/reflections/Week13_Reflection.md) - Machine learning integration and analytics
-- [Week 14 Reflection](docs/reflections/Week14_Reflection.md) - Development milestones and reflection
-- [Week 15 Reflection](docs/reflections/Week15_Reflection.md) - Final project reflection
-
-### Complete Documentation Index
-
-- [Documentation Index](docs/README.md) - Complete documentation overview with works cited
+- **Real-time Weather Data** - Current conditions and 5-day forecasts
+- **Interactive Charts** - Temperature trends, metrics comparison, and forecast visualization
+- **Responsive Design** - Adapts to different window sizes and screen resolutions
+- **Modern UI** - Glassmorphic theme with smooth animations and transitions
+- **Configuration Management** - Robust settings and API key handling
 
 ## 🔒 Security
 
@@ -305,7 +281,7 @@ python -m pytest tests/test_weather_service.py
 - **Secure error handling** without information disclosure
 - **Comprehensive logging** for security monitoring
 
-> 🔐 **Security Details**: See [Security Guide](docs/configuration/security.md) for complete security practices
+> 🔐 **Security**: API keys stored in environment variables, input validation, and secure error handling
 
 ## 🤝 Contributing
 
@@ -318,11 +294,11 @@ python -m pytest tests/test_weather_service.py
 
 **Standards**: PEP 8, 80%+ test coverage, type hints, conventional commits
 
-> 👥 **Contributing Guide**: See [Contributing](docs/development/contributing.md) for detailed guidelines and workflow
+> 👥 **Contributing**: Fork the repository, create feature branches, and submit pull requests with comprehensive testing
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - This project is open source and available under the MIT License.
 
 ## 🙏 Acknowledgments
 
@@ -353,7 +329,7 @@ pip install -r tests/requirements-test.txt
 python scripts/pre_commit_check.py
 ```
 
-> 🔧 **Development Setup**: See [Development Guide](docs/development/setup.md) for complete development environment configuration
+> 🔧 **Development**: Python 3.8+, pip install requirements, configure API key, and run main.py
 
 ---
 
@@ -361,4 +337,4 @@ python scripts/pre_commit_check.py
 
 ---
 
-> 📚 **Complete Documentation**: Visit [docs/](docs/) for comprehensive guides, API references, and development resources.
+> 📚 **Getting Started**: Clone repository, install dependencies, configure API key, and launch with `python main.py`
