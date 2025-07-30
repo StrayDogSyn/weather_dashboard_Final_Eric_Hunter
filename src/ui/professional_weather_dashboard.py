@@ -234,26 +234,20 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _configure_window(self) -> None:
         """Configure main window with professional styling and fullscreen default."""
         self.title("JTC Capstone Application")
-        
-        # Set fullscreen default launch
-        self.geometry("1920x1080")  # Default large size
-        self.state('zoomed')  # Windows fullscreen
-        
-        # Set minimum window size for usability
+        self.geometry("1920x1080")
+        self.state('zoomed')
         self.minsize(1200, 800)
         
-        # Set dark theme
+        # Set theme and appearance
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
-        
-        # Configure background
         self.configure(fg_color=self.BACKGROUND)
         
-        # Configure responsive grid weights
+        # Configure grid weights for responsive design
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)  # Main content area
         
-        # Bind resize event for responsive updates
+        # Bind resize event
         self.bind('<Configure>', self.on_window_resize)
     
     def _create_widgets(self) -> None:
@@ -610,31 +604,18 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         
         # Weather card layout
         self.weather_card.pack(fill="both", expand=True, padx=10, pady=10)
-        self.weather_card.grid_rowconfigure(3, weight=1)
         
         # Weather card content
-        self.city_label.grid(row=0, column=0, pady=(40, 10))
-        self.temp_label.grid(row=1, column=0, pady=10)
-        self.condition_label.grid(row=2, column=0, pady=(0, 30))
+        self.city_label.pack(pady=(40, 10))
+        self.temp_label.pack(pady=10)
+        self.condition_label.pack(pady=(0, 30))
         
-        self.info_frame.grid(row=3, column=0, sticky="ew", padx=40, pady=(0, 40))
+        self.info_frame.pack(fill="x", padx=40, pady=(0, 40))
         self.feels_like_label.pack(pady=5)
         self.humidity_label.pack(pady=5)
         
         # Analytics card layout
         self.analytics_card.pack(fill="both", expand=True, padx=10, pady=10)
-        self.analytics_card.grid_rowconfigure(2, weight=1)
-        
-        # Analytics content
-        self.analytics_title.grid(row=0, column=0, pady=(30, 20))
-        
-        self.timeframe_frame.grid(row=1, column=0, pady=(0, 20))
-        self.btn_24h.pack(side="left", padx=5)
-        self.btn_7d.pack(side="left", padx=5)
-        self.btn_30d.pack(side="left", padx=5)
-        
-        self.chart_frame.grid(row=2, column=0, sticky="nsew", padx=30, pady=(0, 30))
-        self.canvas.get_tk_widget().pack(fill="both", expand=True)
         
         # Status bar
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)

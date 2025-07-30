@@ -14,7 +14,7 @@ import asyncio
 import aiohttp
 
 from .config_service import ConfigService
-from .weather_service import WeatherData, ForecastData
+from models.weather_models import WeatherData, ForecastData
 
 
 @dataclass

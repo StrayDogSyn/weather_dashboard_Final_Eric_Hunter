@@ -143,9 +143,12 @@ class TemperatureChart(ctk.CTkFrame,
     # Size management moved to ChartConfigMixin
     def update_size(self, width, height):
         """Update chart size for responsive design."""
-        self.update_chart_size(width, height)
+        # Calculate scale factor based on size
+        scale = min(width / 800, height / 400)  # Base size 800x400
+        self._update_chart_scale(scale, 1.0)
     
     # Export functionality moved to ChartExportMixin
     def export_chart(self, format_type: str = "png") -> None:
         """Export chart to PNG or PDF format."""
-        self.export_chart_file(format_type)
+        # Call the parent ChartExportMixin method
+        super().export_chart(format_type)
