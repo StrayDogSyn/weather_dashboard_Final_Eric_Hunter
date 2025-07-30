@@ -16,7 +16,7 @@ from services.window_manager import WindowStateManager
 # Enhanced features availability check
 try:
     from ui.components.enhanced_search_bar import EnhancedSearchBarFrame
-    from enhanced_weather_service import EnhancedWeatherService
+    from services.enhanced_weather_service import EnhancedWeatherService
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError:
     ENHANCED_FEATURES_AVAILABLE = False

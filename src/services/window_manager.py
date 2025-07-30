@@ -104,3 +104,18 @@ class WindowStateManager:
         """Handle normal configure events after unlock."""
         # Allow normal window behavior
         pass
+    
+    def setup_window(self, window):
+        """Setup window with initial configuration - compatibility method."""
+        try:
+            self.apply_window_state(window)
+            logger.info("Window setup completed")
+        except Exception as e:
+            logger.error(f"Window setup failed: {e}")            
+    
+    def save_window_state(self, window):
+        """Save window state - compatibility method that delegates to save_window_config."""
+        try:
+            self.save_window_config(window)
+        except Exception as e:
+            logger.error(f"Failed to save window state: {e}")

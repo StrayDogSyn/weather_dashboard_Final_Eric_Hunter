@@ -158,3 +158,35 @@ class ConfigService:
             True if debug mode is enabled, False otherwise
         """
         return self._config.logging.log_level.upper() == "DEBUG"
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get a configuration value with fallback to default.
+        
+        Args:
+            key: Configuration key to retrieve
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value or default
+        """
+        # Handle special cases for enhanced features
+        if key == 'use_enhanced_features':
+            return True  # Enable enhanced features by default
+        
+        # Try to get from nested configuration objects
+        try:
+            # Check if it's a nested key (e.g., 'api.timeout')
+            if '.' in key:
+                parts = key.split('.')
+                obj = self._config
+                for part in parts:
+                    obj = getattr(obj, part)
+                return obj
+            else:
+                # Check top-level config attributes
+                if hasattr(self._config, key):
+                    return getattr(self._config, key)
+        except (AttributeError, TypeError):
+            pass
+        
+        return default

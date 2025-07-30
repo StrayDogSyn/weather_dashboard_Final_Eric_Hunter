@@ -35,7 +35,8 @@ class WindowMixin(BaseDashboard):
         # Configure window manager if available
         if hasattr(self, 'config') and self.config:
             try:
-                self.window_manager = WindowStateManager(self.config)
+                # Use default window config path instead of ConfigService object
+                self.window_manager = WindowStateManager("data/window_config.json")
                 if self.window_manager:
                     self.window_manager.setup_window(self)
             except Exception as e:

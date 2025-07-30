@@ -7,7 +7,7 @@ from pathlib import Path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from ui.dashboard import WeatherDashboard
+from ui.professional_weather_dashboard import ProfessionalWeatherDashboard
 from services.config_service import ConfigService
 from dotenv import load_dotenv
 
@@ -33,8 +33,8 @@ def main():
         # Initialize configuration service
         config_service = ConfigService()
         
-        # Create application with new modular architecture
-        app = WeatherDashboard()
+        # Create application with professional dashboard
+        app = ProfessionalWeatherDashboard()
         
         logger.info("Weather Dashboard initialized successfully")
         

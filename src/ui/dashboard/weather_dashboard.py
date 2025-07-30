@@ -24,7 +24,7 @@ from services.logging_service import LoggingService
 
 # Enhanced features check
 try:
-    from enhanced_weather_service import EnhancedWeatherService
+    from services.enhanced_weather_service import EnhancedWeatherService
     ENHANCED_WEATHER_AVAILABLE = True
 except ImportError:
     ENHANCED_WEATHER_AVAILABLE = False
@@ -51,9 +51,9 @@ class WeatherDashboard(WindowMixin, LayoutMixin, EventMixin,
         # Initialize all parent classes
         ctk.CTk.__init__(self)
         WindowMixin.__init__(self)
-        LayoutMixin.__init__(self)
-        EventMixin.__init__(self)
         SearchMixin.__init__(self)
+        EventMixin.__init__(self)
+        LayoutMixin.__init__(self)
         WeatherMixin.__init__(self)
         StatusMixin.__init__(self)
         
@@ -70,7 +70,7 @@ class WeatherDashboard(WindowMixin, LayoutMixin, EventMixin,
             self.config = ConfigService()
             
             # Initialize logging service
-            logging_service = LoggingService(self.config)
+            logging_service = LoggingService()
             self.logger = logging_service.get_logger("WeatherDashboard")
             
             # Check for enhanced features
