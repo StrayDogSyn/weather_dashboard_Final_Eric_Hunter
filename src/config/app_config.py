@@ -75,6 +75,7 @@ class WeatherConfig:
     pressure_unit: str = "hPa"
     wind_speed_unit: str = "m/s"
     visibility_unit: str = "km"
+    cache_duration: int = 300  # Cache duration in seconds (5 minutes)
     
     # Thresholds
     high_temperature_threshold: float = 30.0  # Celsius
@@ -84,6 +85,24 @@ class WeatherConfig:
     
     # Air Quality Index thresholds
     aqi_thresholds: Dict[str, tuple] = None
+    
+    @property
+    def units(self) -> str:
+        """Get the units for weather data.
+        
+        Returns:
+            Units string (metric, imperial, kelvin)
+        """
+        return self.default_units
+    
+    @property
+    def timeout(self) -> int:
+        """Get the request timeout for weather API calls.
+        
+        Returns:
+            Timeout in seconds
+        """
+        return 30  # Default timeout for weather API requests
     
     def __post_init__(self):
         if self.aqi_thresholds is None:
@@ -126,6 +145,7 @@ class AppConfig:
         
         # Application-level settings
         self.default_city = "New York"
+        self.cache_duration = 300  # Cache duration in seconds (5 minutes)
         
         # Load from environment variables
         self._load_from_environment()

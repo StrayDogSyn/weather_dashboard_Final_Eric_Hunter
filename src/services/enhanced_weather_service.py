@@ -14,7 +14,7 @@ import asyncio
 import aiohttp
 
 from .config_service import ConfigService
-from .weather_service import WeatherData, ForecastData
+from models.weather_models import WeatherData, ForecastData
 
 
 @dataclass
@@ -247,7 +247,7 @@ class EnhancedWeatherService:
         try:
             self._cache_file.parent.mkdir(exist_ok=True)
             with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump(self._cache, f, indent=2)
+                json.dump(self._cache, f, indent=2, default=str)
             self.logger.debug("💾 Enhanced cache saved successfully")
         except Exception as e:
             self.logger.warning(f"Failed to save enhanced cache: {e}")
@@ -541,6 +541,10 @@ class EnhancedWeatherService:
         
         self.logger.info(f"✅ Enhanced weather data retrieved for {location}")
         return weather_data
+    
+    def get_weather(self, location: str) -> EnhancedWeatherData:
+        """Get weather data - compatibility method that delegates to get_enhanced_weather."""
+        return self.get_enhanced_weather(location)
     
     def clear_cache(self) -> None:
         """Clear enhanced weather cache."""
