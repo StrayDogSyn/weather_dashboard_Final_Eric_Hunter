@@ -4,7 +4,6 @@ Minimalist weather dashboard with professional 2-column layout,
 focused on essential information and clean aesthetics.
 """
 
-import customtkinter as ctk
 from typing import Optional, List
 import threading
 from datetime import datetime
@@ -13,8 +12,67 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
-from ui.components.temperature_chart import TemperatureChart
+import tkinter as tk
+import os
+import sys
 
+# Comprehensive error suppression before CustomTkinter import
+original_stderr_write = sys.stderr.write
+
+def patched_stderr_write(text):
+    """Filter out CustomTkinter DPI scaling errors from stderr."""
+    if "invalid command name" in text.lower():
+        return  # Suppress the error
+    return original_stderr_write(text)
+
+sys.stderr.write = patched_stderr_write
+
+# Import CustomTkinter and immediately disable DPI scaling methods
+import customtkinter as ctk
+
+# Disable CustomTkinter DPI scaling at the source
+try:
+    # Disable appearance mode tracking
+    if hasattr(ctk, 'AppearanceModeTracker'):
+        original_init = ctk.AppearanceModeTracker.__init__
+        def disabled_init(self, *args, **kwargs):
+            pass  # Do nothing
+        ctk.AppearanceModeTracker.__init__ = disabled_init
+        
+    # Disable scaling tracking
+    if hasattr(ctk, 'ScalingTracker'):
+        original_scaling_init = ctk.ScalingTracker.__init__
+        def disabled_scaling_init(self, *args, **kwargs):
+            pass  # Do nothing
+        ctk.ScalingTracker.__init__ = disabled_scaling_init
+        
+    # Patch any update or check_dpi_scaling methods
+    for module_name in dir(ctk):
+        module = getattr(ctk, module_name)
+        if hasattr(module, 'update') and callable(getattr(module, 'update')):
+            setattr(module, 'update', lambda *args, **kwargs: None)
+        if hasattr(module, 'check_dpi_scaling') and callable(getattr(module, 'check_dpi_scaling')):
+            setattr(module, 'check_dpi_scaling', lambda *args, **kwargs: None)
+except Exception:
+    pass  # Ignore any errors during patching
+
+# Monkey patch to suppress any remaining CustomTkinter errors
+original_report_callback_exception = tk.Tk.report_callback_exception
+
+def patched_report_callback_exception(self, exc, val, tb):
+    """Patched version that suppresses CustomTkinter DPI scaling errors."""
+    if isinstance(val, tk.TclError):
+        error_msg = str(val).lower()
+        if "invalid command name" in error_msg:
+            # Suppress all invalid command name errors from CustomTkinter
+            return
+    # Call original for other errors
+    original_report_callback_exception(self, exc, val, tb)
+
+# Apply the patch
+tk.Tk.report_callback_exception = patched_report_callback_exception
+
+from ui.components.temperature_chart import TemperatureChart
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.config_service import ConfigService
 from models.weather_models import WeatherData, ForecastData
@@ -173,16 +231,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     
     def after(self, ms, func=None, *args):
         """Override after method to handle CustomTkinter DPI scaling errors."""
+        if func is None:
+            return super().after(ms)
+        
+        # Use the original after method but catch any scheduling errors
         try:
             return super().after(ms, func, *args)
         except Exception as e:
             error_msg = str(e).lower()
-            if "invalid command name" in error_msg and ("update" in error_msg or "check_dpi_scaling" in error_msg):
-                # Suppress CustomTkinter DPI scaling errors
-                self.logger.debug(f"Suppressed CustomTkinter internal error: {e}")
+            if "invalid command name" in error_msg:
+                # Suppress all invalid command name errors from CustomTkinter
+                self.logger.debug(f"Suppressed after scheduling error: {e}")
                 return None
             else:
-                # Re-raise other errors
                 raise e
     
     def on_window_resize(self, event):
@@ -210,31 +271,31 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 return
                 
             # Adjust font sizes based on window size
-            base_font_size = max(12, min(16, width // 120))
+            base_font_size = max(12, min(18, width // 100))
             
-            # Update chart dimensions
+            # Update chart dimensions with better scaling
             if hasattr(self, 'temperature_chart') and hasattr(self.temperature_chart, 'update_size'):
-                chart_width = max(600, width * 0.6)
-                chart_height = max(400, height * 0.4)
+                chart_width = max(700, width * 0.45)
+                chart_height = max(500, height * 0.45)
                 self.temperature_chart.update_size(chart_width, chart_height)
             
-            # Update weather card scaling
+            # Update weather card scaling with better proportions
             if hasattr(self, 'weather_card') and self.weather_card.winfo_exists():
-                card_width = max(300, width * 0.25)
+                card_width = max(350, width * 0.4)
                 self.weather_card.configure(width=card_width)
             
             # Update header elements scaling
             if hasattr(self, 'search_entry') and self.search_entry.winfo_exists():
-                search_width = max(250, min(400, width * 0.25))
+                search_width = max(300, min(500, width * 0.28))
                 self.search_entry.configure(width=search_width)
             
             # Update main frame padding based on screen size
             if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
-                padding = max(10, min(30, width // 80))
+                padding = max(15, min(40, width // 60))
                 self.main_frame.grid_configure(padx=padding, pady=padding)
             
             # Update font sizes for responsive text
-            title_font_size = max(20, min(28, width // 80))
+            title_font_size = max(22, min(32, width // 60))
             if hasattr(self, 'title_label') and self.title_label.winfo_exists():
                 self.title_label.configure(font=(DataTerminalTheme.FONT_FAMILY, title_font_size, "bold"))
                 
@@ -248,9 +309,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Configure main window with professional styling and fullscreen default."""
         try:
             self.title("JTC Capstone Application")
-            self.geometry("1920x1080")
-            self.state('zoomed')
-            self.minsize(1200, 800)
+            self.geometry("1600x1000")
+            self.minsize(1400, 900)
             
             # Set theme and appearance with error handling
             try:
@@ -274,6 +334,35 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Window configuration error: {e}")
     
+    def center_window(self) -> None:
+        """Center the window on the screen."""
+        try:
+            # Use default window size for centering calculation
+            window_width = 1600
+            window_height = 1000
+            
+            # Get screen dimensions
+            screen_width = self.winfo_screenwidth()
+            screen_height = self.winfo_screenheight()
+            
+            # Calculate true center position
+            center_x = int((screen_width - window_width) // 2)
+            center_y = int((screen_height - window_height) // 2)
+            
+            # Ensure window doesn't go off-screen (minimum 10px margin)
+            center_x = max(10, min(center_x, screen_width - window_width - 10))
+            center_y = max(40, min(center_y, screen_height - window_height - 40))  # 40px top margin for taskbar
+                
+            # Set window geometry with center position
+            self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
+            
+            self.logger.info(f"Window centered at {center_x},{center_y} with size {window_width}x{window_height} on screen {screen_width}x{screen_height}")
+            
+        except Exception as e:
+            self.logger.warning(f"Window centering warning: {e}")
+            # Fallback to default geometry
+            self.geometry("1800x1200")
+    
     def _create_widgets(self) -> None:
         """Create all UI widgets with clean design."""
         # Header
@@ -286,49 +375,39 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_status_bar()
     
     def _create_header(self) -> None:
-        """Create enhanced header with title and search."""
+        """Create clean header with title and search."""
         self.header_frame = ctk.CTkFrame(
             self,
             fg_color=self.CARD_COLOR,
             corner_radius=0,
-            height=120,  # Increased height for larger banner
-            border_width=2,
-            border_color=self.ACCENT_COLOR
+            height=100,
+            border_width=0
         )
         
-        # Header accent strip for enhanced visual appeal
+        # Header accent strip
         self.header_accent = ctk.CTkFrame(
             self.header_frame,
             fg_color=self.ACCENT_COLOR,
-            height=3,
+            height=2,
             corner_radius=0
         )
         
-        # Create title container as instance variable first
+        # Title container
         self.title_container = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         
-        # Title glow frame for enhanced visual effects
-        self.title_glow_frame = ctk.CTkFrame(
-            self.title_container,
-            fg_color="transparent",
-            border_width=1,
-            border_color=self.ACCENT_COLOR,
-            corner_radius=8
-        )
-        
-        # Enhanced App title with larger font and visual effects
+        # Clean app title
         self.title_label = ctk.CTkLabel(
-            self.title_glow_frame,
+            self.title_container,
             text="⚡ PROJECT CODEFRONT",
-            font=(DataTerminalTheme.FONT_FAMILY, 36, "bold"),  # Increased from 24 to 36
-            text_color=self.ACCENT_COLOR  # Using neon green for pop
+            font=(DataTerminalTheme.FONT_FAMILY, 28, "bold"),
+            text_color=self.ACCENT_COLOR
         )
         
-        # Add subtitle for enhanced branding
+        # Subtitle
         self.subtitle_label = ctk.CTkLabel(
             self.title_container,
             text="Advanced Weather Intelligence System",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "normal"),
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "normal"),
             text_color=self.TEXT_SECONDARY
         )
         
@@ -422,8 +501,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create the weather tab content with current weather and forecast."""
         # Configure weather tab grid
         self.weather_tab.grid_columnconfigure(0, weight=1)
-        self.weather_tab.grid_columnconfigure(1, weight=1)
         self.weather_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create regular frame for weather content (no scrollbar)
+        self.weather_content = ctk.CTkFrame(
+            self.weather_tab,
+            fg_color="transparent"
+        )
+        self.weather_content.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        
+        # Configure content frame grid
+        self.weather_content.grid_columnconfigure(0, weight=1)
+        self.weather_content.grid_columnconfigure(1, weight=1)
+        self.weather_content.grid_rowconfigure(0, weight=1)
         
         # Create left column - Current weather
         self._create_current_weather_in_tab()
@@ -435,7 +525,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create current weather section within the weather tab."""
         # Create a container for the section
         self.weather_section = ctk.CTkFrame(
-            self.weather_tab,
+            self.weather_content,
             fg_color="transparent"
         )
         
@@ -515,66 +605,89 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_weather_metrics_grid()
     
     def _create_weather_metrics_grid(self) -> None:
-        """Create comprehensive weather metrics grid."""
-        # Create metrics grid frame
-        self.metrics_grid = ctk.CTkFrame(
-            self.weather_section,
-            fg_color="transparent"
-        )
+        """Create comprehensive weather metrics grid with dynamic updates."""
+        self.metrics_grid = ctk.CTkFrame(self.weather_section, fg_color="transparent")
         self.metrics_grid.pack(fill="x", padx=10, pady=(10, 0))
         
-        # Configure grid layout (3 columns, 3 rows)
+        # Store metric widgets for updates
+        self.metric_widgets = {}
+        
+        # Configure grid
         for i in range(3):
             self.metrics_grid.grid_columnconfigure(i, weight=1, uniform="col")
         
-        # Create metric boxes
-        metrics = [
-            ("HUMIDITY", "65%", 0, 0),
-            ("PRESSURE", "1013 hPa", 0, 1),
-            ("VISIBILITY", "10 km", 0, 2),
-            ("WIND SPEED", "15 km/h", 1, 0),
-            ("WIND DIR", "NW", 1, 1),
-            ("CLOUDINESS", "40%", 1, 2),
-            ("MIN TEMP", "15°C", 2, 0),
-            ("MAX TEMP", "22°C", 2, 1),
-            ("UV INDEX", "3", 2, 2)
+        # Define metrics with keys for updates
+        metrics_config = [
+            ("humidity", "HUMIDITY", "-%", 0, 0, "💧"),
+            ("pressure", "PRESSURE", "- hPa", 0, 1, "🌡️"),
+            ("visibility", "VISIBILITY", "- km", 0, 2, "👁️"),
+            ("wind_speed", "WIND SPEED", "- km/h", 1, 0, "💨"),
+            ("wind_dir", "WIND DIR", "-", 1, 1, "🧭"),
+            ("cloudiness", "CLOUDINESS", "-%", 1, 2, "☁️"),
+            ("temp_min", "MIN TEMP", "-°C", 2, 0, "❄️"),
+            ("temp_max", "MAX TEMP", "-°C", 2, 1, "🔥"),
+            ("uv_index", "UV INDEX", "-", 2, 2, "☀️")
         ]
         
-        for label, value, row, col in metrics:
+        for key, label, default_value, row, col, icon in metrics_config:
             metric_frame = ctk.CTkFrame(
                 self.metrics_grid,
                 fg_color=self.CARD_COLOR,
                 corner_radius=8,
                 border_width=1,
                 border_color=self.BORDER_COLOR,
-                height=60
+                height=70  # Slightly taller for icon
             )
             metric_frame.grid(row=row, column=col, padx=2, pady=2, sticky="ew")
             metric_frame.grid_propagate(False)
             
-            # Metric label
-            metric_label = ctk.CTkLabel(
-                metric_frame,
-                text=label,
+            # Container for vertical layout
+            content_frame = ctk.CTkFrame(metric_frame, fg_color="transparent")
+            content_frame.pack(expand=True)
+            
+            # Label with icon
+            label_text = f"{icon} {label}"
+            ctk.CTkLabel(
+                content_frame,
+                text=label_text,
                 font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
                 text_color=self.TEXT_SECONDARY
-            )
-            metric_label.pack(pady=(8, 0))
+            ).pack()
             
-            # Metric value
-            metric_value = ctk.CTkLabel(
-                metric_frame,
-                text=value,
+            # Value (store for updates)
+            value_label = ctk.CTkLabel(
+                content_frame,
+                text=default_value,
                 font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
                 text_color=self.ACCENT_COLOR
             )
-            metric_value.pack()
+            value_label.pack()
+            
+            self.metric_widgets[key] = value_label
+
+    def _update_metrics_grid(self, weather_data) -> None:
+        """Update metrics grid with real weather data."""
+        updates = {
+            "humidity": f"{weather_data.humidity}%",
+            "pressure": f"{weather_data.pressure} hPa",
+            "visibility": f"{weather_data.visibility} km" if weather_data.visibility else "N/A",
+            "wind_speed": f"{weather_data.wind_speed_kmh:.0f} km/h" if weather_data.wind_speed else "0 km/h",
+            "wind_dir": weather_data.wind_direction_text,
+            "cloudiness": f"{weather_data.cloudiness}%" if weather_data.cloudiness else "N/A",
+            "temp_min": f"{weather_data.raw_data.get('main', {}).get('temp_min', 'N/A')}°C",
+            "temp_max": f"{weather_data.raw_data.get('main', {}).get('temp_max', 'N/A')}°C",
+            "uv_index": str(weather_data.uv_index) if weather_data.uv_index else "N/A"
+        }
+        
+        for key, value in updates.items():
+            if key in self.metric_widgets:
+                self.metric_widgets[key].configure(text=value)
     
     def _create_analytics_in_tab(self) -> None:
         """Create temperature forecast panel within the weather tab."""
         # Create a container for the analytics section
         self.analytics_section = ctk.CTkFrame(
-            self.weather_tab,
+            self.weather_content,
             fg_color="transparent"
         )
         
@@ -628,15 +741,23 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
         journal_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
         
-        # Journal content frame
-        journal_frame = ctk.CTkFrame(
+        # Create scrollable frame for journal content
+        self.journal_scrollable = ctk.CTkScrollableFrame(
             self.journal_tab,
             fg_color=self.CARD_COLOR,
             corner_radius=16,
             border_width=1,
-            border_color=self.BORDER_COLOR
+            border_color=self.BORDER_COLOR,
+            scrollbar_button_color=self.ACCENT_COLOR,
+            scrollbar_button_hover_color=self.TEXT_PRIMARY
         )
-        journal_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.journal_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Journal content frame inside scrollable
+        journal_frame = ctk.CTkFrame(
+            self.journal_scrollable,
+            fg_color="transparent"
+        )
         
         # Placeholder content
         placeholder_label = ctk.CTkLabel(
@@ -663,15 +784,23 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
         activities_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
         
-        # Activities content frame
-        activities_frame = ctk.CTkFrame(
+        # Create scrollable frame for activities content
+        self.activities_scrollable = ctk.CTkScrollableFrame(
             self.activities_tab,
             fg_color=self.CARD_COLOR,
             corner_radius=16,
             border_width=1,
-            border_color=self.BORDER_COLOR
+            border_color=self.BORDER_COLOR,
+            scrollbar_button_color=self.ACCENT_COLOR,
+            scrollbar_button_hover_color=self.TEXT_PRIMARY
         )
-        activities_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.activities_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Activities content frame inside scrollable
+        activities_frame = ctk.CTkFrame(
+            self.activities_scrollable,
+            fg_color="transparent"
+        )
         
         # Placeholder content
         placeholder_label = ctk.CTkLabel(
@@ -698,15 +827,23 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
         settings_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
         
-        # Settings content frame
-        settings_frame = ctk.CTkFrame(
+        # Create scrollable frame for settings content
+        self.settings_scrollable = ctk.CTkScrollableFrame(
             self.settings_tab,
             fg_color=self.CARD_COLOR,
             corner_radius=16,
             border_width=1,
-            border_color=self.BORDER_COLOR
+            border_color=self.BORDER_COLOR,
+            scrollbar_button_color=self.ACCENT_COLOR,
+            scrollbar_button_hover_color=self.TEXT_PRIMARY
         )
-        settings_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.settings_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # Settings content frame inside scrollable
+        settings_frame = ctk.CTkFrame(
+            self.settings_scrollable,
+            fg_color="transparent"
+        )
         
         # Placeholder content
         placeholder_label = ctk.CTkLabel(
@@ -739,7 +876,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
     
     def _setup_layout(self) -> None:
-        """Setup the layout with proper spacing for tabbed interface."""
+        """Setup clean, organized layout with proper spacing."""
         # Header
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         self.header_frame.grid_propagate(False)
@@ -747,49 +884,46 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Header accent strip
         self.header_accent.pack(fill="x", side="top")
         
-        # Header content - Enhanced title section
-        self.title_container.pack(side="left", padx=40, pady=20)
+        # Header content - Clean title section
+        self.title_container.pack(side="left", padx=30, pady=15)
         
-        # Title glow frame
-        self.title_glow_frame.pack(anchor="w", padx=10, pady=5)
+        # Title positioning - simplified
+        self.title_label.pack(anchor="w", pady=(5, 2))
+        self.subtitle_label.pack(anchor="w", pady=(0, 5))
         
-        # Title and subtitle positioning
-        self.title_label.pack(anchor="w", pady=(0, 5))
-        self.subtitle_label.pack(anchor="center", pady=(0, 0))
+        # Search area on the right - cleaner spacing
+        self.search_container.pack(side="right", padx=30, pady=15)
         
-        # Search area on the right
-        self.search_container.pack(side="right", padx=40, pady=20)
-        
-        # Search controls
+        # Search controls - simplified
         self.search_controls.pack()
-        
-        self.search_entry.pack(side="left", padx=(0, 10))
+        self.search_entry.pack(side="left", padx=(0, 8))
         self.search_button.pack(side="left")
         
-        # Current location below search
-        self.current_location_label.pack(pady=(5, 0))
+        # Current location - cleaner positioning
+        self.current_location_label.pack(pady=(8, 0))
         
-        # Main content (now contains tabview)
-        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        # Main content with better spacing
+        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=15)
         
-        # Weather card layout (within weather tab)
-        self.weather_card.pack(fill="both", expand=True, padx=10, pady=10)
+        # Weather card - cleaner layout
+        self.weather_card.pack(fill="both", expand=True, padx=15, pady=15)
         
-        # Weather card content
-        self.city_label.pack(pady=(40, 10))
-        self.temp_label.pack(pady=10)
-        self.condition_label.pack(pady=(0, 30))
+        # Weather card content - organized spacing
+        self.city_label.pack(pady=(30, 8))
+        self.temp_label.pack(pady=8)
+        self.condition_label.pack(pady=(0, 20))
         
-        self.info_frame.pack(fill="x", padx=40, pady=(0, 40))
-        self.feels_like_label.pack(pady=5)
-        self.humidity_label.pack(pady=5)
+        # Info section - cleaner organization
+        self.info_frame.pack(fill="x", padx=30, pady=(0, 30))
+        self.feels_like_label.pack(pady=3)
+        self.humidity_label.pack(pady=3)
         
-        # Analytics card layout (within weather tab)
-        self.analytics_card.pack(fill="both", expand=True, padx=10, pady=10)
+        # Analytics card - better spacing
+        self.analytics_card.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         
-        # Status bar
+        # Status bar - clean positioning
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
-        self.status_label.pack(side="left", padx=20, pady=10)
+        self.status_label.pack(side="left", padx=15, pady=8)
     
     def _load_initial_data(self) -> None:
         """Load initial weather data."""
@@ -871,6 +1005,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             if hasattr(weather_data, 'humidity'):
                 self.humidity_label.configure(text=f"💧 Humidity: {weather_data.humidity}%")
             
+            # Update metrics grid with comprehensive weather data
+            if hasattr(self, 'metric_widgets') and self.metric_widgets:
+                self._update_metrics_grid(weather_data)
+            
             # Update status
             self.status_label.configure(text="Weather data updated successfully")
             
@@ -944,5 +1082,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.logger.info("Professional Weather Dashboard stopped")
 
 
-# Removed duplicate main() function and __main__ block
-# Main application entry point is now exclusively in main.py
+if __name__ == "__main__":
+    # Load environment variables
+    from dotenv import load_dotenv
+    import os
+    
+    # Load .env file from project root
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    env_path = os.path.join(project_root, '.env')
+    load_dotenv(env_path)
+    
+    app = ProfessionalWeatherDashboard()
+    app.center_window()
+    app.run()
