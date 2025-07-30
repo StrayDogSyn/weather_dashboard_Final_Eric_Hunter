@@ -1,0 +1,174 @@
+# Environment variables (NEVER COMMIT THESE!)
+.env
+.env.*
+*.env
+.env.local
+.env.production
+.env.development
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+Thumbs.db
+
+# Application specific
+weather_dashboard.log
+*.log
+logs/
+cache/
+exports/
+backups/
+temp/
+*.tmp
+*.bak
+*_backup.py
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Data files that should not be committed
+data/weather_dashboard.db
+data/json_backup/
+
+# Cortana configuration files
+configs/cortana/
+
+# Configuration files with sensitive data
+settings.json
+config.ini
+secrets.json
+
+# API response cache
+*.cache
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Documentation builds
+docs/_build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env.backup
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Exclude parent and sibling directories to prevent 10k changes issue
+../*/
+../../*/
+../../../*/
+../../../../*/
+
+# Specific exclusions for known sibling projects
+../Complete-Python-3-Bootcamp/
+../JTC-Recipes/
+../JTC_Tech_Pathway_Capstone/
+../Learner-Files-1/
+../Marvel-Quiz/
+../MyFull_MontyPython/
+../MyManaBox/
+../New_Team_Dashboard/
+../RPi5-AI/
+../Second_Story_Splash/
+../StrayDogSyn/
+../TEAM_Capstone-_Group/
+../TPS25-SQLITE/
+../TopherClassCode/
+../Weather_Dominator/
+../autarch/
+../cartpole/
+../mern-jobify-v2/
+../penguin_attack/
+../photoshot/
+../py-dreambooth/
+../python/
+../sorting-midi/
+../tech_support/
+../tps25-*/
+../vite/
+../w13d*/
+../weather-starter-code/
+../weather_dashboard_E_Hunter_Petross/
+../../scikit_learn_data/
+../../tabletop_inventory/
+../../tailwind.config.js

@@ -1,0 +1,50 @@
+# Weather Dashboard - Essential Dependencies
+# ==========================================
+
+# Core Dependencies
+requests>=2.31.0              # HTTP client for weather API
+python-dotenv>=1.0.0          # Environment variables for API keys
+pydantic>=2.0.0               # Data validation for weather models
+pyyaml>=6.0.0                 # YAML parsing for configuration files
+
+# Database & Storage
+sqlalchemy>=2.0.0             # ORM for database operations
+aiosqlite>=0.19.0             # Async SQLite database operations
+redis>=5.0.0                  # Redis caching and session storage
+aiohttp>=3.9.0                # Async HTTP client for API requests
+
+# Data Science & Visualization
+matplotlib>=3.7.0             # Charts and graphs
+numpy>=1.24.0                 # Numerical operations
+pandas>=2.0.0                 # Data manipulation and analysis
+seaborn>=0.12.0               # Statistical data visualization
+
+# Machine Learning (Optional)
+scikit-learn>=1.3.0           # ML algorithms and utilities
+joblib>=1.3.0                 # Model persistence
+
+# Enhanced UI (Optional)
+customtkinter>=5.2.0          # Modern UI framework for dashboard interface
+ttkbootstrap>=1.10.1          # Bootstrap-inspired styling for Tkinter
+pillow>=10.0.0                # Image processing and manipulation
+geopy>=2.4.0                  # Geocoding and location services
+geocoder>=1.38.1              # Alternative geocoding library
+
+# AI & Natural Language Processing
+openai>=1.0.0                 # OpenAI API for AI-powered poetry generation
+google-generativeai>=0.8.0    # Google Gemini Pro API for AI content generation
+
+# Enhanced Weather Features
+ratelimit>=2.2.1              # Rate limiting for API calls
+cachetools>=5.3.0             # Advanced caching utilities
+typing-extensions>=4.8.0      # Extended type hints for Python
+dataclasses-json>=0.6.0       # JSON serialization for dataclasses
+psutil>=5.9.0                 # System and process utilities
+
+# Development & Code Quality
+flake8>=6.0.0                  # Code linting for Python standards
+black>=23.0.0                  # Code formatting
+isort>=5.12.0                  # Import sorting
+
+# Note: TKinter is included with Python by default
+# SQLite is built into Python standard library
