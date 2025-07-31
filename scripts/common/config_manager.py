@@ -149,13 +149,13 @@ class ConfigManager:
                 'aggressive_mode': False,
                 'patterns': {
                     'legacy': [
-                        '.*_legacy\.py$',
-                        '.*_backup\.py$',
-                        '.*_old\.py$',
-                        '.*\.py\.bak$',
-                        '.*~$',
-                        '.*\.orig$',
-                        '.*\.tmp$'
+                        r'.*_legacy\.py$',
+                        r'.*_backup\.py$',
+                        r'.*_old\.py$',
+                        r'.*\.py\.bak$',
+                        r'.*~$',
+                        r'.*\.orig$',
+                        r'.*\.tmp$'
                     ],
                     'weather_cache': [
                         '**/weather_cache*.json',

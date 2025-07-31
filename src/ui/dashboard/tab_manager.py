@@ -25,6 +25,7 @@ class TabManagerMixin:
         try:
             # CREATE ALL TABS FIRST (this is critical!)
             self.tabview.add("Weather")     # Main weather tab
+            self.tabview.add("Locations")   # Location management tab
             self.tabview.add("Analytics")   # Analytics tab
             self.tabview.add("Journal")     # Journal tab
             self.tabview.add("Activities")  # Activities tab
@@ -33,6 +34,7 @@ class TabManagerMixin:
             
             # NOW populate each tab
             self._create_weather_tab()
+            self._create_locations_tab()    # New enhanced locations tab
             self._create_analytics_tab()    # This will now work!
             self._create_journal_tab()
             self._create_activities_tab()
@@ -59,8 +61,88 @@ class TabManagerMixin:
         # Right column - Charts and forecast
         self._create_charts_section(weather_tab)
     
+    def _create_locations_tab(self) -> None:
+        """Create locations management tab with favorites and recent searches."""
+        try:
+            from ..components.location_manager import LocationManagerUI, LocationManager
+            
+            locations_tab = self.tabview.tab("Locations")
+            locations_tab.grid_rowconfigure(0, weight=1)
+            locations_tab.grid_columnconfigure(0, weight=1)
+            
+            # Create location manager instance
+            location_manager = LocationManager()
+            
+            # Create location manager UI
+            self.location_manager_ui = LocationManagerUI(
+                parent=locations_tab,
+                location_manager=location_manager,
+                location_selected_callback=self._on_location_selected_from_manager
+            )
+            self.location_manager_ui.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            
+            self.logger.info("Locations tab created successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create locations tab: {e}")
+            # Create a simple placeholder
+            locations_tab = self.tabview.tab("Locations")
+            placeholder = ctk.CTkLabel(
+                locations_tab,
+                text="Location management temporarily unavailable",
+                font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM),
+                text_color=self.TEXT_SECONDARY
+            )
+            placeholder.pack(expand=True)
+    
+    def _on_location_selected_from_manager(self, location_data: dict):
+        """Handle location selection from location manager."""
+        try:
+            city_name = location_data.get('name', '')
+            if city_name:
+                self.current_city = city_name
+                # Switch to weather tab and update
+                self.tabview.set("Weather")
+                if hasattr(self, '_perform_weather_update'):
+                    self._perform_weather_update()
+                    
+                # Update location label if it exists
+                if hasattr(self, 'location_label'):
+                    city_display = city_name if city_name else "Unknown Location"
+                    self.location_label.configure(text=f"📍 {city_display}")
+                    
+        except Exception as e:
+            self.logger.error(f"Location selection from manager failed: {e}")
+    
     def _create_current_weather_section(self, parent) -> None:
-        """Create current weather display section."""
+        """Create current weather display section with enhanced components."""
+        # Try to create enhanced weather display
+        try:
+            from ..components.enhanced_weather_display import EnhancedWeatherDisplay
+            from ..components.auto_refresh import AutoRefreshComponent
+            
+            # Create enhanced weather display
+            self.enhanced_weather_display = EnhancedWeatherDisplay(parent)
+            self.enhanced_weather_display.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=10)
+            
+            # Create auto-refresh component
+            self.auto_refresh_component = AutoRefreshComponent(
+                parent=parent,
+                refresh_callback=self._perform_weather_update if hasattr(self, '_perform_weather_update') else None
+            )
+            self.auto_refresh_component.grid(row=1, column=0, sticky="ew", padx=(0, 10), pady=(0, 10))
+            
+            # Keep reference to weather card for compatibility
+            self.weather_card = self.enhanced_weather_display
+            
+            self.logger.info("Enhanced weather display created successfully")
+            
+        except Exception as e:
+            self.logger.warning(f"Enhanced weather display failed, using basic display: {e}")
+            self._create_basic_weather_display(parent)
+    
+    def _create_basic_weather_display(self, parent):
+        """Create basic weather display as fallback."""
         # Current weather card
         self.weather_card = ctk.CTkFrame(
             parent,
@@ -82,9 +164,10 @@ class TabManagerMixin:
         self.weather_header.grid_columnconfigure(0, weight=1)
         
         # Current location
+        current_city_display = self.current_city if self.current_city else "Loading..."
         self.location_label = ctk.CTkLabel(
             self.weather_header,
-            text=f"📍 {self.current_city}",
+            text=f"📍 {current_city_display}",
             font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_LARGE, "bold"),
             text_color=self.TEXT_PRIMARY
         )

@@ -324,6 +324,13 @@ class UIComponentsMixin:
         if hasattr(self, 'current_weather') and self.current_weather:
             temp = self.current_weather.get('temperature', 'N/A')
             condition = self.current_weather.get('condition', 'Unknown')
+            
+            # Ensure temp and condition are not None to prevent format errors
+            if temp is None:
+                temp = 'N/A'
+            if condition is None:
+                condition = 'Unknown'
+                
             self.weather_label.configure(
                 text=f"🌡️ {temp}°C | {condition}"
             )

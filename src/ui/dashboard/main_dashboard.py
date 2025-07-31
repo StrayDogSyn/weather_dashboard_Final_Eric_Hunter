@@ -26,6 +26,11 @@ from .weather_display_enhancer import WeatherDisplayEnhancer
 from .ui_components import UIComponentsMixin
 from .tab_manager import TabManagerMixin
 from .weather_handler import WeatherHandlerMixin
+# Import new enhanced components
+from ..components.enhanced_search import EnhancedSearchComponent
+from ..components.enhanced_weather_display import EnhancedWeatherDisplay
+from ..components.auto_refresh import AutoRefreshComponent
+from ..components.location_manager import LocationManagerUI
 # Puscifer audio integration removed
 # Spotify integration removed
 
@@ -117,6 +122,12 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         
         # DON'T initialize enhancer here
         self.display_enhancer = None
+        
+        # Initialize enhanced components
+        self.enhanced_search = None
+        self.enhanced_weather_display = None
+        self.auto_refresh_component = None
+        self.location_manager_ui = None
         
         # Configure window with error protection
         try:
@@ -321,10 +332,18 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
     def update_weather_display(self, weather_data):
         """Update main weather display with proper data handling"""
         try:
-            self.logger.info(f"Updating weather display with data: {weather_data}")
+            self.logger.info(f"Updating weather display with data type: {type(weather_data)}")
             
             if not weather_data:
                 self.logger.warning("No weather data provided")
+                return
+                
+            # Ensure weather_data is a dictionary
+            if isinstance(weather_data, str):
+                self.logger.error(f"Weather data is a string: {weather_data}")
+                return
+            elif not isinstance(weather_data, dict):
+                self.logger.error(f"Weather data is not a dictionary: {type(weather_data)}")
                 return
                 
             # Update temperature - handle different possible field names

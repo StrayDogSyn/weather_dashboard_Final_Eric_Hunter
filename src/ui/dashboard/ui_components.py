@@ -197,9 +197,28 @@ class UIComponentsMixin:
             text_color=self.TEXT_SECONDARY
         )
         
-        # Search container for organizing search components
+        # Enhanced search container
         self.search_container = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         
+        # Initialize enhanced search component
+        try:
+            from ..components.enhanced_search import EnhancedSearchComponent
+            self.enhanced_search = EnhancedSearchComponent(
+                parent=self.search_container,
+                weather_service=self.weather_service,
+                on_location_selected=self._on_location_selected
+            )
+            
+            # Keep reference to search entry for compatibility
+            self.search_entry = self.enhanced_search.search_entry
+            
+        except Exception as e:
+            # Fallback to basic search if enhanced search fails
+            self.logger.warning(f"Enhanced search failed, using basic search: {e}")
+            self._create_basic_search()
+    
+    def _create_basic_search(self):
+        """Create basic search as fallback."""
         # Search controls container
         self.search_controls = ctk.CTkFrame(self.search_container, fg_color="transparent")
         
@@ -228,6 +247,33 @@ class UIComponentsMixin:
             hover_color=DataTerminalTheme.SUCCESS,
             command=self._search_weather
         )
+        
+        # Layout basic search
+        self.search_controls.grid(row=0, column=0, sticky="e")
+        self.search_entry.grid(row=0, column=0, padx=(0, 10))
+        self.search_button.grid(row=0, column=1)
+    
+    def _on_enhanced_search(self, query: str):
+        """Handle enhanced search callback."""
+        try:
+            if hasattr(self, '_search_weather'):
+                self._search_weather(query)
+            elif hasattr(self, '_perform_weather_update'):
+                self.current_city = query
+                self._perform_weather_update()
+        except Exception as e:
+            self.logger.error(f"Enhanced search callback failed: {e}")
+    
+    def _on_location_selected(self, location_data: dict):
+        """Handle location selection from enhanced search."""
+        try:
+            city_name = location_data.get('name', '')
+            if city_name:
+                self.current_city = city_name
+                if hasattr(self, '_perform_weather_update'):
+                    self._perform_weather_update()
+        except Exception as e:
+            self.logger.error(f"Location selection callback failed: {e}")
     
     def _create_main_content(self) -> None:
         """Create main content area with tabs."""
@@ -302,9 +348,16 @@ class UIComponentsMixin:
         self.subtitle_label.grid(row=1, column=0, sticky="w")
         
         self.search_container.grid(row=1, column=2, sticky="e", padx=20, pady=10)
-        self.search_controls.grid(row=0, column=0, sticky="e")
-        self.search_entry.grid(row=0, column=0, padx=(0, 10))
-        self.search_button.grid(row=0, column=1)
+        
+        # Layout enhanced search or basic search
+        if hasattr(self, 'enhanced_search') and self.enhanced_search:
+            # Enhanced search handles its own layout
+            pass
+        elif hasattr(self, 'search_controls'):
+            # Basic search layout
+            self.search_controls.grid(row=0, column=0, sticky="e")
+            self.search_entry.grid(row=0, column=0, padx=(0, 10))
+            self.search_button.grid(row=0, column=1)
         
         # Main content layout
         self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)

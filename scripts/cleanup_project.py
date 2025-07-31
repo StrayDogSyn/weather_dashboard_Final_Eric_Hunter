@@ -22,7 +22,7 @@ import ast
 import re
 import time
 from pathlib import Path
-from typing import Set, List, Dict, Optional
+from typing import Set, List, Dict, Optional, Any
 from datetime import datetime, timedelta
 
 # Import common utilities
@@ -35,7 +35,11 @@ class ProjectCleaner(BaseScript):
     """Enhanced project cleanup tool with configurable strategies and parallel processing."""
     
     def __init__(self):
-        super().__init__()
+        super().__init__(
+            script_name="cleanup_project",
+            description="Enhanced project cleanup tool with configurable strategies and parallel processing",
+            version="2.0.0"
+        )
         self.active_imports = set()
         self.stats = {
             'files_cleaned': 0,
@@ -48,10 +52,19 @@ class ProjectCleaner(BaseScript):
         }
         
         # Load cleanup configuration
-        self.cleanup_config = self.config_manager.get('cleanup', {})
-        self.patterns_config = self.config_manager.load_config(
-            self.project_root / 'scripts' / 'config' / 'cleanup_patterns.yaml'
-        )
+        self.cleanup_config = self.config.get('cleanup', {})
+        
+        # Try to load patterns config if it exists
+        patterns_file = self.project_root / 'scripts' / 'config' / 'cleanup_patterns.yaml'
+        if patterns_file.exists():
+            try:
+                self.config.load_custom_config(patterns_file)
+                self.patterns_config = self.config.get('patterns', {})
+            except Exception as e:
+                self.logger.warning(f"Could not load patterns config: {e}")
+                self.patterns_config = {}
+        else:
+            self.patterns_config = {}
         
         # Initialize file utilities
         self.file_utils = FileUtils()
@@ -860,49 +873,7 @@ Mode: {'DRY RUN' if self.dry_run else 'EXECUTION'}
                 'stats': self.stats
             }
     
-    def execute(self) -> None:
-        """Execute the cleanup process."""
-        args = self.cli_utils.parse_args()
-        
-        # Update configuration based on arguments
-        if args.strategy:
-            self.cleanup_config['strategy'] = args.strategy
-        if args.cache_days:
-            self.cleanup_config['cache_retention_days'] = args.cache_days
-        if args.export_days:
-            self.cleanup_config['export_retention_days'] = args.export_days
-        if args.skip_health:
-            self.cleanup_config['health_analysis'] = False
-        if args.skip_archive:
-            self.cleanup_config['create_archive'] = False
-        if args.skip_reorganize:
-            self.cleanup_config['reorganize_directories'] = False
-        if args.parallel:
-            self.cleanup_config['parallel_processing'] = True
-        if args.max_workers:
-            self.cleanup_config['max_workers'] = args.max_workers
-        
-        self.dry_run = args.dry_run
-        
-        # Configuration check
-        if args.config_check:
-            self.logger.info("Cleanup configuration:")
-            for key, value in self.cleanup_config.items():
-                self.logger.info(f"  {key}: {value}")
-            return
-        
-        # Run cleanup
-        result = self.run_cleanup()
-        
-        # Export report if requested
-        if args.export_report and result.get('cleanup_report'):
-            self._export_report(result['cleanup_report'], args.export_report)
-        
-        if not result['success']:
-            self.logger.error(f"Cleanup failed: {result.get('error')}")
-            exit(1)
-        
-        self.logger.info("Cleanup completed successfully")
+
     
     def _export_report(self, report: str, file_path: str) -> None:
         """Export cleanup report to file."""
@@ -929,85 +900,92 @@ Mode: {'DRY RUN' if self.dry_run else 'EXECUTION'}
         except Exception as e:
             self.logger.error(f"Failed to export report: {e}")
 
-    def setup_arguments(self) -> None:
+    def setup_args(self) -> None:
         """Setup command-line arguments."""
-        self.cli_utils.add_argument(
+        self.cli.add_argument(
             '--strategy',
             choices=['conservative', 'standard', 'aggressive'],
             default='standard',
             help='Cleanup strategy to use'
         )
         
-        self.cli_utils.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Preview cleanup actions without making changes'
-        )
+
         
-        self.cli_utils.add_argument(
+        self.cli.add_argument(
             '--cache-days',
             type=int,
             help='Number of days to retain cache files'
         )
         
-        self.cli_utils.add_argument(
+        self.cli.add_argument(
             '--export-days',
             type=int,
             help='Number of days to retain export files'
         )
         
-        self.cli_utils.add_argument(
+        self.cli.add_argument(
             '--parallel',
             action='store_true',
             help='Enable parallel processing for file operations'
         )
         
-        self.cli_utils.add_argument(
+        self.cli.add_argument(
             '--max-workers',
             type=int,
             default=4,
             help='Maximum number of worker threads for parallel processing'
         )
+    
+    def run(self) -> Dict[str, Any]:
+        """Run the cleanup process."""
+        # Update configuration based on arguments
+        if hasattr(self.args, 'strategy') and self.args.strategy:
+            self.cleanup_config['strategy'] = self.args.strategy
+        if hasattr(self.args, 'cache_days') and self.args.cache_days:
+            self.cleanup_config['cache_retention_days'] = self.args.cache_days
+        if hasattr(self.args, 'export_days') and self.args.export_days:
+            self.cleanup_config['export_retention_days'] = self.args.export_days
+        if hasattr(self.args, 'skip_health') and self.args.skip_health:
+            self.cleanup_config['health_analysis'] = False
+        if hasattr(self.args, 'skip_archive') and self.args.skip_archive:
+            self.cleanup_config['create_archive'] = False
+        if hasattr(self.args, 'skip_reorganize') and self.args.skip_reorganize:
+            self.cleanup_config['reorganize_directories'] = False
+        if hasattr(self.args, 'parallel') and self.args.parallel:
+            self.cleanup_config['parallel_processing'] = True
+        if hasattr(self.args, 'max_workers') and self.args.max_workers:
+            self.cleanup_config['max_workers'] = self.args.max_workers
         
-        self.cli_utils.add_argument(
-            '--skip-health',
-            action='store_true',
-            help='Skip project health analysis'
-        )
+        if hasattr(self.args, 'dry_run'):
+            self.dry_run = self.args.dry_run
         
-        self.cli_utils.add_argument(
-            '--skip-archive',
-            action='store_true',
-            help='Skip creating archive of cleaned files'
-        )
+        # Configuration check
+        if hasattr(self.args, 'config_check') and self.args.config_check:
+            self.logger.info("Cleanup configuration:")
+            for key, value in self.cleanup_config.items():
+                self.logger.info(f"  {key}: {value}")
+            return {'success': True, 'message': 'Configuration displayed'}
         
-        self.cli_utils.add_argument(
-            '--skip-reorganize',
-            action='store_true',
-            help='Skip directory reorganization'
-        )
+        # Run cleanup
+        result = self.run_cleanup()
         
-        self.cli_utils.add_argument(
-            '--export-report',
-            help='Export cleanup report to specified file (JSON, YAML, or CSV)'
-        )
+        # Export report if requested
+        if hasattr(self.args, 'export_report') and self.args.export_report and result.get('cleanup_report'):
+            self._export_report(result['cleanup_report'], self.args.export_report)
         
-        self.cli_utils.add_argument(
-            '--config-check',
-            action='store_true',
-            help='Check cleanup configuration and patterns'
-        )
+        return result
 
-# Usage functions
+
 def run_project_cleanup(project_root: str = ".", dry_run: bool = True):
     """Run project cleanup with specified options."""
     cleaner = ProjectCleaner()
     cleaner.run_cleanup()
 
+
 def main():
     """Main function to run the cleanup process."""
     cleaner = ProjectCleaner()
-    cleaner.run()
+    return cleaner.execute()
 
 if __name__ == "__main__":
     import sys

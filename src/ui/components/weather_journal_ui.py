@@ -238,6 +238,15 @@ class WeatherJournalUI(ctk.CTkFrame):
         location = entry.get('location', 'Unknown')
         weather_condition = entry.get('weather_condition', 'N/A')
         temperature = entry.get('temperature', 0)
+        
+        # Ensure values are not None to prevent format errors
+        if location is None:
+            location = 'Unknown'
+        if weather_condition is None:
+            weather_condition = 'N/A'
+        if temperature is None:
+            temperature = 0
+            
         weather_info = f"📍 {location} • 🌤️ {weather_condition} • 🌡️ {temperature:.1f}°"
         weather_label = ctk.CTkLabel(
             entry_frame,

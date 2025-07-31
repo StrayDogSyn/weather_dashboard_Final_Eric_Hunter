@@ -94,7 +94,10 @@ class WeatherHandlerMixin:
             if weather_data and 'error' not in weather_data:
                 return weather_data
             else:
-                self.logger.warning(f"Weather service returned error: {weather_data.get('error', 'Unknown error')}")
+                if isinstance(weather_data, dict):
+                    self.logger.warning(f"Weather service returned error: {weather_data.get('error', 'Unknown error')}")
+                else:
+                    self.logger.warning(f"Weather service returned non-dict data: {weather_data}")
                 return None
                 
         except Exception as e:
@@ -104,14 +107,48 @@ class WeatherHandlerMixin:
     def _update_weather_display(self, weather_data: Dict[str, Any]) -> None:
         """Update the weather display with new data."""
         try:
+            # Check if weather_data is valid
+            if isinstance(weather_data, str):
+                self.logger.error(f"Weather data is a string: {weather_data}")
+                return
+            
+            if not isinstance(weather_data, dict):
+                self.logger.error(f"Weather data is not a dictionary: {type(weather_data)}")
+                return
+            
+            # Try to update enhanced weather display first
+            if hasattr(self, 'enhanced_weather_display') and self.enhanced_weather_display:
+                self.enhanced_weather_display.update_weather_data(weather_data)
+                self.logger.debug("Updated enhanced weather display")
+            else:
+                # Fallback to basic weather display
+                self._update_basic_weather_display(weather_data)
+            
+            # Update location if different
+            if 'location' in weather_data:
+                location = weather_data['location']
+                if location and location != self.current_city:
+                    self.current_city = location
+                    if hasattr(self, 'location_label'):
+                        self.location_label.configure(text=f"📍 {location}")
+            
+            # Store weather data for other components
+            self.current_weather_data = weather_data
+            
+        except Exception as e:
+            self.logger.error(f"Error updating weather display: {e}")
+    
+    def _update_basic_weather_display(self, weather_data: Dict[str, Any]) -> None:
+        """Update basic weather display as fallback."""
+        try:
             # Update temperature
-            if 'temperature' in weather_data:
+            if 'temperature' in weather_data and hasattr(self, 'temp_label'):
                 temp = weather_data['temperature']
                 if isinstance(temp, (int, float)):
                     self.temp_label.configure(text=f"{temp:.1f}°C")
             
             # Update condition
-            if 'condition' in weather_data:
+            if 'condition' in weather_data and hasattr(self, 'condition_label'):
                 condition = weather_data['condition']
                 if self.display_enhancer:
                     enhanced_condition = self.display_enhancer.enhance_weather_display(condition)
@@ -120,41 +157,83 @@ class WeatherHandlerMixin:
                     self.condition_label.configure(text=str(condition))
             
             # Update feels like temperature
-            if 'feels_like' in weather_data:
+            if 'feels_like' in weather_data and hasattr(self, 'feels_like_label'):
                 feels_like = weather_data['feels_like']
                 if isinstance(feels_like, (int, float)):
                     self.feels_like_label.configure(text=f"Feels like: {feels_like:.1f}°C")
             
             # Update humidity
-            if 'humidity' in weather_data:
+            if 'humidity' in weather_data and hasattr(self, 'humidity_label'):
                 humidity = weather_data['humidity']
                 if isinstance(humidity, (int, float)):
                     self.humidity_label.configure(text=f"Humidity: {humidity:.0f}%")
             
             # Update wind speed
-            if 'wind_speed' in weather_data:
+            if 'wind_speed' in weather_data and hasattr(self, 'wind_label'):
                 wind_speed = weather_data['wind_speed']
                 if isinstance(wind_speed, (int, float)):
                     self.wind_label.configure(text=f"Wind: {wind_speed:.1f} km/h")
             
             # Update pressure
-            if 'pressure' in weather_data:
+            if 'pressure' in weather_data and hasattr(self, 'pressure_label'):
                 pressure = weather_data['pressure']
                 if isinstance(pressure, (int, float)):
                     self.pressure_label.configure(text=f"Pressure: {pressure:.0f} hPa")
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating basic weather display: {e}")
+    
+    def update_weather_display(self, weather_data):
+        """Public method to update weather display with comprehensive data."""
+        try:
+            # Convert weather data to dictionary if needed
+            if hasattr(weather_data, '__dict__'):
+                data_dict = weather_data.__dict__
+            elif hasattr(weather_data, 'to_dict'):
+                data_dict = weather_data.to_dict()
+            else:
+                data_dict = weather_data
             
-            # Update location if different
-            if 'location' in weather_data:
-                location = weather_data['location']
-                if location and location != self.current_city:
-                    self.current_city = location
-                    self.location_label.configure(text=f"📍 {location}")
+            # Get additional data if enhanced weather service is available
+            if hasattr(self, 'weather_service') and self.weather_service:
+                try:
+                    # Get coordinates from weather data
+                    lat = data_dict.get('coord', {}).get('lat') or data_dict.get('latitude')
+                    lon = data_dict.get('coord', {}).get('lon') or data_dict.get('longitude')
+                    
+                    if lat is not None and lon is not None:
+                        # Get air quality data
+                        if hasattr(self.weather_service, 'get_air_quality'):
+                            air_quality = self.weather_service.get_air_quality(lat, lon)
+                            if air_quality:
+                                data_dict['air_quality'] = air_quality
+                        
+                        # Get astronomical data
+                        if hasattr(self.weather_service, 'get_astronomical_data'):
+                            astronomical = self.weather_service.get_astronomical_data(lat, lon)
+                            if astronomical:
+                                data_dict['astronomical'] = astronomical
+                        
+                        # Get weather alerts
+                        if hasattr(self.weather_service, 'get_weather_alerts'):
+                            alerts = self.weather_service.get_weather_alerts(lat, lon)
+                            if alerts:
+                                data_dict['alerts'] = alerts
+                    else:
+                        self.logger.debug("No coordinates available for additional weather data")
+                            
+                except Exception as e:
+                    self.logger.warning(f"Could not get additional weather data: {e}")
             
-            # Store weather data for other components
-            self.current_weather_data = weather_data
+            # Update the display
+            self._update_weather_display(data_dict)
+            
+            # Update auto-refresh component if available
+            if hasattr(self, 'auto_refresh_component') and self.auto_refresh_component:
+                self.auto_refresh_component.update_last_refresh()
             
         except Exception as e:
-            self.logger.error(f"Error updating weather display: {e}")
+            self.logger.error(f"Error in update_weather_display: {e}")
     
     def _update_charts(self) -> None:
         """Update temperature charts with latest data."""
