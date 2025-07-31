@@ -1,0 +1,436 @@
+# Cleanup Patterns Configuration
+# Detailed patterns for the cleanup script
+
+# Cache directories and files
+cache_patterns:
+  directories:
+    # Python cache directories
+    - pattern: "**/__pycache__"
+      description: "Python bytecode cache"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/.pytest_cache"
+      description: "Pytest cache"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/.mypy_cache"
+      description: "MyPy type checker cache"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/.coverage"
+      description: "Coverage.py cache"
+      recursive: false
+      safe_to_delete: true
+    
+    - pattern: "**/node_modules/.cache"
+      description: "Node.js cache"
+      recursive: true
+      safe_to_delete: true
+    
+    # IDE and editor caches
+    - pattern: "**/.vscode/.ropeproject"
+      description: "VS Code rope project cache"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/.idea/caches"
+      description: "IntelliJ IDEA caches"
+      recursive: true
+      safe_to_delete: true
+  
+  files:
+    # Python compiled files
+    - pattern: "**/*.pyc"
+      description: "Python compiled bytecode"
+      safe_to_delete: true
+    
+    - pattern: "**/*.pyo"
+      description: "Python optimized bytecode"
+      safe_to_delete: true
+    
+    - pattern: "**/*.pyd"
+      description: "Python extension modules"
+      safe_to_delete: false  # May be needed
+    
+    # Cache files
+    - pattern: "**/.coverage"
+      description: "Coverage data file"
+      safe_to_delete: true
+    
+    - pattern: "**/coverage.xml"
+      description: "Coverage XML report"
+      safe_to_delete: true
+
+# Temporary files and directories
+temporary_patterns:
+  directories:
+    - pattern: "**/tmp"
+      description: "Temporary directories"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/temp"
+      description: "Temporary directories"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/.tmp"
+      description: "Hidden temporary directories"
+      recursive: true
+      safe_to_delete: true
+  
+  files:
+    # Temporary files
+    - pattern: "**/*.tmp"
+      description: "Temporary files"
+      safe_to_delete: true
+    
+    - pattern: "**/*.temp"
+      description: "Temporary files"
+      safe_to_delete: true
+    
+    - pattern: "**/*~"
+      description: "Backup files created by editors"
+      safe_to_delete: true
+    
+    - pattern: "**/*.swp"
+      description: "Vim swap files"
+      safe_to_delete: true
+    
+    - pattern: "**/*.swo"
+      description: "Vim swap files"
+      safe_to_delete: true
+    
+    - pattern: "**/.DS_Store"
+      description: "macOS directory metadata"
+      safe_to_delete: true
+    
+    - pattern: "**/Thumbs.db"
+      description: "Windows thumbnail cache"
+      safe_to_delete: true
+    
+    - pattern: "**/desktop.ini"
+      description: "Windows folder settings"
+      safe_to_delete: true
+
+# Log files
+log_patterns:
+  files:
+    - pattern: "**/*.log"
+      description: "Log files"
+      safe_to_delete: true
+      retention_days: 30
+    
+    - pattern: "**/logs/*.log"
+      description: "Log files in logs directory"
+      safe_to_delete: true
+      retention_days: 30
+    
+    - pattern: "**/*.log.*"
+      description: "Rotated log files"
+      safe_to_delete: true
+      retention_days: 7
+    
+    - pattern: "**/error.log"
+      description: "Error log files"
+      safe_to_delete: true
+      retention_days: 60
+    
+    - pattern: "**/access.log"
+      description: "Access log files"
+      safe_to_delete: true
+      retention_days: 30
+
+# Build artifacts and outputs
+build_patterns:
+  directories:
+    - pattern: "**/build"
+      description: "Build output directories"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/dist"
+      description: "Distribution directories"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/*.egg-info"
+      description: "Python package metadata"
+      recursive: true
+      safe_to_delete: true
+    
+    - pattern: "**/target"
+      description: "Build target directories"
+      recursive: true
+      safe_to_delete: true
+  
+  files:
+    - pattern: "**/*.egg"
+      description: "Python egg files"
+      safe_to_delete: true
+    
+    - pattern: "**/*.whl"
+      description: "Python wheel files"
+      safe_to_delete: true
+    
+    - pattern: "**/*.tar.gz"
+      description: "Compressed archives"
+      safe_to_delete: true
+    
+    - pattern: "**/*.zip"
+      description: "ZIP archives"
+      safe_to_delete: false  # May contain important data
+
+# Weather Dashboard specific patterns
+weather_specific_patterns:
+  cache:
+    directories:
+      - pattern: "**/weather_cache"
+        description: "Weather data cache"
+        recursive: true
+        safe_to_delete: true
+        retention_days: 7
+      
+      - pattern: "**/chart_cache"
+        description: "Chart image cache"
+        recursive: true
+        safe_to_delete: true
+        retention_days: 3
+    
+    files:
+      - pattern: "**/weather_*.json"
+        description: "Cached weather data files"
+        safe_to_delete: true
+        retention_days: 7
+      
+      - pattern: "**/chart_*.png"
+        description: "Cached chart images"
+        safe_to_delete: true
+        retention_days: 3
+      
+      - pattern: "**/forecast_*.json"
+        description: "Cached forecast data"
+        safe_to_delete: true
+        retention_days: 1
+  
+  exports:
+    files:
+      - pattern: "**/exports/*.csv"
+        description: "Exported CSV files"
+        safe_to_delete: true
+        retention_days: 30
+      
+      - pattern: "**/exports/*.json"
+        description: "Exported JSON files"
+        safe_to_delete: true
+        retention_days: 30
+      
+      - pattern: "**/exports/*.xlsx"
+        description: "Exported Excel files"
+        safe_to_delete: true
+        retention_days: 30
+  
+  legacy:
+    files:
+      - pattern: "**/old_*.py"
+        description: "Legacy Python files"
+        safe_to_delete: false  # Require manual review
+      
+      - pattern: "**/backup_*.py"
+        description: "Backup Python files"
+        safe_to_delete: false  # Require manual review
+      
+      - pattern: "**/*_deprecated.*"
+        description: "Deprecated files"
+        safe_to_delete: false  # Require manual review
+
+# Protected patterns (never delete)
+protected_patterns:
+  directories:
+    - pattern: ".git"
+      description: "Git repository data"
+    
+    - pattern: ".github"
+      description: "GitHub configuration"
+    
+    - pattern: "venv"
+      description: "Virtual environment"
+    
+    - pattern: "env"
+      description: "Virtual environment"
+    
+    - pattern: ".venv"
+      description: "Virtual environment"
+    
+    - pattern: "node_modules"
+      description: "Node.js dependencies"
+      exclude_subdirs: [".cache"]  # Allow cache cleanup
+  
+  files:
+    - pattern: "*.py"
+      description: "Python source files"
+      exclude_patterns: ["**/test_*.py", "**/*_test.py"]  # Allow test file cleanup in some cases
+    
+    - pattern: "*.js"
+      description: "JavaScript source files"
+    
+    - pattern: "*.html"
+      description: "HTML files"
+    
+    - pattern: "*.css"
+      description: "CSS files"
+    
+    - pattern: "*.json"
+      description: "JSON configuration files"
+      exclude_patterns: ["**/cache_*.json", "**/temp_*.json"]
+    
+    - pattern: "*.yaml"
+      description: "YAML configuration files"
+    
+    - pattern: "*.yml"
+      description: "YAML configuration files"
+    
+    - pattern: "*.md"
+      description: "Markdown documentation"
+    
+    - pattern: "*.txt"
+      description: "Text files"
+      exclude_patterns: ["**/temp_*.txt", "**/cache_*.txt"]
+    
+    - pattern: ".env*"
+      description: "Environment files"
+    
+    - pattern: "requirements*.txt"
+      description: "Python requirements files"
+    
+    - pattern: "setup.py"
+      description: "Python setup script"
+    
+    - pattern: "pyproject.toml"
+      description: "Python project configuration"
+    
+    - pattern: "*.toml"
+      description: "TOML configuration files"
+    
+    - pattern: "*.ini"
+      description: "INI configuration files"
+    
+    - pattern: "*.cfg"
+      description: "Configuration files"
+    
+    - pattern: "LICENSE*"
+      description: "License files"
+    
+    - pattern: "README*"
+      description: "README files"
+    
+    - pattern: "CHANGELOG*"
+      description: "Changelog files"
+    
+    - pattern: "*.db"
+      description: "Database files"
+    
+    - pattern: "*.sqlite*"
+      description: "SQLite database files"
+
+# Cleanup strategies
+strategies:
+  conservative:
+    description: "Safe cleanup with minimal risk"
+    enabled_patterns:
+      - "cache_patterns"
+      - "temporary_patterns.files"  # Only temp files, not directories
+    retention_days: 30
+    require_confirmation: true
+  
+  standard:
+    description: "Standard cleanup for regular maintenance"
+    enabled_patterns:
+      - "cache_patterns"
+      - "temporary_patterns"
+      - "log_patterns"
+      - "weather_specific_patterns.cache"
+    retention_days: 14
+    require_confirmation: false
+  
+  aggressive:
+    description: "Thorough cleanup including build artifacts"
+    enabled_patterns:
+      - "cache_patterns"
+      - "temporary_patterns"
+      - "log_patterns"
+      - "build_patterns"
+      - "weather_specific_patterns"
+    retention_days: 7
+    require_confirmation: true
+  
+  development:
+    description: "Cleanup for development environment"
+    enabled_patterns:
+      - "cache_patterns"
+      - "temporary_patterns"
+      - "build_patterns.directories"  # Keep distribution files
+      - "weather_specific_patterns.cache"
+    retention_days: 3
+    require_confirmation: false
+
+# Size thresholds
+size_thresholds:
+  # Warn if file/directory is larger than these sizes
+  warning_sizes:
+    file_mb: 100
+    directory_mb: 500
+  
+  # Skip cleanup if larger than these sizes (require manual review)
+  skip_sizes:
+    file_mb: 1000
+    directory_mb: 5000
+
+# Age thresholds
+age_thresholds:
+  # Default retention periods by file type
+  default_retention:
+    cache: 7
+    logs: 30
+    temp: 1
+    exports: 30
+    builds: 14
+  
+  # Minimum age before considering for cleanup
+  minimum_age_hours: 1
+
+# Exclusion rules
+exclusions:
+  # Paths to always exclude from cleanup
+  always_exclude:
+    - ".git/**"
+    - ".github/**"
+    - "venv/**"
+    - "env/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - "*.py"
+    - "*.js"
+    - "*.html"
+    - "*.css"
+    - "requirements*.txt"
+    - ".env*"
+    - "*.db"
+    - "*.sqlite*"
+  
+  # Conditional exclusions based on context
+  conditional_exclude:
+    # Exclude if in development mode
+    development:
+      - "dist/**"
+      - "build/**"
+      - "*.whl"
+      - "*.egg"
+    
+    # Exclude if recent activity detected
+    recent_activity:
+      - "logs/*.log"  # If modified in last 24 hours
+      - "cache/**"    # If accessed in last 6 hours

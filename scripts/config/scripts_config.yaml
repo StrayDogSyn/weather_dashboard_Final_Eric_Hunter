@@ -1,0 +1,205 @@
+# Weather Dashboard Scripts Configuration
+# Main configuration file for all scripts
+
+# Global settings
+global:
+  # Default timeout for operations (seconds)
+  default_timeout: 300
+  
+  # Default log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  log_level: INFO
+  
+  # Enable colored output
+  colored_output: true
+  
+  # Default backup behavior
+  create_backups: true
+  
+  # Maximum number of backups to keep
+  max_backups: 5
+
+# Logging configuration
+logging:
+  # Log file settings
+  file:
+    enabled: true
+    directory: "logs"
+    filename: "scripts.log"
+    max_size_mb: 10
+    backup_count: 5
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Console logging settings
+  console:
+    enabled: true
+    level: INFO
+    format: "%(levelname)s: %(message)s"
+    colored: true
+
+# File operation settings
+file_operations:
+  # Default encoding for text files
+  default_encoding: "utf-8"
+  
+  # Backup settings
+  backup:
+    enabled: true
+    directory: "backups"
+    timestamp_format: "%Y%m%d_%H%M%S"
+  
+  # Archive settings
+  archive:
+    compression: "zip"  # zip, tar, tar.gz
+    compression_level: 6
+
+# Process execution settings
+process:
+  # Default timeout for subprocess execution
+  timeout: 300
+  
+  # Maximum number of parallel processes
+  max_parallel: 4
+  
+  # Shell to use for command execution
+  shell: null  # null for auto-detection
+
+# Environment-specific overrides
+environments:
+  development:
+    global:
+      log_level: DEBUG
+    logging:
+      console:
+        level: DEBUG
+  
+  production:
+    global:
+      log_level: WARNING
+      create_backups: true
+    logging:
+      console:
+        level: WARNING
+  
+  testing:
+    global:
+      log_level: DEBUG
+      create_backups: false
+    process:
+      timeout: 60
+
+# Script-specific configurations
+scripts:
+  # Setup script configuration
+  setup:
+    python_version_min: "3.8"
+    venv_name: "venv"
+    requirements_files:
+      - "requirements.txt"
+      - "requirements-dev.txt"
+    env_template: ".env.example"
+    env_file: ".env"
+  
+  # Pre-commit check configuration
+  pre_commit:
+    tools:
+      - name: "black"
+        command: "black --check --diff ."
+        auto_fix: "black ."
+        description: "Code formatting"
+      - name: "isort"
+        command: "isort --check-only --diff ."
+        auto_fix: "isort ."
+        description: "Import sorting"
+      - name: "flake8"
+        command: "flake8 ."
+        auto_fix: null
+        description: "Code style"
+      - name: "mypy"
+        command: "mypy ."
+        auto_fix: null
+        description: "Type checking"
+    
+    parallel_execution: true
+    fail_fast: false
+  
+  # Database inspection configuration
+  inspect_database:
+    database_file: "weather_dashboard.db"
+    sample_size: 5
+    tables_to_inspect:
+      - "weather_history"
+      - "user_preferences"
+      - "favorite_cities"
+    
+    export_formats:
+      - "json"
+      - "csv"
+      - "yaml"
+  
+  # MCP setup verification configuration
+  verify_mcp:
+    required_packages:
+      - "mcp"
+      - "blender-mcp"
+      - "mcp-server-fetch"
+    
+    config_file: ".claude/mcp_config.json"
+    
+    servers:
+      - name: "blender"
+        command: "uv"
+        args: ["tool", "run", "blender-mcp"]
+      - name: "fetch"
+        command: "uv"
+        args: ["tool", "run", "mcp-server-fetch"]
+    
+    retry_attempts: 3
+    retry_delay: 2
+  
+  # Cleanup configuration (basic settings, detailed in cleanup_patterns.yaml)
+  cleanup:
+    dry_run_default: true
+    aggressive_mode: false
+    retention_days: 30
+    archive_cleaned_files: true
+    archive_directory: "archives"
+    
+    # Quick patterns (detailed patterns in cleanup_patterns.yaml)
+    quick_patterns:
+      cache_dirs:
+        - "__pycache__"
+        - ".pytest_cache"
+        - ".mypy_cache"
+      
+      temp_files:
+        - "*.tmp"
+        - "*.temp"
+        - "*~"
+      
+      log_files:
+        - "*.log"
+        - "logs/*.log"
+
+# Validation schemas
+validation:
+  # Required fields for each script type
+  required_fields:
+    base_script:
+      - "name"
+      - "description"
+      - "version"
+    
+    cleanup_script:
+      - "patterns"
+      - "retention_days"
+    
+    setup_script:
+      - "python_version_min"
+      - "requirements_files"
+  
+  # Field types and constraints
+  field_types:
+    timeout: "integer"
+    log_level: "string"
+    retention_days: "integer"
+    max_backups: "integer"

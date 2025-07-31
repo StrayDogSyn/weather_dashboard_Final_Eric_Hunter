@@ -12,71 +12,69 @@ Features:
 - UI component optimization
 - Performance monitoring
 - Smart backup retention
+- Configurable cleanup strategies
+- Parallel processing support
+- Comprehensive reporting
 """
 
 import os
-import shutil
 import ast
 import re
-import glob
-import argparse
-from pathlib import Path
-from typing import Set, List, Dict, Tuple, Optional
-from datetime import datetime, timedelta
-import json
-import threading
 import time
+from pathlib import Path
+from typing import Set, List, Dict, Optional
+from datetime import datetime, timedelta
 
-class WeatherDashboardCleaner:
-    def __init__(self, project_root: str, dry_run: bool = True, aggressive: bool = False, 
-                 cache_retention_days: int = 7, export_retention_days: int = 30):
-        self.project_root = Path(project_root)
-        self.dry_run = dry_run
-        self.aggressive = aggressive
+# Import common utilities
+from common.base_script import BaseScript
+from common.cli_utils import CLIUtils
+from common.file_utils import FileUtils
+from common.process_utils import ProcessUtils
+
+class ProjectCleaner(BaseScript):
+    """Enhanced project cleanup tool with configurable strategies and parallel processing."""
+    
+    def __init__(self):
+        super().__init__()
         self.active_imports = set()
         self.stats = {
             'files_cleaned': 0,
             'space_freed': 0,
             'cache_files': 0,
             'backup_files': 0,
-            'temp_files': 0
+            'temp_files': 0,
+            'legacy_files': 0,
+            'export_files': 0
         }
         
-        # Weather Dashboard specific patterns
-        self.legacy_patterns = [
-            r'.*_legacy\.py$', r'.*_backup\.py$', r'.*_old\.py$',
-            r'.*\.py\.bak$', r'.*~$', r'.*\.orig$', r'.*\.tmp$',
-            r'.*_test_backup\.py$', r'.*_deprecated\.py$'
-        ]
+        # Load cleanup configuration
+        self.cleanup_config = self.config_manager.get('cleanup', {})
+        self.patterns_config = self.config_manager.load_config(
+            self.project_root / 'scripts' / 'config' / 'cleanup_patterns.yaml'
+        )
         
-        # Weather-specific cache and temporary patterns
-        self.weather_cache_patterns = [
-            '**/weather_cache*.json', '**/cache/*.json',
-            '**/temp_weather_data*.json', '**/forecast_cache*.json',
-            '**/air_quality_cache*.json'
-        ]
+        # Initialize file utilities
+        self.file_utils = FileUtils()
+        self.process_utils = ProcessUtils()
         
-        # Chart and export cleanup patterns
-        self.chart_export_patterns = [
-            '**/exports/*.png', '**/exports/*.pdf', '**/exports/*.svg',
-            '**/chart_exports/*.png', '**/temp_charts/*.png'
-        ]
-        
+        # Set up archive directory
         self.archive_dir = self.project_root / 'archive'
-        self.cache_retention_days = cache_retention_days  # Keep cache files for specified days
-        self.export_retention_days = export_retention_days  # Keep exports for specified days
         
     def scan_active_imports(self) -> Set[str]:
         """Scan all Python files for import statements to identify active files."""
-        print("🔍 Scanning for active imports...")
+        self.logger.info("Scanning for active imports...")
+        
+        exclude_patterns = self.patterns_config.get('exclude_patterns', [])
         
         for py_file in self.project_root.rglob('*.py'):
-            if 'archive' in str(py_file) or 'legacy' in str(py_file):
+            # Skip excluded directories
+            if any(pattern in str(py_file) for pattern in exclude_patterns):
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                content = self.file_utils.read_text_file(py_file)
+                if not content:
+                    continue
                     
                 # Parse AST to find imports
                 tree = ast.parse(content)
@@ -96,35 +94,25 @@ class WeatherDashboardCleaner:
                             self.active_imports.add(group.strip())
                             
             except Exception as e:
-                print(f"⚠️ Error scanning {py_file}: {e}")
+                self.logger.warning(f"Error scanning {py_file}: {e}")
                 
-        print(f"✅ Found {len(self.active_imports)} active imports")
+        self.logger.info(f"Found {len(self.active_imports)} active imports")
         return self.active_imports
     
     def identify_legacy_files(self) -> List[Path]:
-        """Identify legacy, backup, and unused files."""
-        print("🔍 Identifying legacy files...")
+        """Identify legacy, backup, and unused files based on configuration."""
+        self.logger.info("Identifying legacy files...")
         
         legacy_files = []
+        legacy_patterns = self.patterns_config.get('legacy_patterns', [])
+        protected_files = self.patterns_config.get('protected_files', [])
+        protected_patterns = self.patterns_config.get('protected_patterns', [])
         
-        # Pattern-based legacy files (only these should be archived)
-        for pattern in self.legacy_patterns:
+        # Find files matching legacy patterns
+        for pattern in legacy_patterns:
             for file_path in self.project_root.rglob('*'):
-                if re.match(pattern, str(file_path.name)):
+                if file_path.is_file() and re.match(pattern, str(file_path.name)):
                     legacy_files.append(file_path)
-        
-        # Additional files to keep (never archive)
-        protected_files = [
-            'main.py', '__init__.py', 'setup.py', 'config.py',
-            'cleanup_project.py', 'requirements.txt', 'README.md',
-            'LICENSE', '.gitignore', '.env.example'
-        ]
-        
-        protected_patterns = [
-            r'.*test.*\.py$',  # Keep test files
-            r'.*config.*\.py$',  # Keep config files
-            r'.*settings.*\.py$',  # Keep settings files
-        ]
         
         # Filter out protected files
         filtered_legacy = []
@@ -142,121 +130,161 @@ class WeatherDashboardCleaner:
                 
             filtered_legacy.append(file_path)
         
-        print(f"📋 Identified {len(filtered_legacy)} legacy files")
+        self.stats['legacy_files'] = len(filtered_legacy)
+        self.logger.info(f"Identified {len(filtered_legacy)} legacy files")
         return filtered_legacy
     
     def identify_temp_files(self) -> List[Path]:
-        """Identify temporary and cache files."""
-        print("🔍 Identifying temporary files...")
+        """Identify temporary and cache files based on configuration."""
+        self.logger.info("Identifying temporary files...")
         
-        temp_patterns = [
-            '**/__pycache__/**', '**/*.pyc', '**/*.pyo',
-            '**/.pytest_cache/**', '**/.coverage', '**/coverage.xml',
-            '**/.DS_Store', '**/Thumbs.db', '**/.vscode/settings.json',
-            '**/node_modules/**', '**/.git/**', '**/*.log'
-        ]
-        
+        temp_patterns = self.patterns_config.get('temp_patterns', [])
         temp_files = []
+        
         for pattern in temp_patterns:
             temp_files.extend(self.project_root.glob(pattern))
             
-        print(f"🗑️ Found {len(temp_files)} temporary files")
+        # Filter out non-existent files
+        temp_files = [f for f in temp_files if f.exists()]
+        
+        self.stats['temp_files'] = len(temp_files)
+        self.logger.info(f"Found {len(temp_files)} temporary files")
         return temp_files
     
     def clean_weather_cache(self) -> List[Path]:
         """Clean old weather cache files based on retention policy."""
-        print("🌤️ Cleaning weather cache files...")
+        self.logger.info("Cleaning weather cache files...")
         
         cache_files = []
-        cutoff_date = datetime.now() - timedelta(days=self.cache_retention_days)
+        strategy = self.cleanup_config.get('strategy', 'standard')
+        cache_retention_days = self.cleanup_config.get('cache_retention_days', 7)
         
-        for pattern in self.weather_cache_patterns:
+        # Get strategy-specific settings
+        strategy_config = self.patterns_config.get('strategies', {}).get(strategy, {})
+        retention_days = strategy_config.get('cache_retention_days', cache_retention_days)
+        
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
+        cache_patterns = self.patterns_config.get('cache_patterns', [])
+        
+        for pattern in cache_patterns:
             for file_path in self.project_root.glob(pattern):
                 if file_path.is_file():
                     # Check file age
                     file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
-                    if file_time < cutoff_date or self.aggressive:
+                    if file_time < cutoff_date or strategy == 'aggressive':
                         cache_files.append(file_path)
-                        self.stats['cache_files'] += 1
         
         # Clean specific cache directories
-        cache_dirs = ['cache', 'temp_data', '.weather_cache']
+        cache_dirs = self.patterns_config.get('cache_directories', [])
         for cache_dir in cache_dirs:
             cache_path = self.project_root / cache_dir
             if cache_path.exists():
                 for file_path in cache_path.rglob('*'):
                     if file_path.is_file():
                         file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
-                        if file_time < cutoff_date or self.aggressive:
+                        if file_time < cutoff_date or strategy == 'aggressive':
                             cache_files.append(file_path)
-                            self.stats['cache_files'] += 1
         
-        print(f"🌤️ Found {len(cache_files)} cache files to clean")
+        self.stats['cache_files'] = len(cache_files)
+        self.logger.info(f"Found {len(cache_files)} cache files to clean")
         return cache_files
     
     def clean_chart_exports(self) -> List[Path]:
         """Clean old chart export files."""
-        print("📊 Cleaning chart export files...")
+        self.logger.info("Cleaning chart export files...")
         
         export_files = []
-        cutoff_date = datetime.now() - timedelta(days=self.export_retention_days)
+        strategy = self.cleanup_config.get('strategy', 'standard')
+        export_retention_days = self.cleanup_config.get('export_retention_days', 30)
         
-        for pattern in self.chart_export_patterns:
+        # Get strategy-specific settings
+        strategy_config = self.patterns_config.get('strategies', {}).get(strategy, {})
+        retention_days = strategy_config.get('export_retention_days', export_retention_days)
+        
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
+        export_patterns = self.patterns_config.get('export_patterns', [])
+        
+        for pattern in export_patterns:
             for file_path in self.project_root.glob(pattern):
                 if file_path.is_file():
                     file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
-                    if file_time < cutoff_date or self.aggressive:
+                    if file_time < cutoff_date or strategy == 'aggressive':
                         export_files.append(file_path)
         
-        print(f"📊 Found {len(export_files)} export files to clean")
+        self.stats['export_files'] = len(export_files)
+        self.logger.info(f"Found {len(export_files)} export files to clean")
         return export_files
     
     def optimize_pycache(self) -> List[Path]:
         """Optimize __pycache__ directories by removing old .pyc files."""
-        print("⚡ Optimizing Python cache files...")
+        self.logger.info("Optimizing Python cache files...")
         
         pycache_files = []
+        strategy = self.cleanup_config.get('strategy', 'standard')
         
-        # Find all __pycache__ directories in src/ only (avoid .venv)
-        src_path = self.project_root / 'src'
-        if src_path.exists():
-            for pycache_dir in src_path.rglob('__pycache__'):
-                if pycache_dir.is_dir():
-                    for pyc_file in pycache_dir.glob('*.pyc'):
-                        # Check if corresponding .py file exists
-                        py_file = pyc_file.parent.parent / (pyc_file.stem.split('.')[0] + '.py')
-                        if not py_file.exists() or self.aggressive:
-                            pycache_files.append(pyc_file)
+        # Find all __pycache__ directories in specified paths
+        search_paths = self.patterns_config.get('pycache_search_paths', ['src'])
         
-        print(f"⚡ Found {len(pycache_files)} cache files to optimize")
+        for search_path in search_paths:
+            path = self.project_root / search_path
+            if path.exists():
+                for pycache_dir in path.rglob('__pycache__'):
+                    if pycache_dir.is_dir():
+                        for pyc_file in pycache_dir.glob('*.pyc'):
+                            # Check if corresponding .py file exists
+                            py_file = pyc_file.parent.parent / (pyc_file.stem.split('.')[0] + '.py')
+                            if not py_file.exists() or strategy == 'aggressive':
+                                pycache_files.append(pyc_file)
+        
+        self.logger.info(f"Found {len(pycache_files)} cache files to optimize")
         return pycache_files
     
     def analyze_project_health(self) -> Dict[str, any]:
         """Analyze project health and provide recommendations."""
-        print("🔍 Analyzing project health...")
+        self.logger.info("Analyzing project health...")
         
         health_report = {
             'total_files': 0,
             'python_files': 0,
             'large_files': [],
             'duplicate_patterns': [],
-            'recommendations': []
+            'recommendations': [],
+            'directory_stats': {}
         }
+        
+        # Get health check thresholds from config
+        thresholds = self.patterns_config.get('health_thresholds', {})
+        large_file_mb = thresholds.get('large_file_mb', 1)
+        max_files_warning = thresholds.get('max_files_warning', 500)
+        
+        exclude_patterns = self.patterns_config.get('exclude_patterns', [])
         
         # Count files and identify large ones
         for file_path in self.project_root.rglob('*'):
-            if file_path.is_file() and 'archive' not in str(file_path) and '.venv' not in str(file_path):
+            if file_path.is_file():
+                # Skip excluded directories
+                if any(pattern in str(file_path) for pattern in exclude_patterns):
+                    continue
+                    
                 health_report['total_files'] += 1
                 
                 if file_path.suffix == '.py':
                     health_report['python_files'] += 1
                 
-                # Check for large files (>1MB)
-                if file_path.stat().st_size > 1024 * 1024:
+                # Check for large files
+                file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                if file_size_mb > large_file_mb:
                     health_report['large_files'].append({
                         'path': str(file_path.relative_to(self.project_root)),
-                        'size_mb': round(file_path.stat().st_size / (1024 * 1024), 2)
+                        'size_mb': round(file_size_mb, 2)
                     })
+        
+        # Generate directory statistics
+        for dir_path in ['src', 'tests', 'scripts', 'docs']:
+            path = self.project_root / dir_path
+            if path.exists():
+                stats = self.file_utils.get_directory_stats(path)
+                health_report['directory_stats'][dir_path] = stats
         
         # Generate recommendations
         if len(health_report['large_files']) > 0:
@@ -264,50 +292,209 @@ class WeatherDashboardCleaner:
                 f"Consider optimizing {len(health_report['large_files'])} large files"
             )
         
-        if health_report['total_files'] > 500:
+        if health_report['total_files'] > max_files_warning:
             health_report['recommendations'].append(
                 "Project has many files - consider regular cleanup"
             )
         
         return health_report
     
-    def _clean_files(self, files: List[Path], file_type: str):
-        """Generic file cleaning method with progress tracking."""
-        print(f"🧹 Cleaning {len(files)} {file_type} files...")
+    def _clean_files(self, files: List[Path], file_type: str) -> int:
+        """Generic method to clean files with progress tracking."""
+        if not files:
+            return 0
         
-        for file_path in files:
+        cleaned_count = 0
+        total_size = 0
+        errors = []
+        
+        self.logger.info(f"Cleaning {len(files)} {file_type} files...")
+        
+        # Use parallel processing if enabled
+        if self.cleanup_config.get('parallel_processing', False):
+            cleaned_count, total_size, errors = self._clean_files_parallel(files, file_type)
+        else:
+            for i, file_path in enumerate(files, 1):
+                try:
+                    if not self.dry_run:
+                        file_size = file_path.stat().st_size
+                        if file_path.is_dir():
+                            import shutil
+                            shutil.rmtree(file_path)
+                        else:
+                            file_path.unlink()
+                        total_size += file_size
+                        cleaned_count += 1
+                    else:
+                        total_size += file_path.stat().st_size
+                        cleaned_count += 1
+                    
+                    # Progress indicator
+                    if i % 10 == 0 or i == len(files):
+                        progress = (i / len(files)) * 100
+                        self.logger.debug(f"Progress: {progress:.1f}% ({i}/{len(files)})")
+                        
+                except Exception as e:
+                    error_msg = f"Error cleaning {file_path}: {e}"
+                    self.logger.warning(error_msg)
+                    errors.append(error_msg)
+        
+        # Update stats
+        self.stats['files_cleaned'] += cleaned_count
+        self.stats['space_freed'] += total_size
+        if 'errors' not in self.stats:
+            self.stats['errors'] = []
+        self.stats['errors'].extend(errors)
+        
+        size_mb = total_size / (1024 * 1024)
+        action = "Would clean" if self.dry_run else "Cleaned"
+        self.logger.info(f"{action} {cleaned_count} {file_type} files ({size_mb:.2f} MB)")
+        
+        return cleaned_count
+    
+    def _clean_files_parallel(self, files: List[Path], file_type: str) -> Tuple[int, int, List[str]]:
+        """Clean files using parallel processing."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
+        
+        cleaned_count = 0
+        total_size = 0
+        errors = []
+        lock = threading.Lock()
+        
+        max_workers = self.cleanup_config.get('max_workers', 4)
+        
+        def clean_single_file(file_path: Path) -> Tuple[bool, int, str]:
             try:
-                file_size = file_path.stat().st_size if file_path.exists() else 0
-                
                 if not self.dry_run:
+                    file_size = file_path.stat().st_size
                     if file_path.is_dir():
+                        import shutil
                         shutil.rmtree(file_path)
                     else:
                         file_path.unlink()
-                
-                self.stats['space_freed'] += file_size
-                self.stats['files_cleaned'] += 1
-                
-                relative_path = file_path.relative_to(self.project_root)
-                print(f"🗑️ {'[DRY RUN] ' if self.dry_run else ''}Removed {file_type}: {relative_path}")
-                
+                    return True, file_size, ""
+                else:
+                    file_size = file_path.stat().st_size
+                    return True, file_size, ""
             except Exception as e:
-                print(f"❌ Error removing {file_path}: {e}")
-    
-    def _calculate_cleanup_stats(self, all_files: List[Path]):
-        """Calculate comprehensive cleanup statistics."""
-        total_size = 0
-        for file_path in all_files:
-            try:
-                if file_path.exists():
-                    total_size += file_path.stat().st_size
-            except:
-                pass
+                return False, 0, str(e)
         
-        self.stats['space_freed'] = total_size
-        self.stats['files_cleaned'] = len(all_files)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_file = {executor.submit(clean_single_file, file_path): file_path 
+                            for file_path in files}
+            
+            for future in as_completed(future_to_file):
+                file_path = future_to_file[future]
+                try:
+                    success, size, error = future.result()
+                    with lock:
+                        if success:
+                            cleaned_count += 1
+                            total_size += size
+                        else:
+                            errors.append(f"Error cleaning {file_path}: {error}")
+                except Exception as e:
+                    with lock:
+                        errors.append(f"Unexpected error cleaning {file_path}: {e}")
+        
+        return cleaned_count, total_size, errors
     
-    def generate_enhanced_cleanup_report(
+    def _calculate_cleanup_stats(self, files_by_type: Dict[str, List[Path]]) -> Dict[str, any]:
+        """Calculate comprehensive cleanup statistics."""
+        stats = {
+            'total_files': sum(len(files) for files in files_by_type.values()),
+            'total_size_mb': 0,
+            'by_type': {},
+            'largest_files': [],
+            'cleanup_efficiency': 0,
+            'recommendations': []
+        }
+        
+        all_files = []
+        for file_type, files in files_by_type.items():
+            type_size = sum(f.stat().st_size for f in files if f.exists())
+            stats['by_type'][file_type] = {
+                'count': len(files),
+                'size_mb': round(type_size / (1024 * 1024), 2)
+            }
+            stats['total_size_mb'] += type_size / (1024 * 1024)
+            all_files.extend(files)
+        
+        # Find largest files
+        if all_files:
+            sorted_files = sorted(
+                [(f, f.stat().st_size) for f in all_files if f.exists()],
+                key=lambda x: x[1],
+                reverse=True
+            )[:10]
+            
+            stats['largest_files'] = [
+                {
+                    'path': str(f.relative_to(self.project_root)),
+                    'size_mb': round(size / (1024 * 1024), 2)
+                }
+                for f, size in sorted_files
+            ]
+        
+        # Calculate cleanup efficiency
+        if stats['total_files'] > 0:
+            stats['cleanup_efficiency'] = min(100, (stats['total_size_mb'] / stats['total_files']) * 10)
+        
+        # Generate recommendations
+        if stats['total_size_mb'] > 100:
+            stats['recommendations'].append("Consider more frequent cleanup cycles")
+        if stats['by_type'].get('cache_files', {}).get('count', 0) > 50:
+            stats['recommendations'].append("Review cache retention policies")
+        
+        stats['total_size_mb'] = round(stats['total_size_mb'], 2)
+        
+        # Update instance stats
+        self.stats['space_freed'] = stats['total_size_mb'] * 1024 * 1024
+        self.stats['files_cleaned'] = stats['total_files']
+        
+        return stats
+    
+    def create_archive(self, files: List[Path], archive_type: str = 'cleanup') -> Optional[Path]:
+        """Create archive of files before deletion."""
+        if not files or self.dry_run:
+            return None
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        archive_dir = self.project_root / 'archive' / f'{archive_type}_{timestamp}'
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.logger.info(f"Creating archive in {archive_dir}...")
+        
+        archived_count = 0
+        archive_config = self.cleanup_config.get('archive', {})
+        compress_archive = archive_config.get('compress', False)
+        
+        if compress_archive:
+            # Create compressed archive
+            archive_file = archive_dir.with_suffix('.tar.gz')
+            archived_count = self.file_utils.create_compressed_archive(files, archive_file, self.project_root)
+        else:
+            # Create directory archive
+            for file_path in files:
+                try:
+                    # Maintain directory structure in archive
+                    relative_path = file_path.relative_to(self.project_root)
+                    archive_file = archive_dir / relative_path
+                    archive_file.parent.mkdir(parents=True, exist_ok=True)
+                    
+                    # Copy file to archive
+                    import shutil
+                    shutil.copy2(file_path, archive_file)
+                    archived_count += 1
+                    
+                except Exception as e:
+                    self.logger.warning(f"Error archiving {file_path}: {e}")
+        
+        self.logger.info(f"Archived {archived_count} files")
+        return archive_dir if not compress_archive else archive_file
+     
+     def generate_enhanced_cleanup_report(
         self, legacy_files: List[Path], temp_files: List[Path], 
         cache_files: List[Path], export_files: List[Path], 
         pycache_files: List[Path], health_report: Optional[Dict], 
@@ -484,31 +671,66 @@ Aggressive Mode: {'YES' if self.aggressive else 'NO'}
             except Exception as e:
                 print(f"❌ Error removing {file_path}: {e}")
     
-    def reorganize_directories(self):
-        """Reorganize directory structure for better maintainability."""
-        print("📁 Reorganizing directory structure...")
+    def reorganize_directories(self) -> Dict[str, int]:
+        """Reorganize project directories for better structure."""
+        self.logger.info("Reorganizing project directories...")
         
-        # Define ideal directory structure
-        ideal_structure = {
-            'src/': 'Core application source code',
-            'src/core/': 'Core interfaces and models',
-            'src/services/': 'Business logic services',
-            'src/ui/': 'User interface components',
-            'src/features/': 'Feature-specific modules',
-            'src/utils/': 'Utility functions and helpers',
-            'tests/': 'Test files and test data',
-            'docs/': 'Documentation files',
-            'config/': 'Configuration files',
-            'data/': 'Data files and databases',
-            'assets/': 'Static assets (images, etc.)',
-            'scripts/': 'Utility scripts and tools'
+        reorganize_stats = {
+            'moved_files': 0,
+            'created_dirs': 0,
+            'removed_empty_dirs': 0
         }
         
-        for dir_path, description in ideal_structure.items():
-            target_dir = self.project_root / dir_path
+        # Get reorganization rules from config
+        reorganize_config = self.patterns_config.get('reorganize', {})
+        if not reorganize_config.get('enabled', False):
+            self.logger.info("Directory reorganization is disabled")
+            return reorganize_stats
+        
+        target_structure = reorganize_config.get('target_structure', {
+            'src/utils': ['*_utils.py', '*_helper.py'],
+            'src/models': ['*_model.py', '*_schema.py'],
+            'src/services': ['*_service.py', '*_client.py'],
+            'tests/unit': ['test_*.py'],
+            'docs/api': ['*.md'],
+            'scripts/maintenance': ['cleanup_*.py', 'verify_*.py']
+        })
+        
+        for target_dir, patterns in target_structure.items():
+            target_path = self.project_root / target_dir
+            
             if not self.dry_run:
-                target_dir.mkdir(exist_ok=True)
-            print(f"📁 {'[DRY RUN] ' if self.dry_run else ''}Directory: {dir_path} - {description}")
+                target_path.mkdir(parents=True, exist_ok=True)
+                reorganize_stats['created_dirs'] += 1
+            
+            # Move matching files
+            for pattern in patterns:
+                for file_path in self.project_root.rglob(pattern):
+                    if file_path.is_file() and target_dir not in str(file_path):
+                        if not self.dry_run:
+                            new_path = target_path / file_path.name
+                            if not new_path.exists():
+                                try:
+                                    file_path.rename(new_path)
+                                    reorganize_stats['moved_files'] += 1
+                                except Exception as e:
+                                    self.logger.warning(f"Error moving {file_path}: {e}")
+        
+        # Remove empty directories
+        if reorganize_config.get('remove_empty_dirs', True):
+            for dir_path in self.project_root.rglob('*'):
+                if dir_path.is_dir() and not any(dir_path.iterdir()):
+                    if not self.dry_run:
+                        try:
+                            dir_path.rmdir()
+                            reorganize_stats['removed_empty_dirs'] += 1
+                        except Exception as e:
+                            self.logger.warning(f"Error removing empty directory {dir_path}: {e}")
+        
+        action = "Would reorganize" if self.dry_run else "Reorganized"
+        self.logger.info(f"{action} directories: {reorganize_stats}")
+        
+        return reorganize_stats
     
     def generate_cleanup_report(self, legacy_files: List[Path], temp_files: List[Path]) -> str:
         """Generate detailed cleanup report."""
