@@ -10,7 +10,7 @@ from services.journal_service import JournalService
 from models.journal_entry import JournalEntry
 
 
-class JournalSearchComponent:
+class JournalSearchComponent(ttk.Frame):
     """Advanced search interface for weather journal entries."""
     
     def __init__(self, parent: tk.Widget, journal_service: JournalService, 
@@ -22,7 +22,7 @@ class JournalSearchComponent:
             journal_service: Journal service instance
             on_entry_selected: Callback when an entry is selected
         """
-        self.parent = parent
+        super().__init__(parent)
         self.journal_service = journal_service
         self.on_entry_selected = on_entry_selected
         
@@ -40,7 +40,7 @@ class JournalSearchComponent:
     def _create_search_interface(self):
         """Create the search interface components."""
         # Main search frame
-        self.search_frame = ttk.LabelFrame(self.parent, text="Advanced Search", padding=10)
+        self.search_frame = ttk.LabelFrame(self, text="Advanced Search", padding=10)
         self.search_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Search query section

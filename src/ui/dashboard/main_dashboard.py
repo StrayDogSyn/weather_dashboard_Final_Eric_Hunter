@@ -47,6 +47,11 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         """
         super().__init__()
         
+        # Initialize attributes
+        self.auto_refresh_timer_id = None
+        self._running = True
+        self._scheduled_callbacks = set()  # Track scheduled after() calls
+        
         # Setup services with error protection
         try:
             self.logging_service = LoggingService()
@@ -361,7 +366,10 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             # If not in main thread, schedule safely
             try:
                 if self.winfo_exists():
-                    return super().after(ms, func, *args)
+                    callback_id = super().after(ms, func, *args)
+                    if callback_id and hasattr(self, '_scheduled_callbacks'):
+                        self._scheduled_callbacks.add(callback_id)
+                    return callback_id
                 else:
                     self.logger.debug("Widget destroyed, skipping after call")
                     return None
@@ -374,7 +382,10 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         
         # Use the original after method but catch any scheduling errors
         try:
-            return super().after(ms, func, *args)
+            callback_id = super().after(ms, func, *args)
+            if callback_id and hasattr(self, '_scheduled_callbacks'):
+                self._scheduled_callbacks.add(callback_id)
+            return callback_id
         except Exception as e:
             error_msg = str(e).lower()
             if "invalid command name" in error_msg:
@@ -387,6 +398,39 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             else:
                 raise e
     
+    def after_cancel(self, id):
+        """Override after_cancel to remove from tracking set."""
+        try:
+            super().after_cancel(id)
+            if hasattr(self, '_scheduled_callbacks'):
+                self._scheduled_callbacks.discard(id)
+        except Exception as e:
+            # Callback may have already executed or been cancelled
+            if hasattr(self, '_scheduled_callbacks'):
+                self._scheduled_callbacks.discard(id)
+            self.logger.debug(f"after_cancel error (ignored): {e}")
+    
+    def _cleanup_child_components(self):
+        """Recursively cleanup all child components that have cleanup methods."""
+        def cleanup_widget(widget):
+            try:
+                # Check if widget has cleanup method and call it
+                if hasattr(widget, 'cleanup') and callable(getattr(widget, 'cleanup')):
+                    widget.cleanup()
+                    self.logger.debug(f"Cleaned up component: {widget.__class__.__name__}")
+                
+                # Recursively cleanup children
+                if hasattr(widget, 'winfo_children'):
+                    for child in widget.winfo_children():
+                        cleanup_widget(child)
+            except Exception as e:
+                self.logger.debug(f"Error cleaning up widget {widget.__class__.__name__}: {e}")
+        
+        try:
+            cleanup_widget(self)
+        except Exception as e:
+            self.logger.error(f"Error during child component cleanup: {e}")
+     
     def _on_closing(self):
         """Handle application closing - cleanup timers and resources."""
         try:
@@ -395,6 +439,22 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                 self.after_cancel(self.auto_refresh_timer_id)
                 self.auto_refresh_timer_id = None
                 self.logger.info("Auto-refresh timer cancelled")
+            
+            # Cancel all tracked scheduled callbacks
+            if hasattr(self, '_scheduled_callbacks'):
+                cancelled_count = 0
+                for callback_id in list(self._scheduled_callbacks):
+                    try:
+                        self.after_cancel(callback_id)
+                        cancelled_count += 1
+                    except Exception:
+                        pass  # Callback may have already executed
+                self._scheduled_callbacks.clear()
+                if cancelled_count > 0:
+                    self.logger.info(f"Cancelled {cancelled_count} pending callbacks")
+            
+            # Cleanup all child components that have cleanup methods
+            self._cleanup_child_components()
             
             # Stop any running processes
             if hasattr(self, '_running'):

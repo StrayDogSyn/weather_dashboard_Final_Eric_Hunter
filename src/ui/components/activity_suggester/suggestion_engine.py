@@ -376,7 +376,7 @@ class SuggestionEngineMixin:
             # Main frame
             main_frame = ctk.CTkScrollableFrame(
                 details_window,
-                fg_color=DataTerminalTheme.BG
+                fg_color=DataTerminalTheme.CARD_BG
             )
             main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
             

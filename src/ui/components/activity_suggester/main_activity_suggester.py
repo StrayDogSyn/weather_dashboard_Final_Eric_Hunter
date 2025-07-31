@@ -14,6 +14,7 @@ import threading
 import traceback
 
 from ui.theme import DataTerminalTheme
+from ui.components.base_component import BaseComponent
 from services.ai_service import AIService, ModelTier
 
 # Import mixins
@@ -38,7 +39,7 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 
-class ActivitySuggester(AIProvidersMixin, DatabaseManagerMixin, UIComponentsMixin, SuggestionEngineMixin, ctk.CTkFrame):
+class ActivitySuggester(AIProvidersMixin, DatabaseManagerMixin, UIComponentsMixin, SuggestionEngineMixin, BaseComponent):
     """Activity Suggester component that provides AI-powered activity recommendations based on weather."""
     
     def __init__(self, parent, weather_service, config_service, **kwargs):

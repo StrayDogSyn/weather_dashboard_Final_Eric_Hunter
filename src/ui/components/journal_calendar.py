@@ -11,7 +11,7 @@ from services.journal_service import JournalService
 from models.journal_entry import JournalEntry
 
 
-class JournalCalendarComponent:
+class JournalCalendarComponent(ttk.Frame):
     """Calendar view for date-based journal entry navigation."""
     
     def __init__(self, parent: tk.Widget, journal_service: JournalService,
@@ -25,7 +25,7 @@ class JournalCalendarComponent:
             on_date_selected: Callback when a date is selected
             on_entry_selected: Callback when an entry is selected
         """
-        self.parent = parent
+        super().__init__(parent)
         self.journal_service = journal_service
         self.on_date_selected = on_date_selected
         self.on_entry_selected = on_entry_selected
@@ -45,7 +45,7 @@ class JournalCalendarComponent:
     def _create_calendar_interface(self):
         """Create the calendar interface components."""
         # Main calendar frame
-        self.calendar_frame = ttk.LabelFrame(self.parent, text="Journal Calendar", padding=10)
+        self.calendar_frame = ttk.LabelFrame(self, text="Journal Calendar", padding=10)
         self.calendar_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Navigation frame

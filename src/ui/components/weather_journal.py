@@ -32,20 +32,21 @@ class WeatherJournal(ctk.CTkFrame):
         self.conn = sqlite3.connect(str(db_path))
         self.cursor = self.conn.cursor()
         
-        # Create table
+        # Create table with schema compatible with journal_service
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS journal_entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                city TEXT NOT NULL,
-                temperature REAL,
-                weather_condition TEXT,
-                mood TEXT,
-                notes TEXT,
-                humidity INTEGER,
-                wind_speed REAL,
+                date_created TEXT NOT NULL,
                 weather_data TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 10),
+                entry_content TEXT NOT NULL,
+                tags TEXT,
+                location TEXT,
+                category TEXT,
+                photos TEXT,
+                template_used TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         self.conn.commit()
@@ -216,7 +217,7 @@ class WeatherJournal(ctk.CTkFrame):
         """Load existing journal entries."""
         try:
             self.cursor.execute(
-                "SELECT * FROM journal_entries ORDER BY timestamp DESC LIMIT 10"
+                "SELECT * FROM journal_entries ORDER BY created_at DESC LIMIT 10"
             )
             entries = self.cursor.fetchall()
             

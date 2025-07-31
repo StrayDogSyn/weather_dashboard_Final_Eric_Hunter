@@ -119,6 +119,10 @@ class TemperatureChart(ctk.CTkFrame,
     def change_timeframe(self, timeframe: str):
         """Alias for set_timeframe to match mixin expectations."""
         self.set_timeframe(timeframe)
+    
+    def update_timeframe(self, timeframe: str):
+        """Update chart timeframe - alias for set_timeframe."""
+        self.set_timeframe(timeframe)
                 
     def export_chart_png(self):
         """Export chart as PNG."""

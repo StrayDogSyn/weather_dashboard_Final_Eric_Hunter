@@ -10,7 +10,7 @@ from utils.photo_manager import PhotoManager
 from models.journal_entry import JournalEntry
 
 
-class PhotoGalleryComponent:
+class PhotoGalleryComponent(ttk.Frame):
     """Photo gallery with glassmorphic overlay panels for journal entries."""
     
     def __init__(self, parent: tk.Widget, photo_manager: PhotoManager,
@@ -24,7 +24,7 @@ class PhotoGalleryComponent:
             on_photo_selected: Callback when a photo is selected
             on_photos_changed: Callback when photos are added/removed
         """
-        self.parent = parent
+        super().__init__(parent)
         self.photo_manager = photo_manager
         self.on_photo_selected = on_photo_selected
         self.on_photos_changed = on_photos_changed
@@ -41,7 +41,7 @@ class PhotoGalleryComponent:
     def _create_gallery_interface(self):
         """Create the photo gallery interface."""
         # Main gallery frame with glassmorphic styling
-        self.gallery_frame = ttk.LabelFrame(self.parent, text="Photo Gallery", padding=10)
+        self.gallery_frame = ttk.LabelFrame(self, text="Photo Gallery", padding=10)
         self.gallery_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Toolbar frame

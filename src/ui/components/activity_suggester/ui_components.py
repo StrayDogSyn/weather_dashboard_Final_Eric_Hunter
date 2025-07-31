@@ -372,19 +372,24 @@ class UIComponentsMixin:
     
     def _refresh_suggestions(self) -> None:
         """Refresh activity suggestions."""
-        # Clear existing content and show loading
+        # Clear existing suggestions
         for widget in self.suggestions_frame.winfo_children():
             widget.destroy()
         
-        # Create new loading label
-        self.loading_label = ctk.CTkLabel(
+        # Show loading state
+        loading_label = ctk.CTkLabel(
             self.suggestions_frame,
-            text="🔄 Generating AI suggestions...",
+            text="🤖 Generating AI suggestions...",
             font=(DataTerminalTheme.FONT_FAMILY, 14),
             text_color=DataTerminalTheme.TEXT_SECONDARY
         )
-        self.loading_label.pack(pady=50)
+        loading_label.pack(pady=50)
+        
+        # Disable refresh button
         self.refresh_btn.configure(state="disabled", text="Loading...")
         
-        # Run in background thread
-        threading.Thread(target=self._fetch_suggestions, daemon=True).start()
+        # Start background thread for suggestions
+        threading.Thread(
+            target=self._fetch_suggestions,
+            daemon=True
+        ).start()
