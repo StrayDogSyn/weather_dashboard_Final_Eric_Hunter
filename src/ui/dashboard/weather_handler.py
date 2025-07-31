@@ -50,6 +50,13 @@ class WeatherHandlerMixin:
                 # Update last update time
                 self.last_weather_update = datetime.now()
                 
+                # Trigger Puscifer audio update if available
+                if hasattr(self, 'puscifer') and self.puscifer:
+                    try:
+                        self.puscifer.on_weather_update(weather_data)
+                    except Exception as e:
+                        self.logger.debug(f"Puscifer audio update failed: {e}")
+                
                 self.logger.info("Weather data updated successfully")
             else:
                 self.logger.warning("No weather data received")

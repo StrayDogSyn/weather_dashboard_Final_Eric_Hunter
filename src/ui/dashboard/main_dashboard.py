@@ -26,6 +26,7 @@ from .weather_display_enhancer import WeatherDisplayEnhancer
 from .ui_components import UIComponentsMixin
 from .tab_manager import TabManagerMixin
 from .weather_handler import WeatherHandlerMixin
+from features.puscifer_audio_engine import PusciferWeatherIntegration
 
 
 class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, WeatherHandlerMixin):
@@ -181,7 +182,64 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         self._weather_update_id = None
         self._auto_refresh_id = None
         
+        # Initialize Puscifer audio system
+        self.puscifer = None
+        self.after(1000, self._setup_puscifer_audio_delayed)
+        
         self.logger.info("Professional Weather Dashboard initialized")
+    
+    def _setup_puscifer_audio_delayed(self):
+        """Setup Puscifer audio system with delay to ensure UI is ready"""
+        try:
+            import asyncio
+            # Run the async setup in a thread to avoid blocking the UI
+            threading.Thread(target=self._run_puscifer_setup, daemon=True).start()
+        except Exception as e:
+            self.logger.warning(f"Failed to setup Puscifer audio: {e}")
+    
+    def _run_puscifer_setup(self):
+        """Run Puscifer setup in a separate thread"""
+        try:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.setup_puscifer_audio())
+            loop.close()
+        except Exception as e:
+            self.logger.warning(f"Puscifer audio setup failed: {e}")
+    
+    async def setup_puscifer_audio(self):
+        """Setup Puscifer audio integration"""
+        try:
+            # Get Spotify credentials from environment variables
+            import os
+            spotify_config = {
+                'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
+                'client_secret': os.getenv('SPOTIFY_CLIENT_SECRET'),
+                'redirect_uri': os.getenv('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:8000/callback')
+            }
+            
+            # Validate that credentials are available
+            if not spotify_config['client_id'] or not spotify_config['client_secret']:
+                self.logger.warning("⚠️ Spotify credentials not found in environment variables")
+                return
+            
+            self.puscifer = PusciferWeatherIntegration(
+                self,
+                spotify_config['client_id'],
+                spotify_config['client_secret'],
+                spotify_config['redirect_uri']
+            )
+            
+            # Initialize the audio engine
+            success = await self.puscifer.initialize()
+            if success:
+                self.logger.info("🎵 Puscifer audio system initialized successfully")
+            else:
+                self.logger.warning("🎵 Puscifer audio system failed to initialize (check Spotify credentials)")
+                
+        except Exception as e:
+            self.logger.warning(f"Puscifer audio setup error: {e}")
     
     def _safe_initial_setup(self):
         """Safe initialization without problematic components"""

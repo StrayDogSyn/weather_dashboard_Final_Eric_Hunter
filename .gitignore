@@ -82,9 +82,40 @@ configs/cortana/
 settings.json
 config.ini
 secrets.json
+api_keys.json
+credentials.json
+
+# User-specific configuration
+user_preferences.json
+user_settings.json
+window_config.json
 
 # API response cache
 *.cache
+
+# Spotify authentication and cache files
+.cache-*
+spotify_cache/
+*.spotify_cache
+.spotify_token
+spotify_credentials.json
+
+# Audio engine files
+audio_cache/
+*.wav
+*.mp3
+*.ogg
+*.flac
+audio_temp/
+playlist_cache/
+
+# Pygame and SDL files
+pygame.log
+SDL_*
+
+# Audio visualization cache
+visualization_cache/
+spectrum_data/
 
 # Testing
 .pytest_cache/
