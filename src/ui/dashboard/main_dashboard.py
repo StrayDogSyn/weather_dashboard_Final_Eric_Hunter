@@ -169,7 +169,7 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         
         # Setup cleanup on window close
         try:
-            self.protocol("WM_DELETE_WINDOW", self._on_closing)
+            self.protocol("WM_DELETE_WINDOW", self._on_user_close)
             self.logger.debug("Window close protocol set successfully")
         except Exception as e:
             self.logger.exception(f"Error setting window close protocol: {e}")
@@ -454,7 +454,8 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                 self.logger.debug(f"Skipped after call due to main loop issue: {e}")
                 return None
             else:
-                raise e
+                self.logger.warning(f"Non-critical after call error: {e}")
+                return None
     
     def after_cancel(self, id):
         """Override after_cancel to remove from tracking set."""
@@ -488,6 +489,17 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             cleanup_widget(self)
         except Exception as e:
             self.logger.error(f"Error during child component cleanup: {e}")
+    
+    def _on_user_close(self):
+        """Handle user-initiated window close - ask for confirmation"""
+        try:
+            import tkinter.messagebox as msgbox
+            if msgbox.askokcancel("Quit", "Do you want to quit the Weather Dashboard?"):
+                self._on_closing()
+        except Exception as e:
+            self.logger.error(f"Error in user close handler: {e}")
+            # If there's an error with the dialog, just close
+            self._on_closing()
      
     def _on_closing(self):
         """Handle application closing - cleanup timers and resources."""
@@ -510,6 +522,14 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                 self._scheduled_callbacks.clear()
                 if cancelled_count > 0:
                     self.logger.info(f"Cancelled {cancelled_count} pending callbacks")
+            
+            # Cleanup Puscifer audio system
+            if hasattr(self, 'puscifer') and self.puscifer:
+                try:
+                    self.puscifer.cleanup()
+                    self.logger.info("🎵 Puscifer audio system cleaned up")
+                except Exception as e:
+                    self.logger.error(f"Error cleaning up Puscifer audio: {e}")
             
             # Cleanup all child components that have cleanup methods
             self._cleanup_child_components()

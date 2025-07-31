@@ -429,15 +429,32 @@ class TabManagerMixin:
             placeholder.grid(row=0, column=0)
     
     def _create_settings_tab(self) -> None:
-        """Create settings tab with API management."""
+        """Create settings tab with API management and audio controls."""
         settings_tab = self.tabview.tab("Settings")
         settings_tab.grid_rowconfigure(0, weight=1)
+        settings_tab.grid_rowconfigure(1, weight=1)
         settings_tab.grid_columnconfigure(0, weight=1)
         
         # Add secure API manager to settings tab
         if hasattr(self, 'secure_api_manager'):
             api_section = self.secure_api_manager.create_api_section(settings_tab)
-            api_section.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            api_section.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
+        
+        # Create audio controls section
+        audio_section = ctk.CTkFrame(settings_tab)
+        audio_section.grid(row=1, column=0, sticky="nsew", padx=10, pady=(5, 10))
+        audio_section.grid_columnconfigure(0, weight=1)
+        
+        # Audio section title
+        audio_title = ctk.CTkLabel(
+            audio_section,
+            text="🎵 Audio Settings",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        audio_title.grid(row=0, column=0, pady=(10, 5), sticky="ew")
+        
+        # Store reference for audio engine to use
+        self.audio_controls_frame = audio_section
     
     def _on_timeframe_change(self, value: str) -> None:
         """Handle timeframe selector change."""

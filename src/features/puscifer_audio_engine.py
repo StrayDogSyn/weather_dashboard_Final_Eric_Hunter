@@ -17,6 +17,11 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
 import random
+from .spotify_callback_server import SpotifyCallbackServer
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'audio'))
+from spotify_web_player import SpotifyWebPlayer
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +57,9 @@ class PusciferAudioEngine:
         self.ambient_player = None
         self.ui_sounds = {}
         self.is_playing = False
+        self.callback_server = None
+        self.web_player = None
+        self.web_player_device_id = None
         
         # Initialize pygame for audio
         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -179,7 +187,11 @@ class PusciferAudioEngine:
     async def initialize_spotify(self):
         """Initialize Spotify with Puscifer-approved scopes"""
         try:
-            scope = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private"
+            # Start the callback server
+            self.callback_server = SpotifyCallbackServer(port=8000)
+            self.callback_server.start()
+            
+            scope = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private streaming user-read-private user-read-email"
             
             auth_manager = SpotifyOAuth(
                 client_id=self.spotify_client_id,
@@ -330,7 +342,19 @@ class PusciferAudioEngine:
             
             if new_mood != self.current_mood:
                 self.current_mood = new_mood
-                asyncio.create_task(self._transition_to_mood(new_mood))
+                
+                # Handle async transition safely
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, schedule the coroutine
+                        asyncio.create_task(self._transition_to_mood(new_mood))
+                    else:
+                        # If no loop, run synchronously
+                        asyncio.run(self._transition_to_mood(new_mood))
+                except RuntimeError:
+                    # No event loop, create one
+                    asyncio.run(self._transition_to_mood(new_mood))
                 
                 logger.info(f"🎵 Weather mood set to: {new_mood.value}")
             
@@ -381,6 +405,7 @@ class PusciferAudioEngine:
         """Switch to weather-appropriate Spotify playlist"""
         try:
             if not self.spotify:
+                logger.warning("🎵 Spotify not connected")
                 return
             
             full_name = f"Weather Dashboard: {playlist_name}"
@@ -395,21 +420,38 @@ class PusciferAudioEngine:
                     break
             
             if target_playlist:
-                # Get user's active device
-                devices = self.spotify.devices()
-                if devices['devices']:
-                    device_id = devices['devices'][0]['id']
-                    
-                    # Start playback
-                    self.spotify.start_playback(
-                        device_id=device_id,
-                        context_uri=target_playlist['uri']
-                    )
-                    
-                    logger.info(f"🎵 Started playlist: {playlist_name}")
+                # Prefer web player device if available
+                target_device_id = None
+                if self.web_player_device_id:
+                    target_device_id = self.web_player_device_id
+                    logger.info(f"🎵 Using web player device: {target_device_id}")
+                else:
+                    # Get user's active device
+                    devices = self.spotify.devices()
+                    if devices['devices']:
+                        device_id = devices['devices'][0]['id']
+                        target_device_id = device_id
+                    else:
+                        logger.warning(f"🎵 No active Spotify devices found. Please open Spotify app on your device and start playing any song, then try again.")
+                        logger.info(f"🎵 Playlist ready: {playlist_name} (waiting for active device)")
+                        return
+                
+                # Start playback
+                self.spotify.start_playback(
+                    device_id=target_device_id,
+                    context_uri=target_playlist['uri']
+                )
+                
+                logger.info(f"🎵 Started playlist: {playlist_name}")
+            else:
+                logger.warning(f"🎵 Playlist '{full_name}' not found. Creating playlists...")
+                # Trigger playlist creation if not found
+                await self._setup_weather_playlists()
             
         except Exception as e:
             logger.warning(f"Spotify playlist switch failed: {e}")
+            if "NO_ACTIVE_DEVICE" in str(e):
+                logger.info("💡 To hear music: Open Spotify app and start playing any song, then the weather music will take over!")
     
     def _load_ui_sound_pack(self, sound_pack: str):
         """Load Puscifer-inspired UI sound effects"""
@@ -447,6 +489,28 @@ class PusciferAudioEngine:
         except Exception as e:
             logger.debug(f"UI sound play failed: {e}")
     
+    def stop_audio(self):
+        """Stop all audio playback"""
+        try:
+            if self.ambient_player:
+                self.ambient_player.stop()
+            pygame.mixer.stop()
+            self.is_playing = False
+            logger.info("🔇 Audio stopped")
+        except Exception as e:
+            logger.error(f"Error stopping audio: {e}")
+    
+    def cleanup(self):
+        """Clean up resources including the callback server"""
+        try:
+            self.stop_audio()
+            if self.callback_server:
+                self.callback_server.stop()
+                self.callback_server = None
+            logger.info("🧹 Puscifer Audio Engine cleaned up")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+    
     def create_weather_audio_visualizer(self, parent_widget):
         """Create real-time audio visualizer for weather mood"""
         try:
@@ -454,9 +518,20 @@ class PusciferAudioEngine:
             from tkinter import Canvas
             import customtkinter as ctk
             
-            # Create visualizer frame
+            # Create visualizer frame - use grid layout
             viz_frame = ctk.CTkFrame(parent_widget, height=100)
-            viz_frame.pack(fill='x', padx=10, pady=5)
+            
+            # Configure grid for parent if needed
+            if hasattr(parent_widget, 'grid_rowconfigure'):
+                next_row = len([child for child in parent_widget.winfo_children()])
+                viz_frame.grid(row=next_row, column=0, sticky="ew", padx=10, pady=5)
+                parent_widget.grid_columnconfigure(0, weight=1)
+            else:
+                # Fallback to pack if grid not available
+                viz_frame.pack(fill='x', padx=10, pady=5)
+            
+            # Configure visualizer frame grid
+            viz_frame.grid_columnconfigure(0, weight=1)
             
             # Canvas for audio visualization
             canvas = Canvas(
@@ -465,7 +540,7 @@ class PusciferAudioEngine:
                 bg='#1a1a1a',
                 highlightthickness=0
             )
-            canvas.pack(fill='x', padx=10, pady=10)
+            canvas.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
             
             # Start visualizer animation
             self._start_audio_visualizer(canvas)
@@ -478,8 +553,24 @@ class PusciferAudioEngine:
     
     def _start_audio_visualizer(self, canvas):
         """Start Puscifer-style audio visualizer animation"""
+        import tkinter as tk
+        
+        # Store canvas reference for cleanup
+        self.viz_canvas_ref = canvas
+        self.viz_running = True
+        
         def update_visualizer():
             try:
+                if not self.viz_running:
+                    return
+                    
+                # Check if canvas still exists
+                try:
+                    canvas.winfo_exists()
+                except tk.TclError:
+                    self.viz_running = False
+                    return
+                    
                 canvas.delete("all")
                 width = canvas.winfo_width()
                 height = canvas.winfo_height()
@@ -509,14 +600,26 @@ class PusciferAudioEngine:
                             outline=color
                         )
                 
-                # Schedule next update
-                canvas.after(50, update_visualizer)
+                # Schedule next update with proper error handling
+                if self.viz_running:
+                    try:
+                        canvas.after(50, update_visualizer)
+                    except Exception:
+                        # Canvas destroyed, stop animation
+                        self.viz_running = False
                 
             except Exception as e:
                 logger.debug(f"Visualizer update failed: {e}")
+                self.viz_running = False
         
-        # Start the animation
-        canvas.after(100, update_visualizer)
+        # Store the function reference to avoid lambda command name error
+        self._update_visualizer_func = update_visualizer
+        
+        # Start the animation with error handling
+        try:
+            canvas.after(100, self._update_visualizer_func)
+        except Exception:
+            logger.debug("Canvas not available for visualizer")
 
 # Integration class for the main weather dashboard
 class PusciferWeatherIntegration:
@@ -526,6 +629,24 @@ class PusciferWeatherIntegration:
         self.dashboard = dashboard
         self.audio_engine = PusciferAudioEngine(spotify_client_id, spotify_client_secret, redirect_uri)
         self.is_initialized = False
+    
+    def __del__(self):
+        """Cleanup when object is destroyed"""
+        try:
+            if hasattr(self, 'audio_engine') and self.audio_engine:
+                self.audio_engine.cleanup()
+        except:
+            pass
+    
+    def cleanup(self):
+        """Explicit cleanup method for dashboard shutdown"""
+        try:
+            if self.audio_engine:
+                self.audio_engine.cleanup()
+            self.is_initialized = False
+            logger.info("🧹 Puscifer integration cleaned up")
+        except Exception as e:
+            logger.error(f"Error during Puscifer cleanup: {e}")
     
     async def initialize(self):
         """Initialize the Puscifer audio system"""
@@ -550,26 +671,189 @@ class PusciferWeatherIntegration:
     def on_weather_update(self, weather_data: Dict):
         """Handle weather updates with Puscifer intensity"""
         try:
-            if self.is_initialized:
+            if self.is_initialized and self.audio_enabled.get():
                 condition = weather_data.get('condition', 'clear')
                 temperature = weather_data.get('temperature')
                 
+                logger.info(f"🎵 Weather update: {condition}, {temperature}°C - Setting mood...")
                 self.audio_engine.set_weather_mood(condition, temperature)
                 
         except Exception as e:
             logger.error(f"Weather audio update failed: {e}")
+    
+    def test_audio_system(self, test_condition: str = "clear"):
+        """Test the audio system with a specific weather condition"""
+        try:
+            if self.is_initialized:
+                logger.info(f"🎵 Testing audio system with condition: {test_condition}")
+                self.audio_engine.set_weather_mood(test_condition, 20.0)
+            else:
+                logger.warning("🎵 Audio system not initialized")
+        except Exception as e:
+            logger.error(f"Audio test failed: {e}")
+    
+    def _initialize_web_player(self, parent_frame):
+        """Initialize Spotify Web Player for seamless audio control"""
+        try:
+            import customtkinter as ctk
+            
+            # Web player frame
+            web_player_frame = ctk.CTkFrame(parent_frame, fg_color="transparent")
+            web_player_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
+            web_player_frame.grid_columnconfigure(1, weight=1)
+            
+            # Web player toggle
+            self.web_player_enabled = ctk.CTkSwitch(
+                web_player_frame,
+                text="Use Web Player",
+                command=self._toggle_web_player
+            )
+            self.web_player_enabled.grid(row=0, column=0, padx=10, sticky="w")
+            
+            # Web player status
+            self.web_player_status = ctk.CTkLabel(
+                web_player_frame,
+                text="Web Player: Disabled",
+                font=ctk.CTkFont(size=10)
+            )
+            self.web_player_status.grid(row=0, column=1, padx=10, sticky="w")
+            
+            logger.info("✅ Web player controls initialized")
+            
+        except Exception as e:
+            logger.error(f"Web player initialization failed: {e}")
+    
+    def _toggle_web_player(self):
+        """Toggle Spotify Web Player"""
+        try:
+            enabled = self.web_player_enabled.get()
+            
+            if enabled:
+                # Check if we have Spotify access token
+                if not self.audio_engine.spotify:
+                    self.web_player_enabled.deselect()
+                    self.web_player_status.configure(text="Web Player: Spotify not connected")
+                    logger.warning("Cannot enable web player: Spotify not connected")
+                    return
+                
+                # Get access token from Spotify client
+                try:
+                    # Get fresh access token for web player
+                    token_info = self.audio_engine.spotify.auth_manager.get_access_token(as_dict=True)
+                    if token_info and 'access_token' in token_info:
+                        access_token = token_info['access_token']
+                        logger.info("✅ Retrieved fresh access token for web player")
+                    else:
+                        raise Exception("No valid token available")
+                except Exception as e:
+                    logger.error(f"Failed to get access token: {e}")
+                    self.web_player_enabled.deselect()
+                    if hasattr(self, 'web_player_status') and hasattr(self.web_player_status, 'configure'):
+                        self.web_player_status.configure(text="Web Player: Auth failed")
+                    return
+                
+                # Initialize web player with proper parameters
+                if not self.audio_engine.web_player:
+                    # Find a suitable parent frame for the web player
+                    parent_frame = getattr(self, 'web_player_frame', None)
+                    if not parent_frame:
+                        # Create a container frame if none exists
+                        import customtkinter as ctk
+                        parent_frame = ctk.CTkFrame(self.dashboard.tabview.tab("Settings"))
+                        parent_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=5)
+                        self.web_player_container = parent_frame
+                    
+                    self.audio_engine.web_player = SpotifyWebPlayer(
+                        parent=parent_frame,
+                        spotify_client_id=self.audio_engine.spotify_client_id,
+                        access_token=access_token,
+                        on_player_ready=self._on_web_player_ready,
+                        on_player_state_changed=self._on_web_player_state_changed
+                    )
+                    
+                    # Pack the web player
+                    self.audio_engine.web_player.pack(fill="both", expand=True, padx=10, pady=5)
+                
+                self.web_player_status.configure(text="Web Player: Starting...")
+                logger.info("🎵 Web player activated")
+                
+            else:
+                # Disable web player
+                if self.audio_engine.web_player:
+                    self.audio_engine.web_player.cleanup()
+                    self.audio_engine.web_player.destroy()
+                    self.audio_engine.web_player = None
+                    
+                if hasattr(self, 'web_player_container'):
+                    self.web_player_container.destroy()
+                    delattr(self, 'web_player_container')
+                    
+                self.audio_engine.web_player_device_id = None
+                self.web_player_status.configure(text="Web Player: Disabled")
+                logger.info("🔇 Web player disabled")
+                
+        except Exception as e:
+            logger.error(f"Web player toggle failed: {e}")
+            self.web_player_enabled.deselect()
+            self.web_player_status.configure(text="Web Player: Error")
+    
+    def _on_web_player_ready(self, device_id: str):
+        """Callback when web player is ready"""
+        try:
+            self.audio_engine.web_player_device_id = device_id
+            if hasattr(self, 'web_player_status') and self.web_player_status.winfo_exists():
+                self.web_player_status.configure(text="Web Player: Ready")
+            logger.info(f"🎵 Web player ready with device ID: {device_id}")
+        except Exception as e:
+            logger.error(f"Web player ready callback failed: {e}")
+    
+    def _on_web_player_state_changed(self, state: dict):
+        """Callback when web player state changes"""
+        try:
+            # Update UI based on player state
+            if hasattr(self, 'web_player_status') and self.web_player_status.winfo_exists():
+                if state.get('paused', True):
+                    self.web_player_status.configure(text="Web Player: Paused")
+                else:
+                    track_name = "Unknown"
+                    if state.get('track_window', {}).get('current_track'):
+                        track_name = state['track_window']['current_track'].get('name', 'Unknown')
+                    self.web_player_status.configure(text=f"Web Player: Playing - {track_name}")
+        except Exception as e:
+            logger.error(f"Web player state callback failed: {e}")
     
     def _add_audio_controls(self):
         """Add Puscifer-style audio controls to dashboard"""
         try:
             import customtkinter as ctk
             
-            # Find appropriate parent (could be settings tab or main frame)
-            parent = getattr(self.dashboard, 'settings_frame', self.dashboard)
+            # Use the dedicated audio controls frame from the Settings tab
+            parent = getattr(self.dashboard, 'audio_controls_frame', None)
+            if not parent:
+                # Fallback to settings tab if audio_controls_frame not available
+                tabview = getattr(self.dashboard, 'tabview', None)
+                if tabview and hasattr(tabview, 'tab'):
+                    try:
+                        parent = tabview.tab("Settings")
+                    except:
+                        parent = getattr(self.dashboard, 'main_frame', self.dashboard)
+                else:
+                    parent = getattr(self.dashboard, 'main_frame', self.dashboard)
             
-            # Audio control frame
-            audio_frame = ctk.CTkFrame(parent)
-            audio_frame.pack(fill='x', padx=10, pady=5)
+            # Audio control frame - use grid to match dashboard layout
+            audio_frame = ctk.CTkFrame(parent, fg_color="transparent")
+            
+            # Configure grid for parent if needed
+            if hasattr(parent, 'grid_rowconfigure'):
+                next_row = len([child for child in parent.winfo_children()])
+                audio_frame.grid(row=next_row, column=0, sticky="ew", padx=10, pady=5)
+                parent.grid_columnconfigure(0, weight=1)
+            else:
+                # Fallback to pack if grid not available
+                audio_frame.pack(fill='x', padx=10, pady=5)
+            
+            # Configure audio frame grid
+            audio_frame.grid_columnconfigure(0, weight=1)
             
             # Title
             title = ctk.CTkLabel(
@@ -577,11 +861,12 @@ class PusciferWeatherIntegration:
                 text="🎵 PUSCIFER WEATHER AUDIO",
                 font=ctk.CTkFont(size=16, weight="bold")
             )
-            title.pack(pady=5)
+            title.grid(row=0, column=0, pady=5, sticky="ew")
             
             # Controls
             controls_frame = ctk.CTkFrame(audio_frame, fg_color="transparent")
-            controls_frame.pack(fill='x', padx=10, pady=5)
+            controls_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+            controls_frame.grid_columnconfigure(2, weight=1)
             
             # Enable/disable toggle
             self.audio_enabled = ctk.CTkSwitch(
@@ -589,11 +874,11 @@ class PusciferWeatherIntegration:
                 text="Enable Weather Audio",
                 command=self._toggle_audio
             )
-            self.audio_enabled.pack(side='left', padx=10)
+            self.audio_enabled.grid(row=0, column=0, padx=10, sticky="w")
             
             # Volume control
             volume_label = ctk.CTkLabel(controls_frame, text="Volume:")
-            volume_label.pack(side='left', padx=(20, 5))
+            volume_label.grid(row=0, column=1, padx=(20, 5), sticky="w")
             
             self.volume_slider = ctk.CTkSlider(
                 controls_frame,
@@ -602,7 +887,7 @@ class PusciferWeatherIntegration:
                 command=self._set_volume
             )
             self.volume_slider.set(70)
-            self.volume_slider.pack(side='left', padx=5)
+            self.volume_slider.grid(row=0, column=2, padx=5, sticky="ew")
             
             # Current mood display
             self.mood_label = ctk.CTkLabel(
@@ -610,7 +895,11 @@ class PusciferWeatherIntegration:
                 text="Current Mood: Initializing...",
                 font=ctk.CTkFont(size=12)
             )
-            self.mood_label.pack(pady=5)
+            self.mood_label.grid(row=2, column=0, pady=5, sticky="ew")
+            
+            # Initialize Spotify Web Player
+            if hasattr(self, 'audio_engine') and self.audio_engine.spotify:
+                self._initialize_web_player(audio_frame)
             
         except Exception as e:
             logger.error(f"Audio controls creation failed: {e}")
@@ -618,12 +907,62 @@ class PusciferWeatherIntegration:
     def _add_audio_visualizer(self):
         """Add audio visualizer to dashboard"""
         try:
-            # Find main content area
-            parent = getattr(self.dashboard, 'main_frame', self.dashboard)
+            import customtkinter as ctk
             
-            visualizer = self.audio_engine.create_weather_audio_visualizer(parent)
-            if visualizer:
-                logger.info("✅ Audio visualizer added to dashboard")
+            # Find appropriate parent - use tabview if available
+            parent = getattr(self.dashboard, 'tabview', None)
+            if parent and hasattr(parent, 'tab'):
+                # Try to add to main tab
+                try:
+                    main_tab = parent.tab("Weather")
+                except:
+                    try:
+                        main_tab = parent.tab("Dashboard")
+                    except:
+                        main_tab = parent.add("Audio")
+                parent = main_tab
+            else:
+                parent = getattr(self.dashboard, 'main_frame', self.dashboard)
+            
+            # Visualizer frame - use grid layout
+            viz_frame = ctk.CTkFrame(parent)
+            
+            # Configure grid for parent if needed
+            if hasattr(parent, 'grid_rowconfigure'):
+                next_row = len([child for child in parent.winfo_children()])
+                viz_frame.grid(row=next_row, column=0, sticky="nsew", padx=10, pady=5)
+                parent.grid_columnconfigure(0, weight=1)
+                parent.grid_rowconfigure(next_row, weight=1)
+            else:
+                # Fallback to pack if grid not available
+                viz_frame.pack(fill='both', expand=True, padx=10, pady=5)
+            
+            # Configure visualizer frame grid
+            viz_frame.grid_columnconfigure(0, weight=1)
+            viz_frame.grid_rowconfigure(1, weight=1)
+            
+            # Title
+            title = ctk.CTkLabel(
+                viz_frame,
+                text="🌊 AUDIO VISUALIZATION",
+                font=ctk.CTkFont(size=14, weight="bold")
+            )
+            title.grid(row=0, column=0, pady=5, sticky="ew")
+            
+            # Canvas for visualization
+            from tkinter import Canvas
+            self.viz_canvas = Canvas(
+                viz_frame,
+                height=100,
+                bg='black',
+                highlightthickness=0
+            )
+            self.viz_canvas.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+            
+            # Start visualizer animation
+            self.audio_engine._start_audio_visualizer(self.viz_canvas)
+            
+            logger.info("✅ Audio visualizer added to dashboard")
                 
         except Exception as e:
             logger.error(f"Audio visualizer integration failed: {e}")
@@ -636,9 +975,16 @@ class PusciferWeatherIntegration:
             
             if enabled:
                 logger.info("🎵 Puscifer audio enabled")
+                # Trigger a weather mood to start music
+                self.audio_engine.set_weather_mood("clear", 20.0)  # Default to clear/sunny mood
             else:
                 logger.info("🔇 Puscifer audio disabled")
                 pygame.mixer.stop()
+                if self.audio_engine.spotify:
+                    try:
+                        self.audio_engine.spotify.pause_playback()
+                    except:
+                        pass  # Ignore if no active playback
                 
         except Exception as e:
             logger.error(f"Audio toggle failed: {e}")
