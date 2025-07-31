@@ -75,8 +75,14 @@ tk.Tk.report_callback_exception = patched_report_callback_exception
 from ui.components.temperature_chart import TemperatureChart
 from ui.components.weather_journal import WeatherJournal
 from ui.components.journal_manager import JournalManager
+from ui.components.journal_search import JournalSearchComponent
+from ui.components.journal_calendar import JournalCalendarComponent
+from ui.components.photo_gallery import PhotoGalleryComponent
+from ui.components.mood_analytics import MoodAnalyticsComponent
+from ui.components.activity_suggester import ActivitySuggester
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.config_service import ConfigService
+from services.journal_service import JournalService
 from models.weather_models import WeatherData, ForecastData
 from services.logging_service import LoggingService
 from ui.theme import DataTerminalTheme, WeatherTheme
@@ -206,6 +212,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         
         self.config_service = ConfigService()
         self.weather_service = EnhancedWeatherService(self.config_service)
+        self.journal_service = JournalService()
         
         # Data storage
         self.current_weather: Optional[WeatherData] = None
@@ -232,9 +239,26 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.logger.info("Professional Weather Dashboard initialized")
     
     def after(self, ms, func=None, *args):
-        """Override after method to handle CustomTkinter DPI scaling errors."""
+        """Override after method to handle CustomTkinter DPI scaling errors and threading issues."""
         if func is None:
             return super().after(ms)
+        
+        # Check if we're in the main thread
+        import threading
+        if threading.current_thread() != threading.main_thread():
+            # If not in main thread, schedule safely
+            try:
+                if self.winfo_exists():
+                    return super().after(ms, func, *args)
+                else:
+                    self.logger.debug("Widget destroyed, skipping after call")
+                    return None
+            except RuntimeError as e:
+                if "main thread is not in main loop" in str(e):
+                    self.logger.debug(f"Skipped after call from background thread: {e}")
+                    return None
+                else:
+                    raise e
         
         # Use the original after method but catch any scheduling errors
         try:
@@ -244,6 +268,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             if "invalid command name" in error_msg:
                 # Suppress all invalid command name errors from CustomTkinter
                 self.logger.debug(f"Suppressed after scheduling error: {e}")
+                return None
+            elif "main thread is not in main loop" in error_msg:
+                self.logger.debug(f"Skipped after call due to main loop issue: {e}")
                 return None
             else:
                 raise e
@@ -774,57 +801,118 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.journal_tab.grid_columnconfigure(0, weight=1)
         self.journal_tab.grid_rowconfigure(0, weight=1)
         
+        # Create main journal container with notebook for advanced features
+        self.journal_notebook = ctk.CTkTabview(
+            self.journal_tab,
+            fg_color=self.CARD_COLOR,
+            segmented_button_fg_color=self.BACKGROUND,
+            segmented_button_selected_color=self.ACCENT_COLOR,
+            segmented_button_selected_hover_color=DataTerminalTheme.SUCCESS,
+            segmented_button_unselected_color=self.CARD_COLOR,
+            segmented_button_unselected_hover_color=DataTerminalTheme.HOVER,
+            text_color=self.TEXT_PRIMARY,
+            corner_radius=12,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        
+        # Create journal sub-tabs
+        self.journal_entries_tab = self.journal_notebook.add("📝 Entries")
+        self.journal_search_tab = self.journal_notebook.add("🔍 Search")
+        self.journal_calendar_tab = self.journal_notebook.add("📅 Calendar")
+        self.journal_photos_tab = self.journal_notebook.add("📸 Photos")
+        self.journal_analytics_tab = self.journal_notebook.add("📊 Analytics")
+        
+        # Position the notebook
+        self.journal_notebook.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # Create content for each tab
+        self._create_journal_entries_content()
+        self._create_journal_search_content()
+        self._create_journal_calendar_content()
+        self._create_journal_photos_content()
+        self._create_journal_analytics_content()
+    
+    def _create_journal_entries_content(self) -> None:
+        """Create the main journal entries interface."""
+        # Configure entries tab
+        self.journal_entries_tab.grid_columnconfigure(0, weight=1)
+        self.journal_entries_tab.grid_rowconfigure(0, weight=1)
+        
         # Create the JournalManager component with enhanced functionality
         weather_theme = WeatherTheme()
         self.journal_manager = JournalManager(
-            self.journal_tab,
+            self.journal_entries_tab,
             self.weather_service,
             weather_theme
         )
-        self.journal_manager.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.journal_manager.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+    
+    def _create_journal_search_content(self) -> None:
+        """Create the advanced search interface."""
+        # Configure search tab
+        self.journal_search_tab.grid_columnconfigure(0, weight=1)
+        self.journal_search_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create search component
+        self.journal_search = JournalSearchComponent(
+            self.journal_search_tab,
+            self.journal_service
+        )
+        # The component creates its own frame internally, no need to grid the component
+    
+    def _create_journal_calendar_content(self) -> None:
+        """Create the calendar view interface."""
+        # Configure calendar tab
+        self.journal_calendar_tab.grid_columnconfigure(0, weight=1)
+        self.journal_calendar_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create calendar component
+        self.journal_calendar = JournalCalendarComponent(
+            self.journal_calendar_tab,
+            self.journal_service
+        )
+        # The component creates its own frame internally, no need to grid the component
+    
+    def _create_journal_photos_content(self) -> None:
+        """Create the photo gallery interface."""
+        # Configure photos tab
+        self.journal_photos_tab.grid_columnconfigure(0, weight=1)
+        self.journal_photos_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create photo gallery component
+        self.journal_photos = PhotoGalleryComponent(
+            self.journal_photos_tab,
+            self.journal_service
+        )
+        # The component creates its own frame internally, no need to grid the component
+    
+    def _create_journal_analytics_content(self) -> None:
+        """Create the mood analytics interface."""
+        # Configure analytics tab
+        self.journal_analytics_tab.grid_columnconfigure(0, weight=1)
+        self.journal_analytics_tab.grid_rowconfigure(0, weight=1)
+        
+        # Create mood analytics component
+        self.journal_mood_analytics = MoodAnalyticsComponent(
+            self.journal_analytics_tab,
+            self.journal_service
+        )
+        # The component creates its own frame internally, no need to grid the component
     
     def _create_activities_tab(self) -> None:
         """Create the activities tab content for AI-powered suggestions."""
         # Configure activities tab
         self.activities_tab.grid_columnconfigure(0, weight=1)
-        self.activities_tab.grid_rowconfigure(1, weight=1)
+        self.activities_tab.grid_rowconfigure(0, weight=1)
         
-        # Activities title
-        activities_title = ctk.CTkLabel(
+        # Create the activity suggester component
+        self.activity_suggester = ActivitySuggester(
             self.activities_tab,
-            text="ACTIVITY SUGGESTIONS",
-            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
-            text_color=self.ACCENT_COLOR
+            weather_service=self.weather_service,
+            config_service=self.config_service
         )
-        activities_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
-        
-        # Create scrollable frame for activities content
-        self.activities_scrollable = ctk.CTkScrollableFrame(
-            self.activities_tab,
-            fg_color=self.CARD_COLOR,
-            corner_radius=16,
-            border_width=1,
-            border_color=self.BORDER_COLOR,
-            scrollbar_button_color=self.ACCENT_COLOR,
-            scrollbar_button_hover_color=self.TEXT_PRIMARY
-        )
-        self.activities_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
-        
-        # Activities content frame inside scrollable
-        activities_frame = ctk.CTkFrame(
-            self.activities_scrollable,
-            fg_color="transparent"
-        )
-        
-        # Placeholder content
-        placeholder_label = ctk.CTkLabel(
-            activities_frame,
-            text="🎯 AI-Powered Activity Recommendations\n\nComing Soon:\n• Weather-based activity suggestions\n• Indoor/outdoor recommendations\n• Seasonal activity planning\n• Personalized suggestions based on preferences",
-            font=(DataTerminalTheme.FONT_FAMILY, 16),
-            text_color=self.TEXT_SECONDARY,
-            justify="left"
-        )
-        placeholder_label.pack(expand=True, padx=40, pady=40)
+        self.activity_suggester.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
     
     def _create_settings_tab(self) -> None:
         """Create the settings tab content for API keys and preferences."""
@@ -985,10 +1073,18 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Failed to fetch weather data: {e}")
             error_msg = self._get_user_friendly_error(str(e))
-            if hasattr(self, 'status_label') and self.status_label.winfo_exists():
-                self.after(0, self._schedule_error_notification, error_msg)
+            try:
+                if hasattr(self, 'status_label') and self.status_label.winfo_exists():
+                    self.after(0, self._schedule_error_notification, error_msg)
+            except tk.TclError:
+                # Widget has been destroyed, ignore
+                pass
             # Hide loading state on error
-            self.after(0, self.hide_loading_state)
+            try:
+                self.after(0, self.hide_loading_state)
+            except tk.TclError:
+                # Widget has been destroyed, ignore
+                pass
     
     def _get_user_friendly_error(self, error: str) -> str:
         """Convert technical errors to user-friendly messages."""

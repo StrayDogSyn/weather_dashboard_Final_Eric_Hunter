@@ -381,11 +381,30 @@ class JournalList(tk.Frame):
         def load_data():
             try:
                 entries = self.journal_service.get_entries(limit=100)
-                self.after(0, lambda: self._update_entries(entries))
+                # Check if widget is still valid before scheduling UI update
+                try:
+                    self.after(0, lambda: self._update_entries(entries))
+                except RuntimeError:
+                    # Widget may have been destroyed or main loop not running
+                    pass
             except Exception as e:
-                self.after(0, lambda: self._show_error(f"Failed to load entries: {e}"))
+                error_msg = str(e)
+                try:
+                    self.after(0, lambda: self._show_error(f"Failed to load entries: {error_msg}"))
+                except RuntimeError:
+                    # Widget may have been destroyed or main loop not running
+                    print(f"Failed to load journal entries: {error_msg}")
         
-        threading.Thread(target=load_data, daemon=True).start()
+        # Only start the thread if the widget is properly initialized
+        try:
+            threading.Thread(target=load_data, daemon=True).start()
+        except Exception:
+            # Fallback: load entries directly if threading fails
+            try:
+                entries = self.journal_service.get_entries(limit=100)
+                self._update_entries(entries)
+            except Exception as e:
+                self._show_error(f"Failed to load entries: {e}")
     
     def _update_entries(self, entries: List[JournalEntry]) -> None:
         """Update the entry list display.

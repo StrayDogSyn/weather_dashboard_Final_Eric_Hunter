@@ -675,3 +675,61 @@ class JournalEditor(tk.Frame):
                 for child in widget.winfo_children():
                     if isinstance(child, (tk.Button, ttk.Button)):
                         child.configure(state=state)
+    
+    def clear_entry(self) -> None:
+        """Clear the editor and reset state."""
+        self._clear_editor()
+    
+    def focus_content(self) -> None:
+        """Focus on the content text editor."""
+        if hasattr(self, 'text_editor'):
+            self.text_editor.focus_set()
+    
+    def has_unsaved_changes(self) -> bool:
+        """Check if there are unsaved changes.
+        
+        Returns:
+            True if there are unsaved changes, False otherwise
+        """
+        return self.is_modified
+    
+    def get_entry_data(self) -> Dict[str, Any]:
+        """Get current entry data from the editor.
+        
+        Returns:
+            Dictionary containing entry data
+        """
+        content = self.text_editor.get('1.0', 'end-1c').strip()
+        mood_rating = None
+        try:
+            mood_str = self.mood_var.get().strip()
+            if mood_str:
+                mood_rating = int(mood_str)
+        except (ValueError, AttributeError):
+            pass
+        
+        tags = []
+        try:
+            tags_str = self.tags_var.get().strip()
+            if tags_str:
+                tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+        except AttributeError:
+            pass
+        
+        location = ''
+        try:
+            location = self.location_var.get().strip()
+        except AttributeError:
+            pass
+        
+        return {
+            'entry_content': content,
+            'mood_rating': mood_rating,
+            'tags': tags,
+            'location': location,
+            'date_created': datetime.now()
+        }
+    
+    def auto_populate_weather(self) -> None:
+        """Auto-populate weather information for new entries."""
+        self._load_current_weather()

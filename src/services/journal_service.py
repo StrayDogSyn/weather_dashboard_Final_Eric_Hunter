@@ -40,6 +40,9 @@ class JournalService:
         
         # Initialize database
         self._init_database()
+        
+        # Migrate database if needed
+        self._migrate_database()
     
     def _init_database(self) -> None:
         """Initialize the SQLite database with required schema."""
@@ -65,39 +68,37 @@ class JournalService:
                     )
                 """)
                 
-                # Create FTS virtual table for full-text search
+                # Create FTS virtual table for full-text search (basic version first)
                 cursor.execute("""
                     CREATE VIRTUAL TABLE IF NOT EXISTS journal_entries_fts USING fts5(
                         entry_content,
                         tags,
-                        location,
-                        category,
                         content='journal_entries',
                         content_rowid='id'
                     )
                 """)
                 
-                # Create triggers to keep FTS table in sync
+                # Create basic triggers to keep FTS table in sync
                 cursor.execute("""
                     CREATE TRIGGER IF NOT EXISTS journal_entries_ai AFTER INSERT ON journal_entries BEGIN
-                        INSERT INTO journal_entries_fts(rowid, entry_content, tags, location, category)
-                        VALUES (new.id, new.entry_content, new.tags, new.location, new.category);
+                        INSERT INTO journal_entries_fts(rowid, entry_content, tags)
+                        VALUES (new.id, new.entry_content, new.tags);
                     END
                 """)
                 
                 cursor.execute("""
                     CREATE TRIGGER IF NOT EXISTS journal_entries_ad AFTER DELETE ON journal_entries BEGIN
-                        INSERT INTO journal_entries_fts(journal_entries_fts, rowid, entry_content, tags, location, category)
-                        VALUES('delete', old.id, old.entry_content, old.tags, old.location, old.category);
+                        INSERT INTO journal_entries_fts(journal_entries_fts, rowid, entry_content, tags)
+                        VALUES('delete', old.id, old.entry_content, old.tags);
                     END
                 """)
                 
                 cursor.execute("""
                     CREATE TRIGGER IF NOT EXISTS journal_entries_au AFTER UPDATE ON journal_entries BEGIN
-                        INSERT INTO journal_entries_fts(journal_entries_fts, rowid, entry_content, tags, location, category)
-                        VALUES('delete', old.id, old.entry_content, old.tags, old.location, old.category);
-                        INSERT INTO journal_entries_fts(rowid, entry_content, tags, location, category)
-                        VALUES (new.id, new.entry_content, new.tags, new.location, new.category);
+                        INSERT INTO journal_entries_fts(journal_entries_fts, rowid, entry_content, tags)
+                        VALUES('delete', old.id, old.entry_content, old.tags);
+                        INSERT INTO journal_entries_fts(rowid, entry_content, tags)
+                        VALUES (new.id, new.entry_content, new.tags);
                     END
                 """)
                 
@@ -112,11 +113,53 @@ class JournalService:
                     ON journal_entries(mood_rating)
                 """)
                 
+                # Basic indexes that should always exist
                 cursor.execute("""
                     CREATE INDEX IF NOT EXISTS idx_journal_location 
                     ON journal_entries(location)
                 """)
                 
+                # Note: Additional indexes for new columns will be created in migration
+                
+                conn.commit()
+                self.logger.info("Database initialized successfully")
+                
+        except sqlite3.Error as e:
+            self.logger.error(f"Database initialization failed: {e}")
+            raise
+    
+    def _migrate_database(self) -> None:
+        """Migrate existing database to include new columns."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check if new columns exist
+                cursor.execute("PRAGMA table_info(journal_entries)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                # Add missing columns
+                if 'category' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN category TEXT")
+                    self.logger.info("Added category column to journal_entries")
+                
+                if 'photos' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN photos TEXT")
+                    self.logger.info("Added photos column to journal_entries")
+                
+                if 'template_used' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN template_used TEXT")
+                    self.logger.info("Added template_used column to journal_entries")
+                
+                if 'created_at' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                    self.logger.info("Added created_at column to journal_entries")
+                
+                if 'updated_at' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                    self.logger.info("Added updated_at column to journal_entries")
+                
+                # Create indexes for new columns
                 cursor.execute("""
                     CREATE INDEX IF NOT EXISTS idx_journal_category 
                     ON journal_entries(category)
@@ -133,11 +176,11 @@ class JournalService:
                 """)
                 
                 conn.commit()
-                self.logger.info("Database initialized successfully")
+                self.logger.info("Database migration completed successfully")
                 
         except sqlite3.Error as e:
-            self.logger.error(f"Database initialization failed: {e}")
-            raise
+            self.logger.error(f"Database migration failed: {e}")
+            # Don't raise here - let the app continue with existing schema
     
     @contextmanager
     def _get_connection(self):
@@ -347,6 +390,25 @@ class JournalService:
         except sqlite3.Error as e:
             self.logger.error(f"Failed to get entries: {e}")
             raise
+    
+    async def get_entries_by_date_range(self, start_date: datetime, end_date: datetime, 
+                                       limit: int = 1000) -> List[JournalEntry]:
+        """Async method to get journal entries within a date range.
+        
+        Args:
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            limit: Maximum number of entries to return
+            
+        Returns:
+            List of journal entries within the date range
+        """
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, 
+            lambda: self.get_entries(limit=limit, start_date=start_date, end_date=end_date)
+        )
     
     def search_entries(self, query: str, limit: int = 50) -> List[JournalEntry]:
         """Search journal entries by content and tags.

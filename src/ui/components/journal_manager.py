@@ -312,7 +312,8 @@ class JournalManager(tk.Frame):
                         self.after(0, lambda: self._show_error("Failed to create entry"))
                         
             except Exception as e:
-                self.after(0, lambda: self._show_error(f"Save error: {e}"))
+                error_msg = str(e)
+                self.after(0, lambda: self._show_error(f"Save error: {error_msg}"))
         
         # Show saving indicator
         original_text = self.save_btn.cget('text')
