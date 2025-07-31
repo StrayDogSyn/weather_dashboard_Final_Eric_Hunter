@@ -13,8 +13,8 @@ from pathlib import Path
 import threading
 import traceback
 
-from ui.theme import DataTerminalTheme
-from ui.components.base_component import BaseComponent
+from ...theme import DataTerminalTheme
+from ..base_component import BaseComponent
 from services.ai_service import AIService, ModelTier
 
 # Import mixins

@@ -6,7 +6,7 @@ Contains all weather-related operations and update methods for the dashboard.
 import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
-from ui.theme import DataTerminalTheme
+from ..theme import DataTerminalTheme
 
 
 class WeatherHandlerMixin:
@@ -50,12 +50,7 @@ class WeatherHandlerMixin:
                 # Update last update time
                 self.last_weather_update = datetime.now()
                 
-                # Trigger Puscifer audio update if available
-                if hasattr(self, 'puscifer') and self.puscifer:
-                    try:
-                        self.puscifer.on_weather_update(weather_data)
-                    except Exception as e:
-                        self.logger.debug(f"Puscifer audio update failed: {e}")
+                # Puscifer audio update removed
                 
                 self.logger.info("Weather data updated successfully")
             else:

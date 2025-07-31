@@ -19,7 +19,7 @@ import logging
 import webbrowser
 
 import customtkinter as ctk
-from ui.theme import DataTerminalTheme
+from ..theme import DataTerminalTheme
 
 
 class SecureAPIManager:
@@ -75,30 +75,7 @@ class SecureAPIManager:
             'required': False,
             'test_endpoint': None
         },
-        'spotify_client_id': {
-            'name': 'Spotify Client ID',
-            'description': 'Music integration for mood-based playlists',
-            'pattern': r'^[a-f0-9]{32}$',
-            'url': 'https://developer.spotify.com/dashboard/',
-            'required': False,
-            'test_endpoint': None
-        },
-        'spotify_client_secret': {
-            'name': 'Spotify Client Secret',
-            'description': 'For Spotify OAuth authentication',
-            'pattern': r'^[a-f0-9]{32}$',
-            'url': 'https://developer.spotify.com/dashboard/',
-            'required': False,
-            'test_endpoint': None
-        },
-        'spotify_redirect_uri': {
-            'name': 'Spotify Redirect URI',
-            'description': 'For Spotify OAuth authentication',
-            'pattern': r'^https?://.*$',
-            'url': 'https://developer.spotify.com/dashboard/',
-            'required': False,
-            'test_endpoint': None
-        }
+        # Spotify API configuration removed
     }
     
     def __init__(self, parent, config_service):

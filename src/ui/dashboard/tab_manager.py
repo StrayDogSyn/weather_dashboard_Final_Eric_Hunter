@@ -4,16 +4,17 @@ Contains all tab creation and management methods for the dashboard.
 """
 
 import customtkinter as ctk
-from ui.components.temperature_chart import TemperatureChart
-from ui.components.weather_journal import WeatherJournal
-from ui.components.journal_manager import JournalManager
-from ui.components.journal_search import JournalSearchComponent
-from ui.components.journal_calendar import JournalCalendarComponent
-from ui.components.photo_gallery import PhotoGalleryComponent
-from ui.components.mood_analytics import MoodAnalyticsComponent
-from ui.components.activity_suggester import ActivitySuggester
-from ui.components.maps_component import MapsComponent
-from ui.theme import DataTerminalTheme
+from ..components.temperature_chart import TemperatureChart
+from ..components.weather_journal import WeatherJournal
+from ..components.weather_journal_ui import WeatherJournalUI
+from ..components.journal_manager import JournalManager
+from ..components.journal_search import JournalSearchComponent
+from ..components.journal_calendar import JournalCalendarComponent
+from ..components.photo_gallery import PhotoGalleryComponent
+from ..components.mood_analytics import MoodAnalyticsComponent
+from ..components.activity_suggester import ActivitySuggester
+from ..components.maps_component import MapsComponent
+from ..theme import DataTerminalTheme
 
 
 class TabManagerMixin:
@@ -323,23 +324,21 @@ class TabManagerMixin:
             self.logger.error(f"Failed to create stat card: {e}")
     
     def _create_journal_tab(self) -> None:
-        """Create journal tab with writing and management features."""
+        """Create the journal tab with weather diary functionality."""
+        # Get journal tab
         journal_tab = self.tabview.tab("Journal")
+        
+        # Configure journal tab
+        journal_tab.grid_columnconfigure(0, weight=1)
         journal_tab.grid_rowconfigure(0, weight=1)
-        journal_tab.grid_columnconfigure((0, 1), weight=1)
         
-        # Left side - Journal writing
-        try:
-            self.weather_journal = WeatherJournal(
-                journal_tab,
-                weather_service=self.weather_service
-            )
-            self.weather_journal.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=10)
-        except Exception as e:
-            self.logger.error(f"Error creating weather journal: {e}")
-        
-        # Right side - Journal management
-        self._create_journal_management_section(journal_tab)
+        # Create journal UI
+        self.journal_ui = WeatherJournalUI(
+            journal_tab,
+            weather_service=self.weather_service
+        )
+        self.journal_ui.dashboard = self  # Reference for status updates
+        self.journal_ui.grid(row=0, column=0, sticky="nsew")
     
     def _create_journal_management_section(self, parent) -> None:
         """Create journal management section."""
@@ -429,32 +428,264 @@ class TabManagerMixin:
             placeholder.grid(row=0, column=0)
     
     def _create_settings_tab(self) -> None:
-        """Create settings tab with API management and audio controls."""
-        settings_tab = self.tabview.tab("Settings")
-        settings_tab.grid_rowconfigure(0, weight=1)
-        settings_tab.grid_rowconfigure(1, weight=1)
-        settings_tab.grid_columnconfigure(0, weight=1)
+        """Create the settings tab with API key management."""
+        # Configure settings tab
+        self.settings_tab = self.tabview.tab("Settings")
+        self.settings_tab.grid_columnconfigure(0, weight=1)
+        self.settings_tab.grid_rowconfigure(1, weight=1)
         
-        # Add secure API manager to settings tab
-        if hasattr(self, 'secure_api_manager'):
-            api_section = self.secure_api_manager.create_api_section(settings_tab)
-            api_section.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
-        
-        # Create audio controls section
-        audio_section = ctk.CTkFrame(settings_tab)
-        audio_section.grid(row=1, column=0, sticky="nsew", padx=10, pady=(5, 10))
-        audio_section.grid_columnconfigure(0, weight=1)
-        
-        # Audio section title
-        audio_title = ctk.CTkLabel(
-            audio_section,
-            text="🎵 Audio Settings",
-            font=ctk.CTkFont(size=16, weight="bold")
+        # Settings title
+        settings_title = ctk.CTkLabel(
+            self.settings_tab,
+            text="⚙️ SETTINGS & CONFIGURATION",
+            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
+            text_color=self.ACCENT_COLOR
         )
-        audio_title.grid(row=0, column=0, pady=(10, 5), sticky="ew")
+        settings_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        
+        # Settings scroll frame
+        settings_scroll = ctk.CTkScrollableFrame(
+            self.settings_tab,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        settings_scroll.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        
+        # API Configuration Section
+        api_frame = ctk.CTkFrame(settings_scroll, fg_color="transparent")
+        api_frame.pack(fill="x", padx=20, pady=20)
+        
+        api_title = ctk.CTkLabel(
+            api_frame,
+            text="API Configuration",
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            text_color=self.TEXT_PRIMARY
+        )
+        api_title.pack(anchor="w", pady=(0, 10))
+        
+        # API Key Entry
+        self.api_key_var = ctk.StringVar(value=self.config_service.get_api_key() or "")
+        
+        api_key_label = ctk.CTkLabel(
+            api_frame,
+            text="OpenWeatherMap API Key:",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=self.TEXT_SECONDARY
+        )
+        api_key_label.pack(anchor="w", pady=(5, 2))
+        
+        self.api_key_entry = ctk.CTkEntry(
+            api_frame,
+            textvariable=self.api_key_var,
+            placeholder_text="Enter your API key...",
+            width=400,
+            height=35,
+            show="*"  # Hide API key
+        )
+        self.api_key_entry.pack(anchor="w", pady=(0, 5))
+        
+        # Show/Hide API Key button
+        self.show_api_key = False
+        self.toggle_api_btn = ctk.CTkButton(
+            api_frame,
+            text="Show API Key",
+            width=120,
+            height=30,
+            command=self._toggle_api_key_visibility
+        )
+        self.toggle_api_btn.pack(anchor="w", pady=(0, 10))
+        
+        # Save API Key button
+        self.save_api_btn = ctk.CTkButton(
+            api_frame,
+            text="Save API Key",
+            width=120,
+            height=30,
+            fg_color=self.ACCENT_COLOR,
+            hover_color=DataTerminalTheme.SUCCESS,
+            command=self._save_api_key
+        )
+        self.save_api_btn.pack(anchor="w")
+        
+        # Preferences Section
+        pref_frame = ctk.CTkFrame(settings_scroll, fg_color="transparent")
+        pref_frame.pack(fill="x", padx=20, pady=20)
+        
+        pref_title = ctk.CTkLabel(
+            pref_frame,
+            text="Preferences",
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            text_color=self.TEXT_PRIMARY
+        )
+        pref_title.pack(anchor="w", pady=(0, 10))
+        
+        # Temperature Unit
+        temp_label = ctk.CTkLabel(
+            pref_frame,
+            text="Temperature Unit:",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=self.TEXT_SECONDARY
+        )
+        temp_label.pack(anchor="w", pady=(5, 2))
+        
+        self.temp_unit_var = ctk.StringVar(value="Celsius")
+        self.temp_unit_menu = ctk.CTkOptionMenu(
+            pref_frame,
+            values=["Celsius", "Fahrenheit", "Kelvin"],
+            variable=self.temp_unit_var,
+            width=200,
+            height=35,
+            command=self._on_temp_unit_change
+        )
+        self.temp_unit_menu.pack(anchor="w", pady=(0, 10))
+        
+        # Auto-refresh interval
+        refresh_label = ctk.CTkLabel(
+            pref_frame,
+            text="Auto-refresh interval:",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=self.TEXT_SECONDARY
+        )
+        refresh_label.pack(anchor="w", pady=(5, 2))
+        
+        self.refresh_var = ctk.StringVar(value="5 minutes")
+        self.refresh_menu = ctk.CTkOptionMenu(
+            pref_frame,
+            values=["Disabled", "1 minute", "5 minutes", "10 minutes", "30 minutes"],
+            variable=self.refresh_var,
+            width=200,
+            height=35,
+            command=self._on_refresh_change
+        )
+        self.refresh_menu.pack(anchor="w")
         
         # Store reference for audio engine to use
-        self.audio_controls_frame = audio_section
+        self.audio_controls_frame = settings_scroll
+    
+    def _toggle_api_key_visibility(self):
+        """Toggle API key visibility."""
+        self.show_api_key = not self.show_api_key
+        if self.show_api_key:
+            self.api_key_entry.configure(show="")
+            self.toggle_api_btn.configure(text="Hide API Key")
+        else:
+            self.api_key_entry.configure(show="*")
+            self.toggle_api_btn.configure(text="Show API Key")
+    
+    def _save_api_key(self):
+        """Save API key to configuration."""
+        api_key = self.api_key_var.get().strip()
+        if api_key:
+            # Save to .env file
+            self._update_env_file("OPENWEATHER_API_KEY", api_key)
+            self.config_service._config.api.openweather_api_key = api_key
+            from services.enhanced_weather_service import EnhancedWeatherService
+            self.weather_service = EnhancedWeatherService(self.config_service)
+            self._safe_update_status("API key saved successfully!")
+            
+            # Refresh weather data
+            if hasattr(self, '_refresh_weather'):
+                self._refresh_weather()
+            elif hasattr(self, '_schedule_weather_update'):
+                self._schedule_weather_update()
+        else:
+            self._safe_update_status("Please enter a valid API key")
+    
+    def _update_env_file(self, key: str, value: str):
+        """Update .env file with new value."""
+        from pathlib import Path
+        env_path = Path(".env")
+        
+        # Read existing content
+        lines = []
+        key_found = False
+        
+        if env_path.exists():
+            with open(env_path, 'r') as f:
+                for line in f:
+                    if line.startswith(f"{key}="):
+                        lines.append(f"{key}={value}\n")
+                        key_found = True
+                    else:
+                        lines.append(line)
+        
+        # Add key if not found
+        if not key_found:
+            lines.append(f"{key}={value}\n")
+        
+        # Write back to file
+        with open(env_path, 'w') as f:
+            f.writelines(lines)
+    
+    def _on_temp_unit_change(self, value: str):
+        """Handle temperature unit change."""
+        # Update config with new temperature unit
+        unit_map = {"Celsius": "metric", "Fahrenheit": "imperial", "Kelvin": "kelvin"}
+        if hasattr(self, 'config_service') and value in unit_map:
+            self.config_service._config.weather.default_units = unit_map[value]
+        
+        if hasattr(self, 'logger'):
+            self.logger.info(f"Temperature unit changed to: {value}")
+        
+        # Refresh weather display with new unit
+        if hasattr(self, '_refresh_weather'):
+            self._refresh_weather()
+        elif hasattr(self, '_schedule_weather_update'):
+            self._schedule_weather_update()
+        elif hasattr(self, 'current_weather') and hasattr(self, '_update_weather_display_with_real_data'):
+            self._update_weather_display_with_real_data(self.current_weather)
+    
+    def _on_refresh_change(self, value: str):
+        """Handle auto-refresh interval change."""
+        if hasattr(self, 'logger'):
+            self.logger.info(f"Auto-refresh interval changed to: {value}")
+        # Update auto-refresh timer based on new interval
+        self._setup_auto_refresh(value)
+    
+    def _setup_auto_refresh(self, interval: str):
+        """Setup auto-refresh timer based on interval."""
+        # Cancel existing timer
+        if hasattr(self, 'auto_refresh_timer_id') and self.auto_refresh_timer_id:
+            try:
+                self.after_cancel(self.auto_refresh_timer_id)
+            except Exception:
+                pass
+            self.auto_refresh_timer_id = None
+        
+        # Set up new timer based on interval
+        if interval == "Disabled":
+            return
+        
+        # Convert interval to milliseconds
+        interval_map = {
+            "1 minute": 60000,
+            "5 minutes": 300000,
+            "10 minutes": 600000,
+            "30 minutes": 1800000
+        }
+        
+        ms = interval_map.get(interval, 300000)  # Default to 5 minutes
+        
+        # Schedule next refresh
+        self.auto_refresh_timer_id = self.after(ms, self._auto_refresh_callback)
+    
+    def _auto_refresh_callback(self):
+        """Callback for auto-refresh timer."""
+        try:
+            # Use the appropriate weather refresh method
+            if hasattr(self, '_refresh_weather'):
+                self._refresh_weather()
+            elif hasattr(self, '_schedule_weather_update'):
+                self._schedule_weather_update()
+            
+            # Schedule next refresh
+            interval = self.refresh_var.get() if hasattr(self, 'refresh_var') else "5 minutes"
+            self._setup_auto_refresh(interval)
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Auto-refresh error: {e}")
     
     def _on_timeframe_change(self, value: str) -> None:
         """Handle timeframe selector change."""

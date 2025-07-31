@@ -17,7 +17,7 @@ from .chart import (
     ChartDataMixin,
     ChartExportMixin
 )
-from ui.theme import DataTerminalTheme
+from ..theme import DataTerminalTheme
 from models.weather_models import ForecastData
 
 # Configure matplotlib with safe fonts at module level

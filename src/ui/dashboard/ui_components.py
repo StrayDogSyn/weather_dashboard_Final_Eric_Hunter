@@ -4,7 +4,7 @@ Contains all UI creation and layout methods for the dashboard.
 """
 
 import customtkinter as ctk
-from ui.theme import DataTerminalTheme
+from ..theme import DataTerminalTheme
 
 
 class UIComponentsMixin:
@@ -425,7 +425,7 @@ class UIComponentsMixin:
                 self.last_update_label.configure(text=message, text_color=color)
                 
                 # Auto-clear after 5 seconds
-                self.after(5000, lambda: self.last_update_label.configure(text="Ready"))
+                self.after(5000, self._clear_status_message)
             
             # Also log the message
             if hasattr(self, 'logger'):
@@ -434,6 +434,15 @@ class UIComponentsMixin:
         except Exception as e:
             if hasattr(self, 'logger'):
                 self.logger.error(f"Failed to show status message: {e}")
+    
+    def _clear_status_message(self):
+        """Clear the status message by setting it to Ready"""
+        try:
+            if hasattr(self, 'last_update_label'):
+                self.last_update_label.configure(text="Ready")
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Failed to clear status message: {e}")
     
     def _on_search_button_click(self):
         """Handle search button click"""

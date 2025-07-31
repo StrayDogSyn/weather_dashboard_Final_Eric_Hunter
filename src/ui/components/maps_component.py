@@ -295,7 +295,9 @@ class MapsComponent(ctk.CTkFrame):
             self.logger.error(f"❌ Search failed: {e}")
             self.after(0, self._show_search_error, str(e))
         finally:
-            self.after(0, lambda: self.search_button.configure(text="Search", state="normal"))
+            def reset_search_button():
+                self.search_button.configure(text="Search", state="normal")
+            self.after(0, reset_search_button)
     
     def _update_search_results(self, results: List[PlaceResult]) -> None:
         """Update search results display."""

@@ -6,7 +6,7 @@ Contains all UI creation and display methods for the activity suggester.
 import customtkinter as ctk
 import tkinter as tk
 from typing import List, Dict
-from ui.theme import DataTerminalTheme
+from ...theme import DataTerminalTheme
 import threading
 
 

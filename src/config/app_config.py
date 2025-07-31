@@ -31,11 +31,7 @@ class APIConfig:
     # Maps API Key
     google_maps_api_key: str = ""
     
-    # Spotify API Keys
-    spotify_client_id: str = ""
-    spotify_client_secret: str = ""
-    spotify_redirect_uri: str = ""
-    spotify_base_url: str = "https://api.spotify.com/v1"
+    # Spotify API Keys removed
     
     request_timeout: int = 30
     max_retries: int = 3

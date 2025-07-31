@@ -15,7 +15,7 @@ from pathlib import Path
 
 from services.journal_service import JournalService
 from models.journal_entry import JournalEntry
-from ui.theme import WeatherTheme
+from ..theme import WeatherTheme
 
 
 class JournalEditor(tk.Frame):
@@ -513,9 +513,13 @@ class JournalEditor(tk.Frame):
                         self.is_modified = False
                         
                         # Update UI on main thread
-                        self.after(0, lambda: self._on_entry_saved(auto_save))
+                        def on_saved_callback():
+                            self._on_entry_saved(auto_save)
+                        self.after(0, on_saved_callback)
                     except Exception as e:
-                        self.after(0, lambda: self._on_save_error(str(e), auto_save))
+                        def on_error_callback():
+                            self._on_save_error(str(e), auto_save)
+                        self.after(0, on_error_callback)
                     finally:
                         loop.close()
                 
@@ -532,11 +536,17 @@ class JournalEditor(tk.Frame):
                         success = self.journal_service.update_entry(self.current_entry)
                         if success:
                             self.is_modified = False
-                            self.after(0, lambda: self._on_entry_saved(auto_save))
+                            def on_saved_callback():
+                                self._on_entry_saved(auto_save)
+                            self.after(0, on_saved_callback)
                         else:
-                            self.after(0, lambda: self._on_save_error("Failed to update entry", auto_save))
+                            def on_error_callback():
+                                self._on_save_error("Failed to update entry", auto_save)
+                            self.after(0, on_error_callback)
                     except Exception as e:
-                        self.after(0, lambda: self._on_save_error(str(e), auto_save))
+                        def on_error_callback():
+                            self._on_save_error(str(e), auto_save)
+                        self.after(0, on_error_callback)
                 
                 threading.Thread(target=update_entry, daemon=True).start()
                 
@@ -594,15 +604,23 @@ class JournalEditor(tk.Frame):
                         )
                         if weather:
                             weather_text = f"{weather.get('condition', 'Unknown')}, {weather.get('temperature', 'N/A')}°F"
-                            self.after(0, lambda: self.weather_label.configure(text=weather_text))
+                            def update_weather_text():
+                                self.weather_label.configure(text=weather_text)
+                            self.after(0, update_weather_text)
                         else:
-                            self.after(0, lambda: self.weather_label.configure(text="Weather unavailable"))
+                            def update_weather_unavailable():
+                                self.weather_label.configure(text="Weather unavailable")
+                            self.after(0, update_weather_unavailable)
                     finally:
                         loop.close()
                 else:
-                    self.after(0, lambda: self.weather_label.configure(text="Weather service unavailable"))
+                    def update_weather_service_unavailable():
+                        self.weather_label.configure(text="Weather service unavailable")
+                    self.after(0, update_weather_service_unavailable)
             except Exception as e:
-                self.after(0, lambda: self.weather_label.configure(text="Weather error"))
+                def update_weather_error():
+                    self.weather_label.configure(text="Weather error")
+                self.after(0, update_weather_error)
         
         threading.Thread(target=get_weather, daemon=True).start()
     

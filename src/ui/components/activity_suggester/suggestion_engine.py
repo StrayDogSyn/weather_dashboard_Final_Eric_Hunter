@@ -8,7 +8,7 @@ from typing import List, Dict
 import threading
 import traceback
 import customtkinter as ctk
-from ui.theme import DataTerminalTheme
+from ...theme import DataTerminalTheme
 
 
 class SuggestionEngineMixin:
@@ -61,7 +61,9 @@ class SuggestionEngineMixin:
             
             # Update UI
             self.after(0, self._display_suggestions)
-            self.after(0, lambda: self.refresh_btn.configure(state="normal", text="🔄 Refresh"))
+            def enable_refresh_button():
+                self.refresh_btn.configure(state="normal", text="🔄 Refresh")
+            self.after(0, enable_refresh_button)
             self.after(0, self._update_ai_status)
             
         except Exception as e:

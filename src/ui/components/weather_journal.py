@@ -3,7 +3,7 @@ from datetime import datetime
 import sqlite3
 from pathlib import Path
 from typing import List, Optional, Dict
-from ui.theme import DataTerminalTheme
+from ..theme import DataTerminalTheme
 import json
 
 class WeatherJournal(ctk.CTkFrame):
@@ -229,7 +229,7 @@ class WeatherJournal(ctk.CTkFrame):
     
     def _create_entry_widget(self, entry_data):
         """Create a widget for a journal entry."""
-        entry_id, timestamp, city, temp, condition, mood, notes, humidity, wind_speed, weather_data, created_at = entry_data
+        entry_id, date_created, weather_data, mood_rating, entry_content, tags, location, category, photos, template_used, created_at, updated_at = entry_data
         
         entry_widget = ctk.CTkFrame(
             self.entries_scroll,
@@ -247,10 +247,10 @@ class WeatherJournal(ctk.CTkFrame):
         header_frame.grid_columnconfigure(1, weight=1)
         
         # Date
-        if isinstance(timestamp, str):
-            date_obj = datetime.fromisoformat(timestamp)
+        if isinstance(date_created, str):
+            date_obj = datetime.fromisoformat(date_created)
         else:
-            date_obj = timestamp
+            date_obj = date_created
         date_str = date_obj.strftime("%B %d, %Y at %I:%M %p")
         ctk.CTkLabel(
             header_frame,
@@ -261,16 +261,13 @@ class WeatherJournal(ctk.CTkFrame):
         
         # Mood
         mood_emojis = {
-            "Happy": "😊",
-            "Neutral": "😐",
-            "Sad": "😢",
-            "Energetic": "⚡",
-            "Tired": "😴"
+            1: "😢", 2: "😞", 3: "😐", 4: "🙂", 5: "😊",
+            6: "😄", 7: "😁", 8: "🤗", 9: "😍", 10: "🤩"
         }
-        mood_emoji = mood_emojis.get(mood, "😐")
+        mood_emoji = mood_emojis.get(mood_rating, "😐")
         ctk.CTkLabel(
             header_frame,
-            text=f"{mood_emoji} {mood}",
+            text=f"{mood_emoji} Mood: {mood_rating}/10",
             font=(DataTerminalTheme.FONT_FAMILY, 12),
             text_color=DataTerminalTheme.PRIMARY
         ).grid(row=0, column=2, sticky="e")
@@ -279,11 +276,20 @@ class WeatherJournal(ctk.CTkFrame):
         weather_frame = ctk.CTkFrame(entry_widget, fg_color="transparent")
         weather_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=5)
         
-        weather_text = f"🌤️ {city}: {temp}°C, {condition}"
-        if humidity:
-            weather_text += f" | Humidity: {humidity}%"
-        if wind_speed:
-            weather_text += f" | Wind: {wind_speed} m/s"
+        # Parse weather data if available
+        if weather_data:
+            try:
+                import json
+                weather_info = json.loads(weather_data)
+                weather_text = f"🌤️ {location}: {weather_info.get('temperature', 'N/A')}°C, {weather_info.get('condition', 'N/A')}"
+                if weather_info.get('humidity'):
+                    weather_text += f" | Humidity: {weather_info['humidity']}%"
+                if weather_info.get('wind_speed'):
+                    weather_text += f" | Wind: {weather_info['wind_speed']} m/s"
+            except (json.JSONDecodeError, KeyError):
+                weather_text = f"🌤️ {location or 'Unknown location'}"
+        else:
+            weather_text = f"🌤️ {location or 'Unknown location'}"
             
         ctk.CTkLabel(
             weather_frame,
@@ -293,13 +299,13 @@ class WeatherJournal(ctk.CTkFrame):
         ).pack(anchor="w")
         
         # Notes
-        if notes and notes.strip():
+        if entry_content and entry_content.strip():
             notes_frame = ctk.CTkFrame(entry_widget, fg_color="transparent")
             notes_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(5, 10))
             
             ctk.CTkLabel(
                 notes_frame,
-                text=notes,
+                text=entry_content,
                 font=(DataTerminalTheme.FONT_FAMILY, 11),
                 text_color=DataTerminalTheme.TEXT,
                 wraplength=400,

@@ -34,11 +34,10 @@ geocoder>=1.38.1              # Alternative geocoding library
 openai>=1.0.0                 # OpenAI API for AI-powered poetry generation
 google-generativeai>=0.8.0    # Google Gemini Pro API for AI content generation
 
-# Audio & Music Integration (Puscifer Audio Engine)
-pygame>=2.5.0                 # Audio playback and sound effects
-spotipy>=2.23.0               # Spotify Web API integration
-pywebview>=4.4.0              # Alternative web view for simpler integration
-flask>=3.0.0                  # Web server for Spotify callback and player hosting
+# Audio & Music Integration removed
+
+# Remove or comment out:
+# pywebview>=4.4.0            # This causes issues
 
 # Enhanced Weather Features
 ratelimit>=2.2.1              # Rate limiting for API calls

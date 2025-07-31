@@ -20,13 +20,14 @@ from services.config_service import ConfigService
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.journal_service import JournalService
 from utils.photo_manager import PhotoManager
-from ui.components.secure_api_manager import SecureAPIManager
-from ui.theme import DataTerminalTheme
+from ..components.secure_api_manager import SecureAPIManager
+from ..theme import DataTerminalTheme
 from .weather_display_enhancer import WeatherDisplayEnhancer
 from .ui_components import UIComponentsMixin
 from .tab_manager import TabManagerMixin
 from .weather_handler import WeatherHandlerMixin
-from features.puscifer_audio_engine import PusciferWeatherIntegration
+# Puscifer audio integration removed
+# Spotify integration removed
 
 
 class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, WeatherHandlerMixin):
@@ -52,6 +53,10 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         self.auto_refresh_timer_id = None
         self._running = True
         self._scheduled_callbacks = set()  # Track scheduled after() calls
+        
+        # Add reference storage for callbacks
+        self._callback_refs = []
+        self._is_closing = False
         
         # Setup services with error protection
         try:
@@ -182,64 +187,17 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         self._weather_update_id = None
         self._auto_refresh_id = None
         
-        # Initialize Puscifer audio system
-        self.puscifer = None
-        self.after(1000, self._setup_puscifer_audio_delayed)
+        # Puscifer audio system removed
+        
+        # Spotify integration removed
         
         self.logger.info("Professional Weather Dashboard initialized")
     
-    def _setup_puscifer_audio_delayed(self):
-        """Setup Puscifer audio system with delay to ensure UI is ready"""
-        try:
-            import asyncio
-            # Run the async setup in a thread to avoid blocking the UI
-            threading.Thread(target=self._run_puscifer_setup, daemon=True).start()
-        except Exception as e:
-            self.logger.warning(f"Failed to setup Puscifer audio: {e}")
+    # Puscifer audio setup methods removed
     
-    def _run_puscifer_setup(self):
-        """Run Puscifer setup in a separate thread"""
-        try:
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.setup_puscifer_audio())
-            loop.close()
-        except Exception as e:
-            self.logger.warning(f"Puscifer audio setup failed: {e}")
+    # Spotify initialization method removed
     
-    async def setup_puscifer_audio(self):
-        """Setup Puscifer audio integration"""
-        try:
-            # Get Spotify credentials from environment variables
-            import os
-            spotify_config = {
-                'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
-                'client_secret': os.getenv('SPOTIFY_CLIENT_SECRET'),
-                'redirect_uri': os.getenv('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:8000/callback')
-            }
-            
-            # Validate that credentials are available
-            if not spotify_config['client_id'] or not spotify_config['client_secret']:
-                self.logger.warning("⚠️ Spotify credentials not found in environment variables")
-                return
-            
-            self.puscifer = PusciferWeatherIntegration(
-                self,
-                spotify_config['client_id'],
-                spotify_config['client_secret'],
-                spotify_config['redirect_uri']
-            )
-            
-            # Initialize the audio engine
-            success = await self.puscifer.initialize()
-            if success:
-                self.logger.info("🎵 Puscifer audio system initialized successfully")
-            else:
-                self.logger.warning("🎵 Puscifer audio system failed to initialize (check Spotify credentials)")
-                
-        except Exception as e:
-            self.logger.warning(f"Puscifer audio setup error: {e}")
+    # Puscifer setup methods removed
     
     def _safe_initial_setup(self):
         """Safe initialization without problematic components"""
@@ -251,7 +209,7 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             if hasattr(self, 'weather_service') and self.weather_service:
                 try:
                     # Use a simple, safe async call
-                    self.after(500, lambda: self._safe_load_default_weather())
+                    self.after(500, self._safe_load_default_weather)
                 except Exception as e:
                     self.logger.warning(f"Could not schedule default weather load: {e}")
             
@@ -414,48 +372,29 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             self.logger.error(f"Weather data was: {weather_data}")
     
     def after(self, ms, func=None, *args):
-        """Override after method to handle CustomTkinter DPI scaling errors and threading issues."""
-        if func is None:
-            return super().after(ms)
+        """Override after method with proper reference handling."""
+        # Check if we're closing (handle case where attribute doesn't exist yet)
+        is_closing = getattr(self, '_is_closing', False)
         
-        # Check if we're in the main thread
-        import threading
-        if threading.current_thread() != threading.main_thread():
-            # If not in main thread, schedule safely
-            try:
-                if self.winfo_exists():
-                    callback_id = super().after(ms, func, *args)
-                    if callback_id and hasattr(self, '_scheduled_callbacks'):
-                        self._scheduled_callbacks.add(callback_id)
-                    return callback_id
-                else:
-                    self.logger.debug("Widget destroyed, skipping after call")
-                    return None
-            except RuntimeError as e:
-                if "main thread is not in main loop" in str(e):
-                    self.logger.debug(f"Skipped after call from background thread: {e}")
-                    return None
-                else:
-                    raise e
+        if func is not None and not is_closing:
+            # Store reference to prevent garbage collection
+            if hasattr(self, '_callback_refs'):
+                self._callback_refs.append(func)
+                # Clean old references periodically
+                if len(self._callback_refs) > 100:
+                    self._callback_refs = self._callback_refs[-50:]
         
-        # Use the original after method but catch any scheduling errors
         try:
-            callback_id = super().after(ms, func, *args)
-            if callback_id and hasattr(self, '_scheduled_callbacks'):
-                self._scheduled_callbacks.add(callback_id)
-            return callback_id
+            return super().after(ms, func, *args)
         except Exception as e:
             error_msg = str(e).lower()
             if "invalid command name" in error_msg:
-                # Suppress all invalid command name errors from CustomTkinter
-                self.logger.debug(f"Suppressed after scheduling error: {e}")
-                return None
-            elif "main thread is not in main loop" in error_msg:
-                self.logger.debug(f"Skipped after call due to main loop issue: {e}")
+                # Suppress DPI scaling errors
+                if hasattr(self, 'logger'):
+                    self.logger.debug(f"Suppressed CustomTkinter internal error: {e}")
                 return None
             else:
-                self.logger.warning(f"Non-critical after call error: {e}")
-                return None
+                raise e
     
     def after_cancel(self, id):
         """Override after_cancel to remove from tracking set."""
@@ -490,6 +429,30 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         except Exception as e:
             self.logger.error(f"Error during child component cleanup: {e}")
     
+    def destroy(self):
+        """Proper cleanup on window close."""
+        self._is_closing = True
+        
+        try:
+            # Cancel all pending callbacks safely
+            for widget in self.winfo_children():
+                try:
+                    widget.destroy()
+                except:
+                    pass
+            
+            # Clear callback references
+            self._callback_refs.clear()
+            
+            # Cleanup services
+            if hasattr(self, 'weather_service'):
+                self.weather_service.clear_cache()
+            
+        except Exception as e:
+            self.logger.error(f"Cleanup error: {e}")
+        finally:
+            super().destroy()
+    
     def _on_user_close(self):
         """Handle user-initiated window close - ask for confirmation"""
         try:
@@ -501,6 +464,29 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             # If there's an error with the dialog, just close
             self._on_closing()
      
+    def cleanup(self):
+        """Cleanup resources"""
+        try:
+            self.logger.info("Starting application cleanup...")
+            
+            # Cancel any pending after callbacks
+            for child in self.winfo_children():
+                try:
+                    child.destroy()
+                except:
+                    pass
+            
+            # Audio cleanup removed
+            
+            # Stop services
+            if hasattr(self, 'ai_service'):
+                self.ai_service.cleanup()
+            
+            self.logger.info("Application cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Cleanup error: {e}")
+    
     def _on_closing(self):
         """Handle application closing - cleanup timers and resources."""
         try:
@@ -523,16 +509,8 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                 if cancelled_count > 0:
                     self.logger.info(f"Cancelled {cancelled_count} pending callbacks")
             
-            # Cleanup Puscifer audio system
-            if hasattr(self, 'puscifer') and self.puscifer:
-                try:
-                    self.puscifer.cleanup()
-                    self.logger.info("🎵 Puscifer audio system cleaned up")
-                except Exception as e:
-                    self.logger.error(f"Error cleaning up Puscifer audio: {e}")
-            
-            # Cleanup all child components that have cleanup methods
-            self._cleanup_child_components()
+            # Call the new cleanup method
+            self.cleanup()
             
             # Stop any running processes
             if hasattr(self, '_running'):

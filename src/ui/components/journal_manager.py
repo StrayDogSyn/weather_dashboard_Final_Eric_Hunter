@@ -12,9 +12,9 @@ from typing import Optional
 from services.journal_service import JournalService
 from services.enhanced_weather_service import EnhancedWeatherService
 from models.journal_entry import JournalEntry
-from ui.theme import WeatherTheme
-from ui.components.journal_editor import JournalEditor
-from ui.components.journal_list import JournalList
+from ..theme import WeatherTheme
+from .journal_editor import JournalEditor
+from .journal_list import JournalList
 
 
 class JournalManager(tk.Frame):
@@ -298,9 +298,13 @@ class JournalManager(tk.Frame):
                     success = self.journal_service.update_entry(updated_entry)
                     
                     if success:
-                        self.after(0, lambda: self._on_entry_saved(updated_entry, is_new=False))
+                        def on_update_success():
+                            self._on_entry_saved(updated_entry, is_new=False)
+                        self.after(0, on_update_success)
                     else:
-                        self.after(0, lambda: self._show_error("Failed to update entry"))
+                        def on_update_error():
+                            self._show_error("Failed to update entry")
+                        self.after(0, on_update_error)
                 else:
                     # Create new entry
                     new_entry = JournalEntry.from_dict(entry_data)
@@ -308,13 +312,19 @@ class JournalManager(tk.Frame):
                     
                     if entry_id:
                         new_entry.id = entry_id
-                        self.after(0, lambda: self._on_entry_saved(new_entry, is_new=True))
+                        def on_create_success():
+                            self._on_entry_saved(new_entry, is_new=True)
+                        self.after(0, on_create_success)
                     else:
-                        self.after(0, lambda: self._show_error("Failed to create entry"))
+                        def on_create_error():
+                            self._show_error("Failed to create entry")
+                        self.after(0, on_create_error)
                         
             except Exception as e:
                 error_msg = str(e)
-                self.after(0, lambda: self._show_error(f"Save error: {error_msg}"))
+                def on_save_exception():
+                    self._show_error(f"Save error: {error_msg}")
+                self.after(0, on_save_exception)
         
         # Show saving indicator
         original_text = self.save_btn.cget('text')

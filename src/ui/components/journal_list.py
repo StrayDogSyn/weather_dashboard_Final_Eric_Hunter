@@ -12,7 +12,7 @@ from typing import List, Optional, Callable
 
 from services.journal_service import JournalService
 from models.journal_entry import JournalEntry
-from ui.theme import WeatherTheme
+from ..theme import WeatherTheme
 
 
 class JournalList(tk.Frame):
@@ -383,14 +383,18 @@ class JournalList(tk.Frame):
                 entries = self.journal_service.get_entries(limit=100)
                 # Check if widget is still valid before scheduling UI update
                 try:
-                    self.after(0, lambda: self._update_entries(entries))
+                    def update_entries_callback():
+                        self._update_entries(entries)
+                    self.after(0, update_entries_callback)
                 except RuntimeError:
                     # Widget may have been destroyed or main loop not running
                     pass
             except Exception as e:
                 error_msg = str(e)
                 try:
-                    self.after(0, lambda: self._show_error(f"Failed to load entries: {error_msg}"))
+                    def show_error_callback():
+                        self._show_error(f"Failed to load entries: {error_msg}")
+                    self.after(0, show_error_callback)
                 except RuntimeError:
                     # Widget may have been destroyed or main loop not running
                     print(f"Failed to load journal entries: {error_msg}")
@@ -463,11 +467,17 @@ class JournalList(tk.Frame):
                 mood_stats = self.journal_service.get_mood_statistics()
                 if mood_stats.get('average_mood'):
                     mood_text = f"Avg mood: {mood_stats['average_mood']}/10"
-                    self.after(0, lambda: self.mood_label.configure(text=mood_text))
+                    def update_mood_text():
+                        self.mood_label.configure(text=mood_text)
+                    self.after(0, update_mood_text)
                 else:
-                    self.after(0, lambda: self.mood_label.configure(text=""))
+                    def clear_mood_text():
+                        self.mood_label.configure(text="")
+                    self.after(0, clear_mood_text)
             except Exception:
-                self.after(0, lambda: self.mood_label.configure(text=""))
+                def clear_mood_text_error():
+                    self.mood_label.configure(text="")
+                self.after(0, clear_mood_text_error)
         
         threading.Thread(target=load_mood_stats, daemon=True).start()
     
@@ -515,11 +525,17 @@ class JournalList(tk.Frame):
                 try:
                     success = self.journal_service.delete_entry(entry.id)
                     if success:
-                        self.after(0, lambda: self._on_entry_deleted(entry))
+                        def on_delete_success():
+                            self._on_entry_deleted(entry)
+                        self.after(0, on_delete_success)
                     else:
-                        self.after(0, lambda: self._show_error("Failed to delete entry"))
+                        def on_delete_error():
+                            self._show_error("Failed to delete entry")
+                        self.after(0, on_delete_error)
                 except Exception as e:
-                    self.after(0, lambda: self._show_error(f"Delete error: {e}"))
+                    def on_delete_exception():
+                        self._show_error(f"Delete error: {e}")
+                    self.after(0, on_delete_exception)
             
             threading.Thread(target=delete_entry, daemon=True).start()
     

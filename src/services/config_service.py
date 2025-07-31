@@ -292,10 +292,8 @@ class ConfigService:
             'weatherapi_api_key': self._config.api.weatherapi_api_key or '',
             'gemini_api_key': self._config.api.gemini_api_key or '',
             'openai_api_key': self._config.api.openai_api_key or '',
-            'google_maps_api_key': self._config.api.google_maps_api_key or '',
-            'spotify_client_id': self._config.api.spotify_client_id or '',
-            'spotify_client_secret': self._config.api.spotify_client_secret or '',
-            'spotify_redirect_uri': self._config.api.spotify_redirect_uri or ''
+            'google_maps_api_key': self._config.api.google_maps_api_key or ''
+            # Spotify configuration removed
         }
     
     def reload_config(self) -> bool:

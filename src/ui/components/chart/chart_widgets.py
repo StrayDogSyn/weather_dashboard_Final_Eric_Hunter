@@ -229,7 +229,9 @@ class ChartWidgetsMixin:
     def _animate_tooltip_hide(self):
         """Animate tooltip disappearance."""
         # Hide tooltip after brief delay
-        self.after(50, lambda: self.tooltip_frame.place_forget())
+        def hide_tooltip():
+            self.tooltip_frame.place_forget()
+        self.after(50, hide_tooltip)
         
     def _add_button_hover_effects(self, button):
         """Add glassmorphic hover effects to buttons."""
@@ -252,7 +254,9 @@ class ChartWidgetsMixin:
         
         # Brief flash effect
         button.configure(fg_color="#00cc66")
-        self.after(100, lambda: self.change_timeframe(timeframe))
+        def change_timeframe_callback():
+            self.change_timeframe(timeframe)
+        self.after(100, change_timeframe_callback)
         
     def show_notification(self, message: str, notification_type: str = "info"):
         """Show a temporary notification message."""

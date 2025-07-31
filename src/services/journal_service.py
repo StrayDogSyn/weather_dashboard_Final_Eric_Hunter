@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 import json
 from models.journal_entry import JournalEntry
-from services.enhanced_weather_service import EnhancedWeatherService
+from .enhanced_weather_service import EnhancedWeatherService
 from utils.photo_manager import PhotoManager
 
 
