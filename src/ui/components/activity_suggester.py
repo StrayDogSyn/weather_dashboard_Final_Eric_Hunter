@@ -7,13 +7,23 @@ from pathlib import Path
 from ui.theme import DataTerminalTheme
 import threading
 
-# Optional import for Google Generative AI
+# Import the enhanced AI service
+from services.ai_service import AIService, ModelTier
+
+# Optional imports for AI services (kept for backward compatibility)
 try:
     import google.generativeai as genai
     GENAI_AVAILABLE = True
 except ImportError:
     genai = None
     GENAI_AVAILABLE = False
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
 
 class ActivitySuggester(ctk.CTkFrame):
     """AI-powered activity suggestions based on weather conditions."""
@@ -25,8 +35,16 @@ class ActivitySuggester(ctk.CTkFrame):
         self.current_weather = None
         self.suggestions = []
         
-        # Initialize Gemini API
+        # Enhanced AI service initialization
+        self.ai_service = AIService(config_service)
+        
+        # Legacy AI service initialization (for fallback)
+        self.gemini_model = None
+        self.openai_client = None
+        
+        # Initialize legacy AI services as backup
         self._initialize_gemini()
+        self._initialize_openai()
         
         # Setup preferences database
         self._setup_database()
@@ -46,18 +64,57 @@ class ActivitySuggester(ctk.CTkFrame):
             return
             
         try:
-            api_key = self.config_service.get('gemini_api_key')
-            if api_key:
+            print(f"Debug - ActivitySuggester: About to call config_service.get('gemini_api_key')")
+            print(f"Debug - ActivitySuggester: config_service type: {type(self.config_service)}")
+            print(f"Debug - ActivitySuggester: config_service instance: {getattr(self.config_service, 'instance_id', 'NO_ID')}")
+            print(f"Debug - ActivitySuggester: config_service has get method: {hasattr(self.config_service, 'get')}")
+            try:
+                api_key = self.config_service.get('gemini_api_key')
+                print(f"Debug - ActivitySuggester: get() call completed, result type: {type(api_key)}")
+                print(f"Debug - ActivitySuggester: get() call completed, result value: {repr(api_key)}")
+            except Exception as get_ex:
+                print(f"Debug - ActivitySuggester: EXCEPTION in get() call: {get_ex}")
+                import traceback
+                traceback.print_exc()
+                api_key = None
+            print(f"Debug - ActivitySuggester: Gemini API key from config: {'[SET]' if api_key and api_key.strip() else '[EMPTY]'}")
+            if api_key and api_key.strip():
                 genai.configure(api_key=api_key)
-                self.model = genai.GenerativeModel('gemini-pro')
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
                 self.gemini_available = True
+                print("✅ Gemini AI initialized successfully")
             else:
                 self.gemini_available = False
                 self.model = None
+                print("⚠️ Gemini API key not found in configuration")
         except Exception as e:
-            print(f"Gemini initialization error: {e}")
+            print(f"❌ Gemini initialization error: {e}")
             self.gemini_available = False
             self.model = None
+    
+    def _initialize_openai(self):
+        """Initialize OpenAI API."""
+        if not OPENAI_AVAILABLE:
+            self.openai_client = None
+            self.openai_available = False
+            print("Warning: openai package not installed")
+            return
+            
+        try:
+            api_key = self.config_service.get('openai_api_key')
+            print(f"Debug - ActivitySuggester: OpenAI API key from config: {'[SET]' if api_key and api_key.strip() else '[EMPTY]'}")
+            if api_key and api_key.strip():
+                self.openai_client = openai.OpenAI(api_key=api_key)
+                self.openai_available = True
+                print("✅ OpenAI initialized successfully")
+            else:
+                self.openai_available = False
+                self.openai_client = None
+                print("⚠️ OpenAI API key not found in configuration")
+        except Exception as e:
+            print(f"❌ OpenAI initialization error: {e}")
+            self.openai_available = False
+            self.openai_client = None
     
     def _setup_database(self):
         """Setup SQLite for activity preferences."""
@@ -113,6 +170,15 @@ class ActivitySuggester(ctk.CTkFrame):
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
             text_color=DataTerminalTheme.PRIMARY
         ).pack(side="left")
+        
+        # AI Service Status
+        self.ai_status_label = ctk.CTkLabel(
+            title_frame,
+            text=self._get_ai_status_text(),
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=DataTerminalTheme.TEXT_SECONDARY
+        )
+        self.ai_status_label.pack(side="left", padx=(10, 0))
         
         self.weather_label = ctk.CTkLabel(
             title_frame,
@@ -212,6 +278,17 @@ class ActivitySuggester(ctk.CTkFrame):
     
     def _refresh_suggestions(self):
         """Refresh activity suggestions."""
+        # Clear existing content and show loading
+        for widget in self.suggestions_frame.winfo_children():
+            widget.destroy()
+        
+        # Create new loading label
+        self.loading_label = ctk.CTkLabel(
+            self.suggestions_frame,
+            text="🔄 Generating AI suggestions...",
+            font=(DataTerminalTheme.FONT_FAMILY, 14),
+            text_color=DataTerminalTheme.TEXT_SECONDARY
+        )
         self.loading_label.pack(pady=50)
         self.refresh_btn.configure(state="disabled", text="Loading...")
         
@@ -219,7 +296,7 @@ class ActivitySuggester(ctk.CTkFrame):
         threading.Thread(target=self._fetch_suggestions, daemon=True).start()
     
     def _fetch_suggestions(self):
-        """Fetch suggestions from AI and weather data."""
+        """Fetch suggestions from AI and weather data using enhanced AI service."""
         try:
             # Get current weather
             self.current_weather = self.weather_service.get_current_weather()
@@ -227,17 +304,46 @@ class ActivitySuggester(ctk.CTkFrame):
             # Update weather display
             self.after(0, self._update_weather_display)
             
-            # Generate AI suggestions
-            if self.gemini_available and self.current_weather:
-                ai_suggestions = self._generate_ai_suggestions()
-            else:
+            # Generate AI suggestions using enhanced service with fallback hierarchy
+            ai_suggestions = None
+            
+            # Try enhanced AI service first
+            try:
+                ai_suggestions = self._generate_enhanced_ai_suggestions()
+                if ai_suggestions:
+                    print("✅ Generated suggestions using enhanced AI service")
+            except Exception as e:
+                print(f"⚠️ Enhanced AI service failed: {e}")
+                
+                # Fallback to legacy AI methods
+                if self.gemini_available and self.current_weather:
+                    try:
+                        ai_suggestions = self._generate_gemini_suggestions()
+                        if ai_suggestions:
+                            print("✅ Generated suggestions using legacy Gemini")
+                    except Exception as gemini_error:
+                        print(f"⚠️ Legacy Gemini generation failed: {gemini_error}")
+                
+                # Fallback to OpenAI if Gemini failed
+                if not ai_suggestions and self.openai_available and self.current_weather:
+                    try:
+                        ai_suggestions = self._generate_openai_suggestions()
+                        if ai_suggestions:
+                            print("✅ Generated suggestions using legacy OpenAI")
+                    except Exception as openai_error:
+                        print(f"⚠️ Legacy OpenAI generation failed: {openai_error}")
+            
+            # Final fallback to default suggestions
+            if not ai_suggestions:
                 ai_suggestions = self._get_fallback_suggestions()
+                print("ℹ️ Using fallback suggestions")
             
             self.suggestions = ai_suggestions
             
             # Update UI
             self.after(0, self._display_suggestions)
             self.after(0, lambda: self.refresh_btn.configure(state="normal", text="🔄 Refresh"))
+            self.after(0, self._update_ai_status)
             
         except Exception as e:
             print(f"Error fetching suggestions: {e}")
@@ -254,7 +360,41 @@ class ActivitySuggester(ctk.CTkFrame):
         else:
             self.weather_label.configure(text="Weather unavailable")
     
-    def _generate_ai_suggestions(self) -> List[Dict]:
+    def _update_ai_status(self):
+        """Update AI service status display."""
+        if hasattr(self, 'ai_status_label'):
+            self.ai_status_label.configure(text=self._get_ai_status_text())
+    
+    def _generate_enhanced_ai_suggestions(self) -> List[Dict]:
+        """Generate activity suggestions using enhanced AI service."""
+        try:
+            if not self.current_weather:
+                return self._get_fallback_suggestions()
+            
+            # Get user preferences
+            preferences = self._get_user_preferences()
+            
+            # Create prompt for enhanced AI service
+            prompt = self._create_ai_prompt(self.current_weather, preferences)
+            
+            # Use enhanced AI service with intelligent model selection
+            response = self.ai_service.generate_activity_suggestions(
+                weather_data=self.current_weather,
+                user_preferences=preferences,
+                prompt=prompt
+            )
+            
+            if response and 'activities' in response:
+                return response['activities']
+            else:
+                print("⚠️ Enhanced AI service returned empty response")
+                return []
+            
+        except Exception as e:
+            print(f"❌ Enhanced AI generation error: {e}")
+            return []
+    
+    def _generate_gemini_suggestions(self) -> List[Dict]:
         """Generate activity suggestions using Gemini AI."""
         try:
             # Get user preferences
@@ -271,7 +411,46 @@ class ActivitySuggester(ctk.CTkFrame):
             return suggestions_data.get('activities', [])
             
         except Exception as e:
-            print(f"AI generation error: {e}")
+            print(f"❌ Gemini generation error: {e}")
+            # Fallback to OpenAI if available
+            if self.openai_available:
+                print("🔄 Falling back to OpenAI...")
+                return self._generate_openai_suggestions()
+            return self._get_fallback_suggestions()
+    
+    def _generate_openai_suggestions(self) -> List[Dict]:
+        """Generate activity suggestions using OpenAI API."""
+        try:
+            # Get user preferences
+            preferences = self._get_user_preferences()
+            
+            # Create prompt
+            prompt = self._create_ai_prompt(self.current_weather, preferences)
+            
+            # Generate response using OpenAI
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an AI assistant that provides personalized activity suggestions based on weather conditions. Always respond with valid JSON in the exact format requested."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
+            
+            # Parse JSON response
+            response_text = response.choices[0].message.content
+            suggestions_data = json.loads(response_text)
+            return suggestions_data.get('activities', [])
+            
+        except Exception as e:
+            print(f"❌ OpenAI generation error: {e}")
             return self._get_fallback_suggestions()
     
     def _create_ai_prompt(self, weather: Dict, preferences: List[Dict]) -> str:
@@ -317,6 +496,15 @@ class ActivitySuggester(ctk.CTkFrame):
         """
         
         return prompt
+    
+    def _get_ai_status_text(self) -> str:
+        """Get current AI service status text."""
+        if self.gemini_available:
+            return "🤖 Gemini AI"
+        elif self.openai_available:
+            return "🤖 OpenAI GPT"
+        else:
+            return "🔧 Fallback Mode"
     
     def _get_user_preferences(self) -> List[Dict]:
         """Get user activity preferences from database."""
@@ -496,17 +684,17 @@ class ActivitySuggester(ctk.CTkFrame):
     
     def _create_activity_card(self, activity: Dict, index: int):
         """Create a card for an activity suggestion."""
-        card_frame = ctk.CTkFrame(
+        activity_card = ctk.CTkFrame(
             self.suggestions_frame,
-            fg_color=DataTerminalTheme.BG,
+            fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=8,
             border_width=1,
             border_color=DataTerminalTheme.BORDER
         )
-        card_frame.pack(fill="x", padx=10, pady=5)
+        activity_card.pack(fill="x", padx=10, pady=5)
         
         # Main content frame
-        content_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        content_frame = ctk.CTkFrame(activity_card, fg_color="transparent")
         content_frame.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Header with name and category
@@ -653,7 +841,7 @@ class ActivitySuggester(ctk.CTkFrame):
         popup = ctk.CTkToplevel(self)
         popup.title(f"Activity Details - {activity.get('name', 'Unknown')}")
         popup.geometry("500x600")
-        popup.configure(fg_color=DataTerminalTheme.BG)
+        popup.configure(fg_color=DataTerminalTheme.BACKGROUND)
         
         # Make popup modal
         popup.transient(self)
@@ -694,7 +882,7 @@ class ActivitySuggester(ctk.CTkFrame):
         desc_label.pack(pady=(0, 15))
         
         # Weather suitability
-        weather_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BG)
+        weather_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BACKGROUND)
         weather_frame.pack(fill="x", pady=(0, 15))
         
         ctk.CTkLabel(
@@ -716,7 +904,7 @@ class ActivitySuggester(ctk.CTkFrame):
         # Equipment needed
         equipment = activity.get('equipment_needed', [])
         if equipment:
-            equipment_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BG)
+            equipment_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BACKGROUND)
             equipment_frame.pack(fill="x", pady=(0, 15))
             
             ctk.CTkLabel(
@@ -738,7 +926,7 @@ class ActivitySuggester(ctk.CTkFrame):
         # Benefits
         benefits = activity.get('benefits', [])
         if benefits:
-            benefits_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BG)
+            benefits_frame = ctk.CTkFrame(scroll_frame, fg_color=DataTerminalTheme.BACKGROUND)
             benefits_frame.pack(fill="x", pady=(0, 15))
             
             ctk.CTkLabel(

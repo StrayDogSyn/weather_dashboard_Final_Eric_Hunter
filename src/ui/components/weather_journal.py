@@ -246,7 +246,11 @@ class WeatherJournal(ctk.CTkFrame):
         header_frame.grid_columnconfigure(1, weight=1)
         
         # Date
-        date_str = datetime.fromisoformat(timestamp).strftime("%B %d, %Y at %I:%M %p")
+        if isinstance(timestamp, str):
+            date_obj = datetime.fromisoformat(timestamp)
+        else:
+            date_obj = timestamp
+        date_str = date_obj.strftime("%B %d, %Y at %I:%M %p")
         ctk.CTkLabel(
             header_frame,
             text=date_str,

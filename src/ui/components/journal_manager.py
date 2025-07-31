@@ -20,13 +20,14 @@ from ui.components.journal_list import JournalList
 class JournalManager(tk.Frame):
     """Comprehensive journal management interface with glassmorphic styling."""
     
-    def __init__(self, parent, weather_service: EnhancedWeatherService, theme: WeatherTheme, **kwargs):
+    def __init__(self, parent, weather_service: EnhancedWeatherService, theme: WeatherTheme, journal_service: Optional[JournalService] = None, **kwargs):
         """Initialize the journal manager.
         
         Args:
             parent: Parent widget
             weather_service: Weather service for data integration
             theme: Theme configuration
+            journal_service: Optional JournalService instance to avoid duplicate initialization
         """
         super().__init__(parent, **kwargs)
         
@@ -34,7 +35,7 @@ class JournalManager(tk.Frame):
         self.theme = theme
         
         # Initialize services
-        self.journal_service = JournalService(weather_service=weather_service)
+        self.journal_service = journal_service or JournalService(weather_service=weather_service)
         
         # Current state
         self.current_entry: Optional[JournalEntry] = None

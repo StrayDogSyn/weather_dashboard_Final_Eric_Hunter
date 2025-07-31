@@ -62,7 +62,8 @@ class AirQualityData:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AirQualityData':
         """Create from dictionary."""
-        data['timestamp'] = datetime.fromisoformat(data['timestamp'])
+        if isinstance(data['timestamp'], str):
+            data['timestamp'] = datetime.fromisoformat(data['timestamp'])
         return cls(**data)
 
 
@@ -115,11 +116,16 @@ class AstronomicalData:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AstronomicalData':
         """Create from dictionary."""
-        data['sunrise'] = datetime.fromisoformat(data['sunrise'])
-        data['sunset'] = datetime.fromisoformat(data['sunset'])
-        data['moonrise'] = datetime.fromisoformat(data['moonrise']) if data['moonrise'] else None
-        data['moonset'] = datetime.fromisoformat(data['moonset']) if data['moonset'] else None
-        data['day_length'] = timedelta(seconds=data['day_length'])
+        if isinstance(data['sunrise'], str):
+            data['sunrise'] = datetime.fromisoformat(data['sunrise'])
+        if isinstance(data['sunset'], str):
+            data['sunset'] = datetime.fromisoformat(data['sunset'])
+        if data['moonrise'] and isinstance(data['moonrise'], str):
+            data['moonrise'] = datetime.fromisoformat(data['moonrise'])
+        if data['moonset'] and isinstance(data['moonset'], str):
+            data['moonset'] = datetime.fromisoformat(data['moonset'])
+        if isinstance(data['day_length'], (int, float)):
+            data['day_length'] = timedelta(seconds=data['day_length'])
         return cls(**data)
 
 
@@ -163,8 +169,10 @@ class WeatherAlert:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'WeatherAlert':
         """Create from dictionary."""
-        data['start_time'] = datetime.fromisoformat(data['start_time'])
-        data['end_time'] = datetime.fromisoformat(data['end_time'])
+        if isinstance(data['start_time'], str):
+            data['start_time'] = datetime.fromisoformat(data['start_time'])
+        if isinstance(data['end_time'], str):
+            data['end_time'] = datetime.fromisoformat(data['end_time'])
         return cls(**data)
 
 
@@ -308,7 +316,7 @@ class EnhancedWeatherService:
                 self.logger.error("🔑 Invalid API key")
                 raise Exception("Invalid API key - please check your configuration")
             elif response.status_code == 404:
-                self.logger.error("🏙️ Location not found")
+                self.logger.debug("🏙️ Location not found")
                 raise Exception("Location not found - please check the spelling")
             elif response.status_code == 429:
                 self.logger.error("🚫 API rate limit exceeded")
@@ -484,7 +492,26 @@ class EnhancedWeatherService:
             cached_data = self._cache[cache_key]['data']
             
             # Reconstruct enhanced weather data
-            weather_data = EnhancedWeatherData(**cached_data['weather'])
+            weather_dict = cached_data['weather'].copy()
+            # Convert location dict back to Location object
+            if isinstance(weather_dict['location'], dict):
+                weather_dict['location'] = Location(**weather_dict['location'])
+            # Convert condition string back to WeatherCondition enum
+            if isinstance(weather_dict['condition'], str):
+                # Handle both enum string representation and direct value
+                condition_str = weather_dict['condition']
+                if condition_str.startswith('WeatherCondition.'):
+                    # Extract the enum name (e.g., 'CLEAR' from 'WeatherCondition.CLEAR')
+                    enum_name = condition_str.split('.')[-1]
+                    weather_dict['condition'] = getattr(WeatherCondition, enum_name)
+                else:
+                    # Direct enum value (e.g., 'clear')
+                    weather_dict['condition'] = WeatherCondition(condition_str)
+            # Convert timestamp string back to datetime
+            if isinstance(weather_dict['timestamp'], str):
+                weather_dict['timestamp'] = datetime.fromisoformat(weather_dict['timestamp'])
+            
+            weather_data = EnhancedWeatherData(**weather_dict)
             if cached_data.get('air_quality'):
                 weather_data.air_quality = AirQualityData.from_dict(cached_data['air_quality'])
             if cached_data.get('astronomical'):
@@ -503,7 +530,7 @@ class EnhancedWeatherService:
             raise Exception("No weather data received")
         
         # Parse basic weather data
-        location = Location(
+        location_obj = Location(
             name=data['name'],
             country=data['sys']['country'],
             latitude=data['coord']['lat'],
@@ -516,7 +543,7 @@ class EnhancedWeatherService:
         )
         
         weather_data = EnhancedWeatherData(
-            location=location,
+            location=location_obj,
             timestamp=datetime.now(),
             condition=condition,
             description=data['weather'][0]['description'].title(),
@@ -560,6 +587,52 @@ class EnhancedWeatherService:
     def get_weather(self, location: str) -> EnhancedWeatherData:
         """Get weather data - compatibility method that delegates to get_enhanced_weather."""
         return self.get_enhanced_weather(location)
+    
+    def get_current_weather(self, location: str = None) -> Dict[str, Any]:
+        """Get current weather data in dictionary format for compatibility.
+        
+        Args:
+            location: Location to get weather for. If None, uses default location.
+            
+        Returns:
+            Dictionary containing current weather data
+        """
+        if location is None:
+            location = "London"  # Default location
+            
+        try:
+            enhanced_data = self.get_enhanced_weather(location)
+            self.logger.debug(f"Enhanced data type: {type(enhanced_data)}, location type: {type(enhanced_data.location)}")
+            
+            # Convert to dictionary format expected by other components
+            return {
+                'location': enhanced_data.location.name,
+                'country': enhanced_data.location.country,
+                'temperature': enhanced_data.temperature,
+                'feels_like': enhanced_data.feels_like,
+                'humidity': enhanced_data.humidity,
+                'pressure': enhanced_data.pressure,
+                'description': enhanced_data.description,
+                'condition': enhanced_data.condition.value,
+                'wind_speed': enhanced_data.wind_speed,
+                'wind_direction': enhanced_data.wind_direction,
+                'cloudiness': enhanced_data.cloudiness,
+                'visibility': enhanced_data.visibility,
+                'timestamp': enhanced_data.timestamp.isoformat(),
+                'air_quality': enhanced_data.air_quality.to_dict() if enhanced_data.air_quality else None,
+                'astronomical': enhanced_data.astronomical.to_dict() if enhanced_data.astronomical else None
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get current weather: {e}")
+            # Return minimal fallback data
+            return {
+                'location': location,
+                'temperature': 20.0,
+                'description': 'Weather data unavailable',
+                'condition': 'unknown',
+                'timestamp': datetime.now().isoformat()
+            }
     
     def clear_cache(self) -> None:
         """Clear enhanced weather cache."""

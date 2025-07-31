@@ -50,6 +50,16 @@ def main():
         # Load environment variables
         load_dotenv()
         
+        # Debug: Check if API keys are loaded
+        import os
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+        openweather_key = os.getenv("OPENWEATHER_API_KEY")
+        
+        print(f"Debug - GEMINI_API_KEY loaded: {'Yes' if gemini_key else 'No'}")
+        print(f"Debug - OPENAI_API_KEY loaded: {'Yes' if openai_key else 'No'}")
+        print(f"Debug - OPENWEATHER_API_KEY loaded: {'Yes' if openweather_key else 'No'}")
+        
         # Initialize logging
         logging.basicConfig(
             level=logging.INFO,
@@ -68,8 +78,8 @@ def main():
         sys.stderr = FilteredStderr(original_stderr)
         
         try:
-            # Create application with professional dashboard
-            app = ProfessionalWeatherDashboard()
+            # Create application with professional dashboard, passing config service
+            app = ProfessionalWeatherDashboard(config_service=config_service)
             
             # Center window and update with error handling
             try:

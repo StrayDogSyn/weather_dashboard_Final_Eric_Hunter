@@ -21,15 +21,22 @@ class ConfigService:
         Args:
             config_file: Optional path to configuration file
         """
+        import uuid
+        self.instance_id = str(uuid.uuid4())[:8]
         self.logger = logging.getLogger(__name__)
         self._config = AppConfig(config_file)
+        
+        # Debug: Check API keys in ConfigService
+        print(f"Debug - ConfigService init [{self.instance_id}]: Gemini API key: {'[SET]' if self._config.api.gemini_api_key and self._config.api.gemini_api_key.strip() else '[EMPTY]'}")
+        print(f"Debug - ConfigService init [{self.instance_id}]: OpenAI API key: {'[SET]' if self._config.api.openai_api_key and self._config.api.openai_api_key.strip() else '[EMPTY]'}")
+        print(f"Debug - ConfigService init [{self.instance_id}]: OpenWeather API key: {'[SET]' if self._config.api.openweather_api_key and self._config.api.openweather_api_key.strip() else '[EMPTY]'}")
         
         # Validate configuration on initialization
         if not self._config.validate():
             self.logger.error("Configuration validation failed")
             raise ValueError("Invalid configuration")
         
-        self.logger.info("Configuration service initialized")
+        self.logger.info(f"Configuration service initialized [{self.instance_id}]")
     
     @property
     def config(self) -> AppConfig:
@@ -74,6 +81,45 @@ class ConfigService:
             API key string
         """
         return self._config.api.openweather_api_key
+    
+    def get_api_key_by_name(self, key: str) -> Optional[str]:
+        """Get API key configuration value by key.
+        
+        Args:
+            key: Configuration key
+            
+        Returns:
+            Configuration value or None if not found
+        """
+        try:
+            print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name() called with key: '{key}'")
+            print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name() - _config exists: {hasattr(self, '_config')}")
+            print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name() - _config.api exists: {hasattr(self._config, 'api') if hasattr(self, '_config') else 'NO_CONFIG'}")
+            
+            if key == 'gemini_api_key':
+                value = self._config.api.gemini_api_key
+                print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name('{key}'): {'[SET]' if value else '[EMPTY]'}")
+                return value
+            elif key == 'openai_api_key':
+                value = self._config.api.openai_api_key
+                print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name('{key}'): {'[SET]' if value else '[EMPTY]'}")
+                return value
+            elif key == 'openweather_api_key':
+                value = self._config.api.openweather_api_key
+                print(f"Debug - ConfigService.get_api_key_by_name('{key}'): {'[SET]' if value else '[EMPTY]'}")
+                return value
+            elif key == 'google_maps_api_key':
+                value = self._config.api.google_maps_api_key
+                print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name('{key}'): {'[SET]' if value else '[EMPTY]'}")
+                return value
+            else:
+                print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name() - Unknown key: '{key}'")
+                return None
+        except Exception as e:
+            print(f"Debug - ConfigService[{self.instance_id}].get_api_key_by_name() - EXCEPTION: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def get_api_base_url(self) -> str:
         """Get the OpenWeather API base URL.
@@ -169,6 +215,26 @@ class ConfigService:
         Returns:
             Configuration value or default
         """
+        print(f"Debug - ConfigService[{self.instance_id}].get() called with key: '{key}', default: {default}")
+        
+        # Handle API keys specifically
+        if key == 'gemini_api_key':
+            value = self._config.api.gemini_api_key
+            print(f"Debug - ConfigService[{self.instance_id}].get('{key}'): {'[SET]' if value else '[EMPTY]'} (value: {repr(value)})")
+            return value if value else default
+        elif key == 'openai_api_key':
+            value = self._config.api.openai_api_key
+            print(f"Debug - ConfigService[{self.instance_id}].get('{key}'): {'[SET]' if value else '[EMPTY]'} (value: {repr(value)})")
+            return value if value else default
+        elif key == 'openweather_api_key':
+            value = self._config.api.openweather_api_key
+            print(f"Debug - ConfigService[{self.instance_id}].get('{key}'): {'[SET]' if value else '[EMPTY]'} (value: {repr(value)})")
+            return value if value else default
+        elif key == 'google_maps_api_key':
+            value = self._config.api.google_maps_api_key
+            print(f"Debug - ConfigService[{self.instance_id}].get('{key}'): {'[SET]' if value else '[EMPTY]'} (value: {repr(value)})")
+            return value if value else default
+        
         # Handle special cases for enhanced features
         if key == 'use_enhanced_features':
             return True  # Enable enhanced features by default
@@ -189,4 +255,60 @@ class ConfigService:
         except (AttributeError, TypeError):
             pass
         
+        print(f"Debug - ConfigService[{self.instance_id}].get('{key}') - returning default: {default}")
         return default
+    
+    def update_api_key(self, key_name: str, key_value: str) -> bool:
+        """Update an API key in the configuration.
+        
+        Args:
+            key_name: Name of the API key (e.g., 'openweather_api_key')
+            key_value: New API key value
+            
+        Returns:
+            True if update was successful, False otherwise
+        """
+        try:
+            if hasattr(self._config.api, key_name):
+                setattr(self._config.api, key_name, key_value)
+                self.logger.info(f"Updated API key: {key_name}")
+                return True
+            else:
+                self.logger.warning(f"Unknown API key: {key_name}")
+                return False
+        except Exception as e:
+            self.logger.error(f"Failed to update API key {key_name}: {e}")
+            return False
+    
+    def get_all_api_keys(self) -> Dict[str, str]:
+        """Get all configured API keys.
+        
+        Returns:
+            Dictionary of API key names and values
+        """
+        return {
+            'openweather_api_key': self._config.api.openweather_api_key or '',
+            'openweather_backup_api_key': self._config.api.openweather_backup_api_key or '',
+            'weatherapi_api_key': self._config.api.weatherapi_api_key or '',
+            'gemini_api_key': self._config.api.gemini_api_key or '',
+            'openai_api_key': self._config.api.openai_api_key or '',
+            'google_maps_api_key': self._config.api.google_maps_api_key or '',
+            'spotify_client_id': self._config.api.spotify_client_id or '',
+            'spotify_client_secret': self._config.api.spotify_client_secret or '',
+            'spotify_redirect_uri': self._config.api.spotify_redirect_uri or ''
+        }
+    
+    def reload_config(self) -> bool:
+        """Reload configuration from environment variables.
+        
+        Returns:
+            True if reload was successful, False otherwise
+        """
+        try:
+            # Reinitialize the config to pick up new environment variables
+            self._config = AppConfig()
+            self.logger.info("Configuration reloaded successfully")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to reload configuration: {e}")
+            return False

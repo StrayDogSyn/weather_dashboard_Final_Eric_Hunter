@@ -21,19 +21,20 @@ from utils.photo_manager import PhotoManager
 class JournalService:
     """Service for managing weather journal entries with SQLite persistence."""
     
-    def __init__(self, db_path: str = "data/weather_journal.db", weather_service: Optional[EnhancedWeatherService] = None):
+    def __init__(self, db_path: str = "data/weather_journal.db", weather_service: Optional[EnhancedWeatherService] = None, photo_manager: Optional[PhotoManager] = None):
         """Initialize the journal service.
         
         Args:
             db_path: Path to SQLite database file
             weather_service: Weather service for auto-population
+            photo_manager: Optional PhotoManager instance to avoid duplicate initialization
         """
         self.db_path = Path(db_path)
         self.weather_service = weather_service
         self.logger = logging.getLogger(__name__)
         
         # Initialize photo manager
-        self.photo_manager = PhotoManager()
+        self.photo_manager = photo_manager or PhotoManager()
         
         # Ensure database directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

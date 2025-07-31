@@ -80,6 +80,8 @@ from ui.components.journal_calendar import JournalCalendarComponent
 from ui.components.photo_gallery import PhotoGalleryComponent
 from ui.components.mood_analytics import MoodAnalyticsComponent
 from ui.components.activity_suggester import ActivitySuggester
+from ui.components.maps_component import MapsComponent
+from ui.components.secure_api_manager import SecureAPIManager
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.config_service import ConfigService
 from services.journal_service import JournalService
@@ -201,8 +203,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     TEXT_SECONDARY = DataTerminalTheme.TEXT_SECONDARY # Medium gray text
     BORDER_COLOR = DataTerminalTheme.BORDER       # Dark border
     
-    def __init__(self):
-        """Initialize professional weather dashboard."""
+    def __init__(self, config_service=None):
+        """Initialize professional weather dashboard.
+        
+        Args:
+            config_service: Optional ConfigService instance to avoid duplicate initialization
+        """
         super().__init__()
         
         # Setup services
@@ -210,15 +216,26 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.logging_service.setup_logging()
         self.logger = self.logging_service.get_logger(__name__)
         
-        self.config_service = ConfigService()
+        self.config_service = config_service or ConfigService()
         self.weather_service = EnhancedWeatherService(self.config_service)
-        self.journal_service = JournalService()
+        
+        # Initialize secure API manager
+        self.secure_api_manager = SecureAPIManager(self, self.config_service)
+        
+        # Create shared photo manager to avoid duplicate initialization
+        from utils.photo_manager import PhotoManager
+        self.photo_manager = PhotoManager()
+        
+        self.journal_service = JournalService(weather_service=self.weather_service, photo_manager=self.photo_manager)
         
         # Data storage
         self.current_weather: Optional[WeatherData] = None
         self.forecast_data: Optional[List[ForecastData]] = None
         self.current_city: str = "London"
         self.chart_timeframe = "24h"
+        
+        # Auto-refresh timer tracking
+        self.auto_refresh_timer_id = None
         
         # DON'T initialize enhancer here
         self.display_enhancer = None
@@ -235,6 +252,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         
         # Load initial data
         self._load_initial_data()
+        
+        # Setup cleanup on window close
+        self.protocol("WM_DELETE_WINDOW", self._on_closing)
         
         self.logger.info("Professional Weather Dashboard initialized")
     
@@ -498,6 +518,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_weather_tab()
         self._create_journal_tab()
         self._create_activities_tab()
+        self._create_maps_tab()
         self._create_settings_tab()
     
     def _create_tab_navigation(self) -> None:
@@ -521,6 +542,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.weather_tab = self.tabview.add("🌤️ Weather")
         self.journal_tab = self.tabview.add("📔 Journal")
         self.activities_tab = self.tabview.add("🎯 Activities")
+        self.maps_tab = self.tabview.add("🗺️ Maps")
         self.settings_tab = self.tabview.add("⚙️ Settings")
         
         # Position tabview
@@ -844,7 +866,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.journal_manager = JournalManager(
             self.journal_entries_tab,
             self.weather_service,
-            weather_theme
+            weather_theme,
+            journal_service=self.journal_service
         )
         self.journal_manager.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
     
@@ -918,6 +941,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create the settings tab content for API keys and preferences."""
         # Configure settings tab
         self.settings_tab.grid_columnconfigure(0, weight=1)
+        self.settings_tab.grid_rowconfigure(0, weight=0)
         self.settings_tab.grid_rowconfigure(1, weight=1)
         
         # Settings title
@@ -932,33 +956,222 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Create scrollable frame for settings content
         self.settings_scrollable = ctk.CTkScrollableFrame(
             self.settings_tab,
-            fg_color=self.CARD_COLOR,
-            corner_radius=16,
-            border_width=1,
-            border_color=self.BORDER_COLOR,
+            fg_color="transparent",
             scrollbar_button_color=self.ACCENT_COLOR,
             scrollbar_button_hover_color=self.TEXT_PRIMARY
         )
         self.settings_scrollable.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
         
-        # Settings content frame inside scrollable
-        settings_frame = ctk.CTkFrame(
-            self.settings_scrollable,
-            fg_color="transparent"
-        )
+        # Secure API Keys Section
+        self.secure_api_manager.create_api_section(self.settings_scrollable)
         
-        # Placeholder content
-        placeholder_label = ctk.CTkLabel(
-            settings_frame,
-            text="⚙️ Application Settings\n\nComing Soon:\n• API key management\n• Temperature unit preferences\n• Theme customization\n• Notification settings\n• Data export options",
-            font=(DataTerminalTheme.FONT_FAMILY, 16),
+        # Preferences Section
+        self._create_preferences_section()
+        
+        # About Section
+        self._create_about_section()
+
+
+
+    def _create_preferences_section(self):
+        """Create preferences section."""
+        # Preferences Card
+        pref_card = ctk.CTkFrame(
+            self.settings_scrollable,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        pref_card.pack(fill="x", pady=10)
+        
+        # Title
+        ctk.CTkLabel(
+            pref_card,
+            text="⚙️ Preferences",
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=self.ACCENT_COLOR
+        ).pack(anchor="w", padx=20, pady=(15, 10))
+        
+        # Temperature Units
+        temp_frame = ctk.CTkFrame(pref_card, fg_color="transparent")
+        temp_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            temp_frame,
+            text="Temperature Units:",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=self.TEXT_PRIMARY
+        ).pack(side="left", padx=(0, 20))
+        
+        self.temp_unit_var = ctk.StringVar(value="celsius")
+        
+        ctk.CTkRadioButton(
+            temp_frame,
+            text="Celsius (°C)",
+            variable=self.temp_unit_var,
+            value="celsius",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            fg_color=self.ACCENT_COLOR,
+            hover_color=DataTerminalTheme.SUCCESS
+        ).pack(side="left", padx=10)
+        
+        ctk.CTkRadioButton(
+            temp_frame,
+            text="Fahrenheit (°F)",
+            variable=self.temp_unit_var,
+            value="fahrenheit",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            fg_color=self.ACCENT_COLOR,
+            hover_color=DataTerminalTheme.SUCCESS
+        ).pack(side="left", padx=10)
+        
+        # Auto-refresh toggle
+        refresh_frame = ctk.CTkFrame(pref_card, fg_color="transparent")
+        refresh_frame.pack(fill="x", padx=20, pady=(10, 20))
+        
+        ctk.CTkLabel(
+            refresh_frame,
+            text="Auto-refresh weather data:",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=self.TEXT_PRIMARY
+        ).pack(side="left", padx=(0, 20))
+        
+        self.auto_refresh_switch = ctk.CTkSwitch(
+            refresh_frame,
+            text="",
+            fg_color=self.ACCENT_COLOR,
+            progress_color=DataTerminalTheme.SUCCESS
+        )
+        self.auto_refresh_switch.pack(side="left")
+        self.auto_refresh_switch.select()  # Default to enabled
+
+    def _create_about_section(self):
+        """Create about section."""
+        # About Card
+        about_card = ctk.CTkFrame(
+            self.settings_scrollable,
+            fg_color=self.CARD_COLOR,
+            corner_radius=16,
+            border_width=1,
+            border_color=self.BORDER_COLOR
+        )
+        about_card.pack(fill="x", pady=10)
+        
+        # Title
+        ctk.CTkLabel(
+            about_card,
+            text="ℹ️ About",
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=self.ACCENT_COLOR
+        ).pack(anchor="w", padx=20, pady=(15, 10))
+        
+        # About content
+        about_text = "Weather Dashboard v1.0\n\nA professional weather application with AI-powered activity suggestions.\n\nFeatures:\n• Real-time weather data\n• Air quality monitoring\n• Weather journaling\n• AI activity recommendations\n• Professional UI design"
+        
+        ctk.CTkLabel(
+            about_card,
+            text=about_text,
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
             text_color=self.TEXT_SECONDARY,
             justify="left"
-        )
-        placeholder_label.pack(expand=True, padx=40, pady=40)
-    
+        ).pack(anchor="w", padx=20, pady=(0, 20))
 
-    
+    def _create_maps_tab(self) -> None:
+        """Create the maps tab content for location selection and visualization."""
+        # Configure maps tab
+        self.maps_tab.grid_columnconfigure(0, weight=1)
+        self.maps_tab.grid_rowconfigure(0, weight=0)
+        self.maps_tab.grid_rowconfigure(1, weight=1)
+        
+        # Maps title
+        maps_title = ctk.CTkLabel(
+            self.maps_tab,
+            text="🗺️ MAPS & LOCATION",
+            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
+            text_color=self.ACCENT_COLOR
+        )
+        maps_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        
+        # Create maps component
+        try:
+            self.maps_component = MapsComponent(
+                self.maps_tab,
+                config_service=self.config_service
+            )
+            self.maps_component.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        except Exception as e:
+            self.logger.error(f"Error creating maps component: {str(e)}")
+            # Create error message if maps component fails
+            error_label = ctk.CTkLabel(
+                self.maps_tab,
+                text="Maps functionality unavailable. Please check your Google Maps API key.",
+                font=(DataTerminalTheme.FONT_FAMILY, 12),
+                text_color=self.TEXT_SECONDARY
+            )
+            error_label.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+
+
+
+    def show_notification(self, message: str, notification_type: str = "info") -> None:
+        """Show a notification message to the user."""
+        try:
+            # Create a simple popup notification
+            notification_window = ctk.CTkToplevel(self)
+            notification_window.title("Notification")
+            notification_window.geometry("400x150")
+            notification_window.resizable(False, False)
+            
+            # Center the notification window
+            notification_window.transient(self)
+            notification_window.grab_set()
+            
+            # Configure colors based on notification type
+            if notification_type == "success":
+                bg_color = DataTerminalTheme.SUCCESS
+                icon = "✅"
+            elif notification_type == "error":
+                bg_color = DataTerminalTheme.ERROR
+                icon = "❌"
+            else:
+                bg_color = self.ACCENT_COLOR
+                icon = "ℹ️"
+            
+            # Create notification content
+            content_frame = ctk.CTkFrame(
+                notification_window,
+                fg_color=self.CARD_COLOR,
+                corner_radius=12
+            )
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Icon and message
+            ctk.CTkLabel(
+                content_frame,
+                text=f"{icon} {message}",
+                font=(DataTerminalTheme.FONT_FAMILY, 14),
+                text_color=self.TEXT_PRIMARY,
+                wraplength=350
+            ).pack(pady=(20, 10))
+            
+            # OK button
+            ctk.CTkButton(
+                content_frame,
+                text="OK",
+                width=80,
+                height=30,
+                fg_color=bg_color,
+                hover_color=self.TEXT_PRIMARY,
+                command=notification_window.destroy
+            ).pack(pady=(0, 20))
+            
+            # Auto-close after 3 seconds for success messages
+            if notification_type == "success":
+                self.after(3000, notification_window.destroy)
+                
+        except Exception as e:
+            self.logger.error(f"Error showing notification: {str(e)}")
+
     def _create_status_bar(self) -> None:
         """Create clean status bar."""
         self.status_frame = ctk.CTkFrame(
@@ -1239,15 +1452,21 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     
     def _setup_auto_refresh(self):
         """Setup automatic refresh every 5 minutes."""
+        # Cancel any existing timer
+        if self.auto_refresh_timer_id:
+            self.after_cancel(self.auto_refresh_timer_id)
         # Start auto refresh cycle
-        self.after(300000, self._auto_refresh_cycle)
+        self.auto_refresh_timer_id = self.after(300000, self._auto_refresh_cycle)
     
     def _auto_refresh_cycle(self):
         """Auto refresh cycle method."""
         if self.winfo_exists():
             threading.Thread(target=self._fetch_weather_data, daemon=True).start()
             # Schedule next refresh
-            self.after(300000, self._auto_refresh_cycle)  # 5 minutes
+            self.auto_refresh_timer_id = self.after(300000, self._auto_refresh_cycle)  # 5 minutes
+        else:
+            # Widget no longer exists, clear timer ID
+            self.auto_refresh_timer_id = None
     
     def _update_refresh_timestamp(self):
         """Update the last refresh timestamp."""
@@ -1294,18 +1513,31 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         if hasattr(self, 'last_update_label'):
             current_time = datetime.now().strftime("%H:%M")
             self.last_update_label.configure(text=f"Updated: {current_time}")
+    
+    def _on_closing(self):
+        """Handle application closing - cleanup timers and resources."""
+        try:
+            # Cancel auto-refresh timer
+            if hasattr(self, 'auto_refresh_timer_id') and self.auto_refresh_timer_id:
+                self.after_cancel(self.auto_refresh_timer_id)
+                self.auto_refresh_timer_id = None
+                self.logger.info("Auto-refresh timer cancelled")
+            
+            # Stop any running processes
+            if hasattr(self, '_running'):
+                self._running = False
+            
+            self.logger.info("Application cleanup completed")
+        except Exception as e:
+            # Log error but don't prevent closing
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Error during cleanup: {e}")
+        finally:
+            # Always destroy the window
+            self.destroy()
 
 
 if __name__ == "__main__":
     # Load environment variables
     from dotenv import load_dotenv
     import os
-    
-    # Load .env file from project root
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    env_path = os.path.join(project_root, '.env')
-    load_dotenv(env_path)
-    
-    app = ProfessionalWeatherDashboard()
-    app.center_window()
-    app.run()

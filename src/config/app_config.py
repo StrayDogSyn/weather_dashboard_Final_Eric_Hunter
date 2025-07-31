@@ -15,9 +15,28 @@ from pathlib import Path
 class APIConfig:
     """API configuration settings."""
     openweather_api_key: str = ""
+    openweather_backup_api_key: str = ""
+    weatherapi_api_key: str = ""
     openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
+    weatherapi_base_url: str = "https://api.weatherapi.com/v1"
     geocoding_base_url: str = "https://api.openweathermap.org/geo/1.0"
     air_quality_base_url: str = "https://api.openweathermap.org/data/2.5/air_pollution"
+    
+    # AI Service API Keys
+    gemini_api_key: str = ""
+    openai_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    openai_base_url: str = "https://api.openai.com/v1"
+    
+    # Maps API Key
+    google_maps_api_key: str = ""
+    
+    # Spotify API Keys
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
+    spotify_redirect_uri: str = ""
+    spotify_base_url: str = "https://api.spotify.com/v1"
+    
     request_timeout: int = 30
     max_retries: int = 3
     retry_delay: float = 1.0
@@ -163,6 +182,20 @@ class AppConfig:
         # API configuration
         if api_key := os.getenv("OPENWEATHER_API_KEY"):
             self.api.openweather_api_key = api_key
+        
+        # AI Service API Keys
+        if gemini_key := os.getenv("GEMINI_API_KEY"):
+            self.api.gemini_api_key = gemini_key
+            print(f"Debug - AppConfig: Loaded GEMINI_API_KEY: {'[SET]' if gemini_key else '[EMPTY]'}")
+            
+        if openai_key := os.getenv("OPENAI_API_KEY"):
+            self.api.openai_api_key = openai_key
+            print(f"Debug - AppConfig: Loaded OPENAI_API_KEY: {'[SET]' if openai_key else '[EMPTY]'}")
+        
+        # Maps API Key
+        if maps_key := os.getenv("GOOGLE_MAPS_API_KEY"):
+            self.api.google_maps_api_key = maps_key
+            print(f"Debug - AppConfig: Loaded GOOGLE_MAPS_API_KEY: {'[SET]' if maps_key else '[EMPTY]'}")
         
         if timeout := os.getenv("API_TIMEOUT"):
             try:
