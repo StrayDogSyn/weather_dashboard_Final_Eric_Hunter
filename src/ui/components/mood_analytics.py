@@ -29,7 +29,6 @@ class MoodAnalyticsComponent:
         
         # Create main frame
         self.frame = ttk.Frame(parent)
-        self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Setup UI
         self._setup_ui()
@@ -545,6 +544,19 @@ MOOD DISTRIBUTION:
     def get_frame(self) -> ttk.Frame:
         """Get the main frame widget."""
         return self.frame
+    
+    # Add geometry management methods that delegate to the frame
+    def pack(self, **kwargs):
+        """Allow this component to be packed"""
+        return self.frame.pack(**kwargs)
+    
+    def grid(self, **kwargs):
+        """Allow this component to be gridded"""
+        return self.frame.grid(**kwargs)
+    
+    def place(self, **kwargs):
+        """Allow this component to be placed"""
+        return self.frame.place(**kwargs)
     
     def refresh_data(self):
         """Refresh the analytics data."""

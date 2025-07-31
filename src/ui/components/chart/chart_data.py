@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional, Any
 import random
 import math
+from utils.safe_math import safe_divide, safe_average
 
 
 class ChartDataMixin:
@@ -281,8 +282,11 @@ class ChartDataMixin:
             end_idx = min(len(data), i + half_window + 1)
             
             window_data = data[start_idx:end_idx]
-            smoothed_value = sum(window_data) / len(window_data)
-            smoothed.append(round(smoothed_value, 1))
+            if window_data:  # Check if window_data is not empty
+                smoothed_value = sum(window_data) / len(window_data)
+                smoothed.append(round(smoothed_value, 1))
+            else:
+                smoothed.append(data[i] if i < len(data) else 0)  # Use original value or 0 as fallback
             
         return smoothed
         
@@ -294,7 +298,7 @@ class ChartDataMixin:
         # Basic statistics
         min_temp = min(temperatures)
         max_temp = max(temperatures)
-        avg_temp = sum(temperatures) / len(temperatures)
+        avg_temp = safe_average(temperatures)
         
         # Temperature range
         temp_range = max_temp - min_temp
@@ -304,7 +308,7 @@ class ChartDataMixin:
         x_values = list(range(n))
         
         # Calculate slope
-        x_mean = sum(x_values) / n
+        x_mean = safe_divide(sum(x_values), n)
         y_mean = avg_temp
         
         numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_values, temperatures))
@@ -393,10 +397,23 @@ class ChartDataMixin:
                     prev_temp = interpolated_temps[prev_idx]
                     next_temp = interpolated_temps[next_idx]
                     
-                    # Linear interpolation
-                    ratio = (i - prev_idx) / (next_idx - prev_idx)
-                    interpolated_temp = prev_temp + (next_temp - prev_temp) * ratio
-                    interpolated_temps[i] = round(interpolated_temp, 1)
+                    # Linear interpolation with division safety
+                    try:
+                        denominator = next_idx - prev_idx
+                        numerator = i - prev_idx
+                        logger.debug(f"Interpolation division: {numerator} ({type(numerator)}) / {denominator} ({type(denominator)})")
+                        
+                        if denominator == 0 or denominator is None or numerator is None:
+                            logger.error(f"Invalid interpolation values: numerator={numerator}, denominator={denominator}")
+                            # Use previous temperature as fallback
+                            interpolated_temps[i] = prev_temp
+                        else:
+                            ratio = numerator / denominator
+                            interpolated_temp = prev_temp + (next_temp - prev_temp) * ratio
+                            interpolated_temps[i] = round(interpolated_temp, 1)
+                    except Exception as e:
+                        logger.exception(f"Error in interpolation division: {e}")
+                        interpolated_temps[i] = prev_temp  # Fallback to previous temperature
                     
         return interpolated_temps, interpolated_dates
         

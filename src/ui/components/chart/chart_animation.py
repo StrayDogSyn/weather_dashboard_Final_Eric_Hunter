@@ -8,6 +8,7 @@ import numpy as np
 from typing import List, Callable, Optional
 import threading
 import time
+from utils.safe_math import safe_divide
 
 
 class ChartAnimationMixin:
@@ -43,7 +44,7 @@ class ChartAnimationMixin:
         try:
             # Enhanced animation parameters
             total_frames = int(self.animation_duration * self.animation_fps)
-            frame_delay = 1.0 / self.animation_fps
+            frame_delay = safe_divide(1.0, self.animation_fps, 0.033)  # Default to ~30fps
             
             # Phase 1: Fade out current data (25% of animation)
             fade_out_frames = int(total_frames * 0.25)
@@ -126,10 +127,10 @@ class ChartAnimationMixin:
         """Run the data update animation."""
         try:
             total_frames = int(self.animation_duration * self.animation_fps)
-            frame_delay = 1.0 / self.animation_fps
+            frame_delay = safe_divide(1.0, self.animation_fps, 0.033)
             
             for frame in range(total_frames + 1):
-                progress = frame / total_frames
+                progress = safe_divide(frame, total_frames, 0)
                 eased_progress = self._ease_in_out_cubic(progress)
                 
                 # Interpolate temperature values
@@ -172,10 +173,10 @@ class ChartAnimationMixin:
         """Run the chart entrance animation."""
         try:
             total_frames = int(self.animation_duration * self.animation_fps)
-            frame_delay = 1.0 / self.animation_fps
+            frame_delay = safe_divide(1.0, self.animation_fps, 0.033)
             
             for frame in range(total_frames + 1):
-                progress = frame / total_frames
+                progress = safe_divide(frame, total_frames, 0)
                 eased_progress = self._ease_out_bounce(progress)
                 
                 # Scale effect
@@ -373,10 +374,10 @@ class ChartAnimationMixin:
         """Run pulse animation effect."""
         try:
             total_frames = int(duration * self.animation_fps)
-            frame_delay = 1.0 / self.animation_fps
+            frame_delay = safe_divide(1.0, self.animation_fps, 0.033)
             
             for frame in range(total_frames + 1):
-                progress = frame / total_frames
+                progress = safe_divide(frame, total_frames, 0)
                 
                 # Create pulse effect (sine wave)
                 pulse_value = 0.5 + 0.5 * np.sin(progress * 4 * np.pi)
@@ -432,7 +433,7 @@ class ChartAnimationMixin:
             
     def set_animation_speed(self, speed_multiplier: float):
         """Set animation speed multiplier."""
-        self.animation_duration = 0.8 / max(0.1, speed_multiplier)
+        self.animation_duration = safe_divide(0.8, max(0.1, speed_multiplier), 0.8)
         
     def is_animation_running(self) -> bool:
         """Check if any animation is currently running."""

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from enum import Enum
+from utils.safe_math import safe_divide
 
 
 class WeatherCondition(Enum):
@@ -180,7 +181,7 @@ class WeatherData:
     
     @property
     def wind_direction_text(self) -> str:
-        """Wind direction as text."""
+        """Wind direction as text (N, NE, E, etc.)."""
         if self.wind_direction is None:
             return "N/A"
         
@@ -188,8 +189,11 @@ class WeatherData:
             "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
         ]
-        index = round(self.wind_direction / 22.5) % 16
-        return directions[index]
+        try:
+            index = round(safe_divide(self.wind_direction, 22.5, 0)) % 16
+            return directions[index]
+        except (TypeError, ZeroDivisionError):
+            return "N/A"
     
     @property
     def pressure_inhg(self) -> float:
@@ -250,7 +254,7 @@ class WeatherData:
             feels_like=main.get('feels_like', 0.0),
             humidity=main.get('humidity', 0),
             pressure=main.get('pressure', 0.0),
-            visibility=data.get('visibility', 0) / 1000 if data.get('visibility') else None,  # Convert m to km
+            visibility=safe_divide(data.get('visibility'), 1000) if data.get('visibility') else None,  # Convert m to km
             wind_speed=wind.get('speed'),
             wind_direction=wind.get('deg'),
             wind_gust=wind.get('gust'),

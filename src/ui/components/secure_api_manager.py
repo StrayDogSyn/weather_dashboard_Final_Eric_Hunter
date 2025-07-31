@@ -14,6 +14,9 @@ from pathlib import Path
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import traceback
+import logging
+import webbrowser
 
 import customtkinter as ctk
 from ui.theme import DataTerminalTheme
@@ -514,9 +517,23 @@ class SecureAPIManager:
         
         # Center the dialog
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (200 // 2)
-        dialog.geometry(f"400x200+{x}+{y}")
+        try:
+            screen_width = dialog.winfo_screenwidth()
+            screen_height = dialog.winfo_screenheight()
+            logging.debug(f"Dialog screen dimensions: width={screen_width} ({type(screen_width)}), height={screen_height} ({type(screen_height)})")
+            
+            if screen_width is None or screen_height is None:
+                logging.error(f"Dialog screen dimensions are None: width={screen_width}, height={screen_height}")
+                x, y = 100, 100
+            else:
+                x = (screen_width // 2) - (400 // 2)
+                y = (screen_height // 2) - (200 // 2)
+                logging.debug(f"Dialog calculated position: x={x}, y={y}")
+            
+            dialog.geometry(f"400x200+{x}+{y}")
+        except Exception as e:
+            logging.exception(f"Error positioning dialog: {e}")
+            dialog.geometry("400x200+100+100")
         
         ctk.CTkLabel(
             dialog,
@@ -576,9 +593,23 @@ class SecureAPIManager:
         
         # Center the dialog
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-        dialog.geometry(f"500x400+{x}+{y}")
+        try:
+            screen_width = dialog.winfo_screenwidth()
+            screen_height = dialog.winfo_screenheight()
+            logging.debug(f"Security dialog screen dimensions: width={screen_width} ({type(screen_width)}), height={screen_height} ({type(screen_height)})")
+            
+            if screen_width is None or screen_height is None:
+                logging.error(f"Security dialog screen dimensions are None: width={screen_width}, height={screen_height}")
+                x, y = 100, 100
+            else:
+                x = (screen_width // 2) - (500 // 2)
+                y = (screen_height // 2) - (400 // 2)
+                logging.debug(f"Security dialog calculated position: x={x}, y={y}")
+            
+            dialog.geometry(f"500x400+{x}+{y}")
+        except Exception as e:
+            logging.exception(f"Error positioning security dialog: {e}")
+            dialog.geometry("500x400+100+100")
         
         ctk.CTkLabel(
             dialog,
@@ -646,9 +677,23 @@ class SecureAPIManager:
         
         # Center the notification
         notification.update_idletasks()
-        x = (notification.winfo_screenwidth() // 2) - (450 // 2)
-        y = (notification.winfo_screenheight() // 2) - (300 // 2)
-        notification.geometry(f"450x300+{x}+{y}")
+        try:
+            screen_width = notification.winfo_screenwidth()
+            screen_height = notification.winfo_screenheight()
+            logging.debug(f"Notification screen dimensions: width={screen_width} ({type(screen_width)}), height={screen_height} ({type(screen_height)})")
+            
+            if screen_width is None or screen_height is None:
+                logging.error(f"Notification screen dimensions are None: width={screen_width}, height={screen_height}")
+                x, y = 100, 100
+            else:
+                x = (screen_width // 2) - (450 // 2)
+                y = (screen_height // 2) - (300 // 2)
+                logging.debug(f"Notification calculated position: x={x}, y={y}")
+            
+            notification.geometry(f"450x300+{x}+{y}")
+        except Exception as e:
+            logging.exception(f"Error positioning notification: {e}")
+            notification.geometry("450x300+100+100")
         
         # Configure colors based on type
         colors = {

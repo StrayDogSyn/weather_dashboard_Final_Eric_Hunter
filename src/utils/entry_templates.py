@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from utils.safe_math import safe_divide
 
 
 @dataclass
@@ -333,8 +334,8 @@ Quick Rating: [Rate today's weather 1-10]""",
             if 'wind' in weather_data:
                 template_values['wind_speed'] = f"{weather_data['wind'].get('speed', 'N/A')}"
             
-            if 'visibility' in weather_data:
-                template_values['visibility'] = f"{weather_data['visibility'] / 1000:.1f} km"
+            if 'visibility' in weather_data and weather_data['visibility'] is not None:
+                template_values['visibility'] = f"{safe_divide(weather_data['visibility'], 1000, 0):.1f} km"
         
         # Apply custom values
         if custom_values:

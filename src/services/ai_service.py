@@ -243,7 +243,13 @@ class AIService:
             weights = []
             for model in available_models:
                 # Lower cost and faster response = higher weight
-                weight = (1.0 / model.cost_per_token) * (1.0 / model.avg_response_time)
+                try:
+                    if model.cost_per_token and model.avg_response_time and model.cost_per_token > 0 and model.avg_response_time > 0:
+                        weight = (1.0 / model.cost_per_token) * (1.0 / model.avg_response_time)
+                    else:
+                        weight = 1.0  # Default weight if values are invalid
+                except (TypeError, ZeroDivisionError):
+                    weight = 1.0  # Default weight on error
                 
                 # Reduce weight if model was used recently
                 if model.name in self.last_used_model:
@@ -401,7 +407,7 @@ class AIService:
         
         return {
             **self.usage_stats,
-            'session_duration_minutes': session_duration / 60,
+            'session_duration_minutes': session_duration / 60 if session_duration else 0,
             'available_models': [m.name for m in self.get_available_models()],
             'models_in_cooldown': list(self.model_cooldowns.keys())
         }
@@ -473,11 +479,20 @@ class AIService:
     
     def _create_activity_prompt(self, weather_data: Dict, user_preferences: Dict) -> str:
         """Create a comprehensive prompt for activity suggestions."""
+        # Debug logging
+        print(f"🔍 Debug - weather_data type: {type(weather_data)}, value: {weather_data}")
+        print(f"🔍 Debug - user_preferences type: {type(user_preferences)}, value: {user_preferences}")
+        
         # Extract weather information
         temp = weather_data.get('temperature', 'unknown')
         condition = weather_data.get('condition', 'unknown')
         humidity = weather_data.get('humidity', 'unknown')
         wind_speed = weather_data.get('wind_speed', 'unknown')
+        
+        # Ensure user_preferences is a dictionary
+        if not isinstance(user_preferences, dict):
+            print(f"⚠️ Warning: user_preferences is not a dict, got {type(user_preferences)}")
+            user_preferences = {}
         
         # Extract user preferences
         preferred_activities = user_preferences.get('activities', [])

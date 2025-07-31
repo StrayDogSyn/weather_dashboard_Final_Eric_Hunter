@@ -4,14 +4,30 @@ import time
 from pathlib import Path
 import io
 import contextlib
+import traceback
 
 # Add src to path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from ui.professional_weather_dashboard import ProfessionalWeatherDashboard
+from ui.dashboard import ProfessionalWeatherDashboard
 from services.config_service import ConfigService
 from dotenv import load_dotenv
+
+# Global exception handler for division errors
+def handle_exception(exc_type, exc_value, exc_traceback):
+    """Global exception handler to catch division errors."""
+    if exc_type == TypeError and "unsupported operand type(s) for /" in str(exc_value):
+        print(f"\n🔥 GLOBAL DIVISION ERROR CAUGHT: {exc_value}")
+        print(f"Traceback: {''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
+        logging.error(f"GLOBAL DIVISION ERROR: {exc_value}")
+        logging.error(f"Traceback: {''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
+    else:
+        # Call the default exception handler
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+# Set the global exception handler
+sys.excepthook = handle_exception
 
 # Custom stderr filter to suppress CustomTkinter DPI scaling errors
 class FilteredStderr:
@@ -45,7 +61,7 @@ class FilteredStderr:
 logger = logging.getLogger(__name__)
 
 def main():
-    """Main application entry with window state management."""
+    """Main application entry point with comprehensive error handling."""
     try:
         # Load environment variables
         load_dotenv()
@@ -68,10 +84,16 @@ def main():
         )
         
         logger.info("📝 Logging initialized - Level: INFO")
-        logger.info("Starting Weather Dashboard...")
+        logger.info("Starting Weather Dashboard application...")
         
-        # Initialize configuration service
-        config_service = ConfigService()
+        # Initialize configuration service with error protection
+        logger.info("Initializing configuration service...")
+        try:
+            config_service = ConfigService()
+            logger.debug("Configuration service initialized successfully")
+        except Exception as e:
+            logger.exception(f"Error initializing configuration service: {e}")
+            raise
         
         # Apply stderr filter to suppress CustomTkinter DPI scaling errors
         original_stderr = sys.stderr
@@ -79,12 +101,20 @@ def main():
         
         try:
             # Create application with professional dashboard, passing config service
-            app = ProfessionalWeatherDashboard(config_service=config_service)
+            logger.info("Creating main application window...")
+            try:
+                app = ProfessionalWeatherDashboard(config_service=config_service)
+                logger.debug("Main application window created successfully")
+            except Exception as e:
+                logger.exception(f"Error creating main application window: {e}")
+                raise
             
             # Center window and update with error handling
+            logger.info("Centering window and updating display...")
             try:
                 app.center_window()
                 app.update()
+                logger.debug("Window centered and updated successfully")
             except Exception as e:
                 logger.warning(f"Window centering/update warning (non-critical): {e}")
             
@@ -94,13 +124,29 @@ def main():
             time.sleep(0.1)
             
             # Start main loop
-            app.mainloop()
+            logger.info("Starting application main loop...")
+            try:
+                app.mainloop()
+            except Exception as e:
+                logger.exception(f"Error in application main loop: {e}")
+                raise
         finally:
             # Restore original stderr
             sys.stderr = original_stderr
         
+    except TypeError as e:
+        if "unsupported operand type(s) for /" in str(e):
+            logger.error(f"DIVISION ERROR DETECTED: {e}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            print(f"\n🔥 CRITICAL ERROR: Division by NoneType detected!")
+            print(f"Error: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+        else:
+            logger.error(f"Type error: {e}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
     except Exception as e:
         logger.error(f"Application error: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
     finally:
         logger.info("Application shutdown complete")
 

@@ -701,12 +701,20 @@ class JournalService:
                 # Calculate averages by weather condition
                 condition_averages = {}
                 for condition, moods in weather_mood_data.items():
-                    condition_averages[condition] = {
-                        'average_mood': round(sum(moods) / len(moods), 2),
-                        'count': len(moods),
-                        'min_mood': min(moods),
-                        'max_mood': max(moods)
-                    }
+                    if moods:  # Check if moods list is not empty
+                        condition_averages[condition] = {
+                            'average_mood': round(sum(moods) / len(moods), 2),
+                            'count': len(moods),
+                            'min_mood': min(moods),
+                            'max_mood': max(moods)
+                        }
+                    else:
+                        condition_averages[condition] = {
+                            'average_mood': 0,
+                            'count': 0,
+                            'min_mood': 0,
+                            'max_mood': 0
+                        }
                 
                 # Simple temperature correlation
                 temp_correlation = None
