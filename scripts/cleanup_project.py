@@ -352,7 +352,7 @@ class ProjectCleaner(BaseScript):
         
         return cleaned_count
     
-    def _clean_files_parallel(self, files: List[Path], file_type: str) -> Tuple[int, int, List[str]]:
+    def _clean_files_parallel(self, files: List[Path], file_type: str) -> tuple[int, int, List[str]]:
         """Clean files using parallel processing."""
         from concurrent.futures import ThreadPoolExecutor, as_completed
         import threading
@@ -364,7 +364,7 @@ class ProjectCleaner(BaseScript):
         
         max_workers = self.cleanup_config.get('max_workers', 4)
         
-        def clean_single_file(file_path: Path) -> Tuple[bool, int, str]:
+        def clean_single_file(file_path: Path) -> tuple[bool, int, str]:
             try:
                 if not self.dry_run:
                     file_size = file_path.stat().st_size
@@ -494,11 +494,11 @@ class ProjectCleaner(BaseScript):
         self.logger.info(f"Archived {archived_count} files")
         return archive_dir if not compress_archive else archive_file
      
-     def generate_enhanced_cleanup_report(
+    def generate_enhanced_cleanup_report(
         self, legacy_files: List[Path], temp_files: List[Path], 
         cache_files: List[Path], export_files: List[Path], 
         pycache_files: List[Path], health_report: Optional[Dict], 
-        execution_time: float
+        reorganize_stats: Optional[Dict], archive_path: Optional[Path]
     ) -> str:
         """Generate comprehensive cleanup report with weather dashboard specifics."""
         
@@ -509,8 +509,7 @@ class ProjectCleaner(BaseScript):
 
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Mode: {'DRY RUN' if self.dry_run else 'EXECUTION'}
-Execution Time: {execution_time:.2f} seconds
-Aggressive Mode: {'YES' if self.aggressive else 'NO'}
+Strategy: {self.cleanup_config.get('strategy', 'standard')}
 
 ## 📊 Summary Statistics
 - **Total files processed**: {total_files}
@@ -590,13 +589,12 @@ Aggressive Mode: {'YES' if self.aggressive else 'NO'}
         report += f"\n## ⚡ Performance Tips\n"
         report += f"- Run cleanup weekly for optimal performance\n"
         report += f"- Use `--aggressive` mode for deep cleaning\n"
-        report += f"- Monitor cache retention settings (current: {self.cache_retention_days} days)\n"
-        report += f"- Consider archiving old chart exports (current: {self.export_retention_days} days)\n"
+        report += f"- Monitor cache retention settings\n"
+        report += f"- Consider archiving old chart exports\n"
         
-        if not self.dry_run:
+        if archive_path:
             report += f"\n## 📁 Archive Location\n"
-            report += f"- Archived files: `{self.archive_dir}`\n"
-            report += f"- Manifest file: `{self.archive_dir}/archive_manifest.json`\n"
+            report += f"- Archived files: `{archive_path}`\n"
         
         return report
      
@@ -764,212 +762,252 @@ Mode: {'DRY RUN' if self.dry_run else 'EXECUTION'}
         
         return report
     
-    def run_cleanup(self, include_health_check: bool = True):
+    def run_cleanup(self, include_health_check: bool = True) -> Dict[str, any]:
         """Execute complete weather dashboard cleanup process."""
         start_time = time.time()
-        print("🚀 Starting Weather Dashboard cleanup...")
-        print(f"📁 Project root: {self.project_root}")
-        print(f"🔧 Mode: {'DRY RUN' if self.dry_run else 'EXECUTION'}")
-        print(f"⚡ Aggressive: {'YES' if self.aggressive else 'NO'}")
         
-        # Step 1: Project health analysis (if requested)
-        health_report = None
-        if include_health_check:
-            health_report = self.analyze_project_health()
+        self.logger.info("Starting project cleanup process")
+        self.logger.info(f"Project Root: {self.project_root}")
+        self.logger.info(f"Mode: {'DRY RUN' if self.dry_run else 'LIVE CLEANUP'}")
         
-        # Step 2: Scan for active imports
-        self.scan_active_imports()
+        strategy = self.cleanup_config.get('strategy', 'standard')
+        self.logger.info(f"Strategy: {strategy}")
         
-        # Step 3: Identify files to clean
-        legacy_files = self.identify_legacy_files()
-        temp_files = self.identify_temp_files()
+        try:
+            # Step 1: Project health analysis (if requested)
+            health_report = None
+            if include_health_check:
+                self.logger.info("Analyzing project health...")
+                health_report = self.analyze_project_health()
+                self.logger.info(f"Health analysis complete: {health_report['total_files']} files, {len(health_report['large_files'])} large files")
+            
+            # Step 2: Scan for active imports
+            self.logger.info("Scanning active imports...")
+            self.scan_active_imports()
+            self.logger.info(f"Found {len(self.active_imports)} active imports")
+            
+            # Step 3: Identify files to clean
+            self.logger.info("Identifying files to clean...")
+            legacy_files = self.identify_legacy_files()
+            temp_files = self.identify_temp_files()
+            
+            # Step 4: Weather-specific cleanup
+            cache_files = self.clean_weather_cache()
+            export_files = self.clean_chart_exports()
+            pycache_files = self.optimize_pycache()
+            
+            # Step 5: Create archive if needed
+            all_files = legacy_files + temp_files + cache_files + export_files + pycache_files
+            archive_path = None
+            if all_files and self.cleanup_config.get('create_archive', False):
+                self.logger.info("Creating archive...")
+                archive_path = self.create_archive(all_files)
+            
+            # Step 6: Execute cleanup operations
+            files_by_type = {
+                'legacy': legacy_files,
+                'temporary': temp_files,
+                'cache': cache_files,
+                'export': export_files,
+                'pycache': pycache_files
+            }
+            
+            for file_type, files in files_by_type.items():
+                if files:
+                    self._clean_files(files, file_type)
+            
+            # Step 7: Reorganize directories
+            reorganize_stats = None
+            if self.cleanup_config.get('reorganize_directories', False):
+                self.logger.info("Reorganizing directories...")
+                reorganize_stats = self.reorganize_directories()
+            
+            # Step 8: Calculate statistics
+            cleanup_stats = self._calculate_cleanup_stats(files_by_type)
+            
+            # Step 9: Generate comprehensive report
+            self.logger.info("Generating cleanup report...")
+            report = self.generate_enhanced_cleanup_report(
+                legacy_files, temp_files, cache_files, export_files, 
+                pycache_files, health_report, reorganize_stats, archive_path
+            )
+            
+            execution_time = time.time() - start_time
+            space_freed_mb = self.stats['space_freed'] / (1024 * 1024)
+            
+            self.logger.info("Cleanup completed successfully")
+            self.logger.info(f"Execution Time: {execution_time:.2f} seconds")
+            self.logger.info(f"Files Processed: {self.stats['files_cleaned']}")
+            self.logger.info(f"Space Freed: {space_freed_mb:.2f} MB")
+            
+            if self.dry_run:
+                self.logger.info("This was a DRY RUN. No files were actually modified.")
+            
+            return {
+                'success': True,
+                'stats': self.stats,
+                'execution_time': execution_time,
+                'archive_path': str(archive_path) if archive_path else None,
+                'cleanup_report': report,
+                'cleanup_stats': cleanup_stats
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Cleanup failed: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'stats': self.stats
+            }
+    
+    def execute(self) -> None:
+        """Execute the cleanup process."""
+        args = self.cli_utils.parse_args()
         
-        # Step 4: Weather-specific cleanup
-        cache_files = self.clean_weather_cache()
-        export_files = self.clean_chart_exports()
-        pycache_files = self.optimize_pycache()
+        # Update configuration based on arguments
+        if args.strategy:
+            self.cleanup_config['strategy'] = args.strategy
+        if args.cache_days:
+            self.cleanup_config['cache_retention_days'] = args.cache_days
+        if args.export_days:
+            self.cleanup_config['export_retention_days'] = args.export_days
+        if args.skip_health:
+            self.cleanup_config['health_analysis'] = False
+        if args.skip_archive:
+            self.cleanup_config['create_archive'] = False
+        if args.skip_reorganize:
+            self.cleanup_config['reorganize_directories'] = False
+        if args.parallel:
+            self.cleanup_config['parallel_processing'] = True
+        if args.max_workers:
+            self.cleanup_config['max_workers'] = args.max_workers
         
-        # Step 5: Create archive structure
-        self.create_archive_structure()
+        self.dry_run = args.dry_run
         
-        # Step 6: Execute cleanup operations
-        all_files_to_clean = []
+        # Configuration check
+        if args.config_check:
+            self.logger.info("Cleanup configuration:")
+            for key, value in self.cleanup_config.items():
+                self.logger.info(f"  {key}: {value}")
+            return
         
-        if legacy_files:
-            self.archive_legacy_files(legacy_files)
-            all_files_to_clean.extend(legacy_files)
+        # Run cleanup
+        result = self.run_cleanup()
         
-        if temp_files:
-            self.clean_temp_files(temp_files)
-            all_files_to_clean.extend(temp_files)
+        # Export report if requested
+        if args.export_report and result.get('cleanup_report'):
+            self._export_report(result['cleanup_report'], args.export_report)
         
-        if cache_files:
-            self._clean_files(cache_files, "weather cache")
-            all_files_to_clean.extend(cache_files)
+        if not result['success']:
+            self.logger.error(f"Cleanup failed: {result.get('error')}")
+            exit(1)
         
-        if export_files:
-            self._clean_files(export_files, "chart exports")
-            all_files_to_clean.extend(export_files)
-        
-        if pycache_files:
-            self._clean_files(pycache_files, "Python cache")
-            all_files_to_clean.extend(pycache_files)
-        
-        # Step 7: Reorganize directories
-        self.reorganize_directories()
-        
-        # Step 8: Calculate statistics
-        self._calculate_cleanup_stats(all_files_to_clean)
-        
-        # Step 9: Generate comprehensive report
-        report = self.generate_enhanced_cleanup_report(
-            legacy_files, temp_files, cache_files, export_files, 
-            pycache_files, health_report, time.time() - start_time
+        self.logger.info("Cleanup completed successfully")
+    
+    def _export_report(self, report: str, file_path: str) -> None:
+        """Export cleanup report to file."""
+        try:
+            report_path = Path(file_path)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if report_path.suffix.lower() == '.json':
+                # Convert markdown report to JSON structure
+                import json
+                report_data = {
+                    'timestamp': datetime.now().isoformat(),
+                    'report': report,
+                    'stats': self.stats
+                }
+                with open(report_path, 'w', encoding='utf-8') as f:
+                    json.dump(report_data, f, indent=2)
+            else:
+                # Save as markdown/text
+                with open(report_path, 'w', encoding='utf-8') as f:
+                    f.write(report)
+            
+            self.logger.info(f"Report exported to: {report_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to export report: {e}")
+
+    def setup_arguments(self) -> None:
+        """Setup command-line arguments."""
+        self.cli_utils.add_argument(
+            '--strategy',
+            choices=['conservative', 'standard', 'aggressive'],
+            default='standard',
+            help='Cleanup strategy to use'
         )
         
-        report_path = self.project_root / f"weather_cleanup_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-        if not self.dry_run:
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.write(report)
+        self.cli_utils.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='Preview cleanup actions without making changes'
+        )
         
-        print("\n" + "="*60)
-        print(report)
-        print("="*60)
-        print(f"✅ Weather Dashboard cleanup {'simulation' if self.dry_run else 'execution'} complete!")
-        if not self.dry_run:
-            print(f"📄 Report saved: {report_path}")
+        self.cli_utils.add_argument(
+            '--cache-days',
+            type=int,
+            help='Number of days to retain cache files'
+        )
         
-        return {
-            'files_processed': len(all_files_to_clean),
-            'space_freed': self.stats['space_freed'],
-            'execution_time': time.time() - start_time,
-            'report_path': report_path if not self.dry_run else None
-        }
+        self.cli_utils.add_argument(
+            '--export-days',
+            type=int,
+            help='Number of days to retain export files'
+        )
+        
+        self.cli_utils.add_argument(
+            '--parallel',
+            action='store_true',
+            help='Enable parallel processing for file operations'
+        )
+        
+        self.cli_utils.add_argument(
+            '--max-workers',
+            type=int,
+            default=4,
+            help='Maximum number of worker threads for parallel processing'
+        )
+        
+        self.cli_utils.add_argument(
+            '--skip-health',
+            action='store_true',
+            help='Skip project health analysis'
+        )
+        
+        self.cli_utils.add_argument(
+            '--skip-archive',
+            action='store_true',
+            help='Skip creating archive of cleaned files'
+        )
+        
+        self.cli_utils.add_argument(
+            '--skip-reorganize',
+            action='store_true',
+            help='Skip directory reorganization'
+        )
+        
+        self.cli_utils.add_argument(
+            '--export-report',
+            help='Export cleanup report to specified file (JSON, YAML, or CSV)'
+        )
+        
+        self.cli_utils.add_argument(
+            '--config-check',
+            action='store_true',
+            help='Check cleanup configuration and patterns'
+        )
 
 # Usage functions
 def run_project_cleanup(project_root: str = ".", dry_run: bool = True):
     """Run project cleanup with specified options."""
-    cleaner = WeatherDashboardCleaner(project_root, dry_run)
+    cleaner = ProjectCleaner()
     cleaner.run_cleanup()
 
 def main():
-    """Enhanced main function for weather dashboard cleanup."""
-    parser = argparse.ArgumentParser(
-        description="🌤️ Weather Dashboard Project Cleanup - Optimized for weather dashboard projects",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python cleanup_project.py --dry-run                    # Preview cleanup
-  python cleanup_project.py --aggressive                 # Deep clean with aggressive mode
-  python cleanup_project.py --cache-days 3              # Clean cache older than 3 days
-  python cleanup_project.py --no-health                  # Skip health analysis
-  python cleanup_project.py --export-days 7 --aggressive # Clean exports older than 7 days
-        """
-    )
-    
-    # Core options
-    parser.add_argument(
-        "--dry-run", 
-        action="store_true", 
-        help="Show what would be cleaned without actually doing it"
-    )
-    parser.add_argument(
-        "--project-root", 
-        type=str, 
-        default=".", 
-        help="Path to the project root directory (default: current directory)"
-    )
-    
-    # Weather dashboard specific options
-    parser.add_argument(
-        "--aggressive",
-        action="store_true",
-        help="Enable aggressive cleanup mode (removes more files)"
-    )
-    parser.add_argument(
-        "--cache-days",
-        type=int,
-        default=7,
-        help="Days to retain weather cache files (default: 7)"
-    )
-    parser.add_argument(
-        "--export-days",
-        type=int,
-        default=30,
-        help="Days to retain chart export files (default: 30)"
-    )
-    parser.add_argument(
-        "--no-health",
-        action="store_true",
-        help="Skip project health analysis for faster execution"
-    )
-    parser.add_argument(
-        "--report-file",
-        type=str,
-        help="Save cleanup report to specified file"
-    )
-    
-    args = parser.parse_args()
-    
-    # Convert to Path object and resolve
-    project_root = Path(args.project_root).resolve()
-    
-    if not project_root.exists():
-        print(f"❌ Error: Project root '{project_root}' does not exist")
-        return 1
-    
-    # Enhanced startup banner
-    print("🌤️ " + "="*58)
-    print("🌤️  WEATHER DASHBOARD PROJECT CLEANUP")
-    print("🌤️ " + "="*58)
-    print(f"📁 Project Root: {project_root}")
-    print(f"📋 Mode: {'🔍 DRY RUN' if args.dry_run else '🚀 EXECUTION'}")
-    print(f"⚡ Aggressive: {'YES' if args.aggressive else 'NO'}")
-    print(f"🗂️ Cache Retention: {args.cache_days} days")
-    print(f"📊 Export Retention: {args.export_days} days")
-    print(f"🔍 Health Analysis: {'DISABLED' if args.no_health else 'ENABLED'}")
-    print("="*60)
-    
-    try:
-        # Initialize enhanced cleaner
-        cleaner = WeatherDashboardCleaner(
-            project_root, 
-            dry_run=args.dry_run,
-            aggressive=args.aggressive,
-            cache_retention_days=args.cache_days,
-            export_retention_days=args.export_days
-        )
-        
-        # Run cleanup with health analysis option
-        start_time = time.time()
-        cleaner.run_cleanup(include_health_check=not args.no_health)
-        execution_time = time.time() - start_time
-        
-        # Display results
-        print("\n" + "="*60)
-        print("✅ CLEANUP COMPLETED SUCCESSFULLY!")
-        print(f"⏱️ Execution Time: {execution_time:.2f} seconds")
-        print(f"📊 Files Processed: {cleaner.stats['files_cleaned']}")
-        print(f"💾 Space Freed: {cleaner.stats['space_freed'] / (1024*1024):.2f} MB")
-        
-        # Show quick summary
-        if not args.dry_run:
-            print(f"\n💡 TIP: Archive created at: {cleaner.archive_dir}")
-            print("💡 TIP: Run with --dry-run first to preview changes")
-        else:
-            print("\n💡 TIP: Run without --dry-run to execute cleanup")
-            print("💡 TIP: Use --aggressive for deeper cleaning")
-        
-        return 0
-        
-    except KeyboardInterrupt:
-        print("\n⚠️ Cleanup interrupted by user")
-        return 1
-    except Exception as e:
-        print(f"\n❌ Error during cleanup: {e}")
-        if args.dry_run:
-            print("💡 TIP: This was a dry run - no files were actually modified")
-        return 1
+    """Main function to run the cleanup process."""
+    cleaner = ProjectCleaner()
+    cleaner.run()
 
 if __name__ == "__main__":
     import sys

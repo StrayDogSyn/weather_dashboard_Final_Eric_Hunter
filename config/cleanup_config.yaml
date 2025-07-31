@@ -1,0 +1,132 @@
+# Cleanup Configuration
+# Defines cleanup strategies, retention policies, and operational settings
+
+# Default cleanup strategy
+strategy: "standard"
+
+# Cleanup strategies
+strategies:
+  conservative:
+    description: "Safe cleanup with minimal file removal"
+    cache_retention_days: 14
+    export_retention_days: 60
+    remove_legacy_files: false
+    remove_temp_files: true
+    optimize_pycache: true
+    create_archive: true
+    parallel_processing: false
+  
+  standard:
+    description: "Balanced cleanup for regular maintenance"
+    cache_retention_days: 7
+    export_retention_days: 30
+    remove_legacy_files: true
+    remove_temp_files: true
+    optimize_pycache: true
+    create_archive: true
+    parallel_processing: true
+  
+  aggressive:
+    description: "Thorough cleanup for maximum space recovery"
+    cache_retention_days: 3
+    export_retention_days: 14
+    remove_legacy_files: true
+    remove_temp_files: true
+    optimize_pycache: true
+    create_archive: false
+    parallel_processing: true
+
+# Default settings
+cache_retention_days: 7
+export_retention_days: 30
+max_workers: 4
+parallel_processing: true
+create_archive: true
+compress_archive: true
+health_analysis: true
+reorganize_directories: false
+
+# Archive settings
+archive:
+  enabled: true
+  compress: true
+  location: "archive"
+  max_size_mb: 1000
+  retention_days: 90
+
+# Parallel processing settings
+parallel:
+  enabled: true
+  max_workers: 4
+  chunk_size: 100
+  timeout_seconds: 300
+
+# Health analysis settings
+health_analysis_settings:
+  enabled: true
+  check_file_sizes: true
+  check_file_counts: true
+  check_directory_structure: true
+  generate_recommendations: true
+  thresholds:
+    large_file_mb: 10
+    max_files_per_directory: 1000
+    max_directory_depth: 8
+
+# Directory reorganization settings
+reorganization:
+  enabled: false
+  rules:
+    - source: "*.log"
+      destination: "logs/"
+    - source: "*.tmp"
+      destination: "temp/"
+    - source: "*.bak"
+      destination: "backup/"
+  
+  create_directories: true
+  preserve_structure: true
+
+# Retention policies by file type
+retention_policies:
+  cache_files:
+    days: 7
+    size_limit_mb: 500
+  
+  export_files:
+    days: 30
+    size_limit_mb: 1000
+  
+  log_files:
+    days: 14
+    size_limit_mb: 100
+  
+  temp_files:
+    days: 1
+    size_limit_mb: 50
+
+# Safety settings
+safety:
+  dry_run_by_default: false
+  confirm_destructive_operations: true
+  backup_before_delete: true
+  skip_system_files: true
+  respect_gitignore: true
+
+# Reporting settings
+reporting:
+  generate_report: true
+  include_file_lists: true
+  include_statistics: true
+  include_recommendations: true
+  export_formats:
+    - "markdown"
+    - "json"
+    - "csv"
+
+# Logging settings
+logging:
+  level: "INFO"
+  include_timestamps: true
+  include_file_operations: true
+  max_log_size_mb: 10

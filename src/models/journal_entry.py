@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 import json
+from pathlib import Path
 
 
 @dataclass
@@ -15,7 +16,7 @@ class JournalEntry:
     """Data model for weather journal entries.
     
     Represents a single journal entry with associated weather data,
-    mood tracking, and rich text content.
+    mood tracking, photo attachments, and rich text content.
     """
     
     id: Optional[int] = None
@@ -25,6 +26,11 @@ class JournalEntry:
     entry_content: str = ""
     tags: List[str] = field(default_factory=list)
     location: Optional[str] = None
+    category: Optional[str] = None  # daily weather, travel, outdoor activities, etc.
+    photos: List[str] = field(default_factory=list)  # List of photo file paths
+    template_used: Optional[str] = None  # Template name if entry was created from template
+    created_at: Optional[datetime] = field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = field(default_factory=datetime.now)
     
     def __post_init__(self):
         """Validate data after initialization."""
@@ -46,10 +52,26 @@ class JournalEntry:
         if not isinstance(self.tags, list):
             raise ValueError("Tags must be a list")
         
+        if not isinstance(self.photos, list):
+            raise ValueError("Photos must be a list")
+        
         # Validate tags are strings
         for tag in self.tags:
             if not isinstance(tag, str):
                 raise ValueError("All tags must be strings")
+        
+        # Validate photo paths are strings
+        for photo in self.photos:
+            if not isinstance(photo, str):
+                raise ValueError("All photo paths must be strings")
+        
+        # Validate category if provided
+        if self.category is not None and not isinstance(self.category, str):
+            raise ValueError("Category must be a string")
+        
+        # Validate template_used if provided
+        if self.template_used is not None and not isinstance(self.template_used, str):
+            raise ValueError("Template used must be a string")
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert journal entry to dictionary for database storage.
@@ -64,7 +86,12 @@ class JournalEntry:
             'mood_rating': self.mood_rating,
             'entry_content': self.entry_content,
             'tags': json.dumps(self.tags),
-            'location': self.location
+            'location': self.location,
+            'category': self.category,
+            'photos': json.dumps(self.photos),
+            'template_used': self.template_used,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
     @classmethod
@@ -77,12 +104,15 @@ class JournalEntry:
         Returns:
             JournalEntry instance
         """
-        # Parse datetime
+        # Parse datetime fields
         date_created = datetime.fromisoformat(data['date_created']) if data.get('date_created') else datetime.now()
+        created_at = datetime.fromisoformat(data['created_at']) if data.get('created_at') else datetime.now()
+        updated_at = datetime.fromisoformat(data['updated_at']) if data.get('updated_at') else datetime.now()
         
         # Parse JSON fields
         weather_data = json.loads(data['weather_data']) if data.get('weather_data') else None
         tags = json.loads(data['tags']) if data.get('tags') else []
+        photos = json.loads(data['photos']) if data.get('photos') else []
         
         return cls(
             id=data.get('id'),
@@ -91,7 +121,12 @@ class JournalEntry:
             mood_rating=data.get('mood_rating'),
             entry_content=data.get('entry_content', ''),
             tags=tags,
-            location=data.get('location')
+            location=data.get('location'),
+            category=data.get('category'),
+            photos=photos,
+            template_used=data.get('template_used'),
+            created_at=created_at,
+            updated_at=updated_at
         )
     
     def get_preview(self, max_length: int = 100) -> str:
@@ -124,6 +159,177 @@ class JournalEntry:
         """
         if tag in self.tags:
             self.tags.remove(tag)
+    
+    def add_photo(self, photo_path: str) -> None:
+        """Add a photo to the entry.
+        
+        Args:
+            photo_path: Path to the photo file
+        """
+        if photo_path and photo_path not in self.photos:
+            self.photos.append(photo_path)
+            self.updated_at = datetime.now()
+    
+    def remove_photo(self, photo_path: str) -> None:
+        """Remove a photo from the entry.
+        
+        Args:
+            photo_path: Path to the photo file to remove
+        """
+        if photo_path in self.photos:
+            self.photos.remove(photo_path)
+            self.updated_at = datetime.now()
+    
+    def get_photo_count(self) -> int:
+        """Get the number of photos attached to this entry.
+        
+        Returns:
+            Number of photos
+        """
+        return len(self.photos)
+    
+    def has_photos(self) -> bool:
+        """Check if the entry has any photos.
+        
+        Returns:
+            True if entry has photos, False otherwise
+        """
+        return len(self.photos) > 0
+    
+    def get_weather_condition(self) -> Optional[str]:
+        """Extract weather condition from weather data.
+        
+        Returns:
+            Weather condition string or None
+        """
+        if self.weather_data and 'weather' in self.weather_data:
+            weather_list = self.weather_data['weather']
+            if weather_list and len(weather_list) > 0:
+                return weather_list[0].get('main', '').lower()
+        return None
+    
+    def get_temperature(self) -> Optional[float]:
+        """Extract temperature from weather data.
+        
+        Returns:
+            Temperature in Celsius or None
+        """
+        if self.weather_data and 'main' in self.weather_data:
+            return self.weather_data['main'].get('temp')
+        return None
+    
+    def get_mood_description(self) -> str:
+        """Get a descriptive text for the mood rating.
+        
+        Returns:
+            Mood description string
+        """
+        if self.mood_rating is None:
+            return "Not rated"
+        
+        mood_descriptions = {
+            1: "Terrible", 2: "Very Bad", 3: "Bad", 4: "Poor", 5: "Okay",
+            6: "Good", 7: "Very Good", 8: "Great", 9: "Excellent", 10: "Perfect"
+        }
+        return mood_descriptions.get(self.mood_rating, "Unknown")
+    
+    def matches_search_terms(self, search_terms: List[str]) -> bool:
+        """Check if entry matches search terms.
+        
+        Args:
+            search_terms: List of search terms to match
+            
+        Returns:
+            True if entry matches any search term
+        """
+        if not search_terms:
+            return True
+        
+        searchable_text = f"{self.entry_content} {' '.join(self.tags)} {self.location or ''} {self.category or ''}".lower()
+        
+        return any(term.lower() in searchable_text for term in search_terms)
+    
+    def update_timestamp(self) -> None:
+        """Update the updated_at timestamp to current time."""
+        self.updated_at = datetime.now()
+    
+    def get_search_text(self) -> str:
+        """Get all searchable text content for full-text search.
+        
+        Returns:
+            Combined searchable text
+        """
+        parts = [self.entry_content]
+        
+        if self.tags:
+            parts.extend(self.tags)
+        
+        if self.location:
+            parts.append(self.location)
+        
+        if self.category:
+            parts.append(self.category)
+        
+        if self.weather_data:
+            weather_condition = self.get_weather_condition()
+            if weather_condition:
+                parts.append(weather_condition)
+        
+        return ' '.join(parts)
+    
+    @staticmethod
+    def get_available_categories() -> List[str]:
+        """Get list of available entry categories.
+        
+        Returns:
+            List of category names
+        """
+        return [
+            "daily weather",
+            "travel", 
+            "outdoor activities",
+            "seasonal observations",
+            "weather events",
+            "personal reflection",
+            "photography",
+            "nature",
+            "sports",
+            "gardening"
+        ]
+    
+    @staticmethod
+    def get_available_templates() -> Dict[str, Dict[str, Any]]:
+        """Get available entry templates.
+        
+        Returns:
+            Dictionary of template configurations
+        """
+        return {
+            "daily_weather": {
+                "name": "Daily Weather",
+                "category": "daily weather",
+                "content_template": "Today's weather: {weather_condition}\nTemperature: {temperature}°C\n\nHow I felt: \nWhat I did: \nNotable observations: ",
+                "suggested_tags": ["daily", "routine", "weather"]
+            },
+            "travel": {
+                "name": "Travel Entry",
+                "category": "travel",
+                "content_template": "Location: {location}\nWeather: {weather_condition}\nTemperature: {temperature}°C\n\nTravel highlights: \nWeather impact: \nMemorable moments: ",
+                "suggested_tags": ["travel", "adventure", "exploration"]
+            },
+            "outdoor_activity": {
+                "name": "Outdoor Activity",
+                "category": "outdoor activities",
+                "content_template": "Activity: \nLocation: {location}\nWeather conditions: {weather_condition}\nTemperature: {temperature}°C\n\nActivity details: \nWeather impact: \nOverall experience: ",
+                "suggested_tags": ["outdoor", "activity", "exercise"]
+            },
+            "weather_event": {
+                "name": "Weather Event",
+                "category": "weather events",
+                "content_template": "Weather event: {weather_condition}\nLocation: {location}\nTemperature: {temperature}°C\n\nEvent description: \nImpact: \nPersonal observations: ",
+                "suggested_tags": ["weather", "event", "observation"]
+            }
+        }
     
     def has_weather_data(self) -> bool:
         """Check if entry has associated weather data.
