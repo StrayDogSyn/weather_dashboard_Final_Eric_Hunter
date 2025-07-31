@@ -133,6 +133,15 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             self.logger.exception(f"Error setting up layout: {e}")
             raise
         
+        # Ensure weather labels exist after layout is set up
+        try:
+            self.logger.debug("Ensuring weather labels exist...")
+            self._ensure_weather_labels_exist()
+            self.logger.debug("Weather labels ensured successfully")
+        except Exception as e:
+            self.logger.exception(f"Error ensuring weather labels: {e}")
+            # Don't raise here, labels can be created later
+        
         # Initialize display enhancer ONLY after UI is created
         try:
             self.logger.debug("Initializing display enhancer...")
@@ -199,9 +208,19 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             # This should call your working weather service
             # but with proper error handling
             if hasattr(self, 'weather_service'):
-                # Use your existing weather loading logic
-                # but with proper error handling
-                pass
+                # Use the weather handler mixin methods if available
+                if hasattr(self, '_perform_weather_update'):
+                    self.logger.info("Triggering weather update...")
+                    self._perform_weather_update()
+                else:
+                    # Fallback: directly get weather data
+                    self.logger.info("Getting weather data directly...")
+                    weather_data = self.weather_service.get_current_weather(self.current_city)
+                    if weather_data:
+                        self.update_weather_display(weather_data)
+                        self.logger.info("Weather data loaded successfully")
+                    else:
+                        self.logger.warning("No weather data received")
                 
         except Exception as e:
             self.logger.error(f"Default weather load failed: {e}")
@@ -223,25 +242,31 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
         except Exception as e:
             self.logger.error(f"Failed to set initial UI state: {e}")
     
-    def _ensure_weather_display_components(self):
-        """Ensure weather display components exist"""
+    def _ensure_weather_labels_exist(self):
+        """Ensure all weather display labels exist"""
         try:
-            # Create temp_label if it doesn't exist
-            if not hasattr(self, 'temp_label'):
-                # Find or create a container for weather display
-                weather_container = getattr(self, 'weather_frame', self)
+            # Find the weather display container
+            weather_container = None
+            for attr_name in ['weather_frame', 'main_weather_frame', 'weather_display']:
+                if hasattr(self, attr_name):
+                    weather_container = getattr(self, attr_name)
+                    break
+                    
+            if not weather_container:
+                self.logger.warning("No weather container found")
+                return
                 
+            # Create missing labels
+            if not hasattr(self, 'temp_label'):
                 self.temp_label = ctk.CTkLabel(
                     weather_container,
-                    text="--°",
-                    font=ctk.CTkFont(size=36, weight="bold"),
-                    text_color="#FFFFFF"
+                    text="--°C",
+                    font=ctk.CTkFont(size=48, weight="bold"),
+                    text_color="#00FFB3"
                 )
-                # Position it appropriately in your layout
+                # Position appropriately in your layout
                 
-            # Create other essential labels
             if not hasattr(self, 'condition_label'):
-                weather_container = getattr(self, 'weather_frame', self)
                 self.condition_label = ctk.CTkLabel(
                     weather_container,
                     text="Loading...",
@@ -249,6 +274,15 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                     text_color="#B0B0B0"
                 )
                 
+        except Exception as e:
+            self.logger.error(f"Failed to ensure weather labels: {e}")
+    
+    def _ensure_weather_display_components(self):
+        """Ensure weather display components exist"""
+        try:
+            # Call the new method to ensure labels exist
+            self._ensure_weather_labels_exist()
+            
             # Create status_label if needed
             if not hasattr(self, 'status_label'):
                 self.status_label = ctk.CTkLabel(
@@ -264,33 +298,57 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             self.logger.error(f"Failed to ensure weather display components: {e}")
     
     def update_weather_display(self, weather_data):
-        """Safely update weather display with data"""
+        """Update main weather display with proper data handling"""
         try:
-            # Ensure components exist first
-            self._ensure_weather_display_components()
+            self.logger.info(f"Updating weather display with data: {weather_data}")
             
-            if weather_data:
-                # Update temperature
-                if hasattr(self, 'temp_label') and 'temperature' in weather_data:
-                    temp = weather_data['temperature']
-                    self.temp_label.configure(text=f"{temp}°C")
+            if not weather_data:
+                self.logger.warning("No weather data provided")
+                return
                 
-                # Update condition
-                if hasattr(self, 'condition_label') and 'condition' in weather_data:
-                    condition = weather_data['condition']
-                    self.condition_label.configure(text=condition)
+            # Update temperature - handle different possible field names
+            temperature = None
+            for temp_field in ['temperature', 'temp', 'current_temp']:
+                temperature = weather_data.get(temp_field)
+                if temperature is not None:
+                    break
+                    
+            if temperature is not None:
+                # Update main temperature display
+                if hasattr(self, 'temp_label'):
+                    self.temp_label.configure(text=f"{temperature:.1f}°C")
                 
-                # Update status
-                city = weather_data.get('city', 'Unknown')
-                self._show_status_message(f"Weather updated for {city}", "success")
+                # Update any other temperature displays
+                temp_elements = ['main_temp_label', 'current_temp_label', 'weather_temp']
+                for element_name in temp_elements:
+                    if hasattr(self, element_name):
+                        element = getattr(self, element_name)
+                        if hasattr(element, 'configure'):
+                            element.configure(text=f"{temperature:.1f}°C")
+            
+            # Update condition/description
+            condition = weather_data.get('description') or weather_data.get('condition', 'Unknown')
+            if hasattr(self, 'condition_label'):
+                self.condition_label.configure(text=condition)
                 
-            self.logger.info("Weather display updated successfully")
+            # Update feels like
+            feels_like = weather_data.get('feels_like')
+            if feels_like and hasattr(self, 'feels_like_label'):
+                self.feels_like_label.configure(text=f"Feels like {feels_like:.1f}°C")
+                
+            # Update other weather info
+            humidity = weather_data.get('humidity')
+            if humidity and hasattr(self, 'humidity_label'):
+                self.humidity_label.configure(text=f"Humidity {humidity}%")
+                
+            # Store current weather data for other components
+            self.current_weather_data = weather_data
+            
+            self.logger.info("✅ Weather display updated successfully")
             
         except Exception as e:
-            self.logger.error(f"Error updating weather display: {e}")
-            # Show error to user
-            if hasattr(self, '_show_status_message'):
-                self._show_status_message("Failed to update weather display", "error")
+            self.logger.error(f"Failed to update weather display: {e}")
+            self.logger.error(f"Weather data was: {weather_data}")
     
     def after(self, ms, func=None, *args):
         """Override after method to handle CustomTkinter DPI scaling errors and threading issues."""
