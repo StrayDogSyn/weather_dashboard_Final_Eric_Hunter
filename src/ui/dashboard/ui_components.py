@@ -209,6 +209,10 @@ class UIComponentsMixin:
                 on_location_selected=self._on_location_selected
             )
             
+            # Position the enhanced search component
+            self.enhanced_search.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+            self.search_container.grid_columnconfigure(0, weight=1)
+            
             # Keep reference to search entry for compatibility
             self.search_entry = self.enhanced_search.search_entry
             
@@ -264,16 +268,240 @@ class UIComponentsMixin:
         except Exception as e:
             self.logger.error(f"Enhanced search callback failed: {e}")
     
-    def _on_location_selected(self, location_data: dict):
-        """Handle location selection from enhanced search."""
+    def _update_all_components_for_location(self, location_data: dict):
+        """Update all dashboard components when a new location is selected."""
         try:
+            self.logger.info(f"Updating all components for location: {location_data.get('name', 'Unknown')}")
+            
+            # Update location labels across the dashboard
+            self._update_location_labels(location_data)
+            
+            # Update enhanced weather display if available
+            self._update_enhanced_weather_display(location_data)
+            
+            # Update temperature charts
+            self._update_temperature_charts(location_data)
+            
+            # Update maps component
+            self._update_maps_component(location_data)
+            
+            # Update journal components with new location context
+            self._update_journal_components(location_data)
+            
+            # Update activity suggester
+            self._update_activity_suggester(location_data)
+            
+            # Update analytics components
+            self._update_analytics_components(location_data)
+            
+            # Update any location-dependent settings
+            self._update_location_settings(location_data)
+            
+            self.logger.info("All components updated successfully for new location")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating components for location: {e}")
+    
+    def _update_location_labels(self, location_data: dict):
+        """Update all location labels throughout the dashboard."""
+        try:
+            display_name = location_data.get('display', location_data.get('name', 'Unknown Location'))
+            
+            # Update main location label
+            if hasattr(self, 'location_label'):
+                self.location_label.configure(text=f"📍 {display_name}")
+            
+            # Update enhanced weather display location
+            if hasattr(self, 'enhanced_weather_display') and hasattr(self.enhanced_weather_display, 'location_label'):
+                self.enhanced_weather_display.location_label.configure(text=display_name)
+            
+            # Update any other location labels
+            location_elements = ['current_location_label', 'weather_location_label', 'header_location']
+            for element_name in location_elements:
+                if hasattr(self, element_name):
+                    element = getattr(self, element_name)
+                    if hasattr(element, 'configure'):
+                        element.configure(text=f"📍 {display_name}")
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating location labels: {e}")
+    
+    def _update_enhanced_weather_display(self, location_data: dict):
+        """Update the enhanced weather display component."""
+        try:
+            if hasattr(self, 'enhanced_weather_display'):
+                # Update location information
+                if hasattr(self.enhanced_weather_display, 'update_location'):
+                    self.enhanced_weather_display.update_location(location_data)
+                
+                # Clear current weather data to force refresh
+                if hasattr(self.enhanced_weather_display, 'current_weather'):
+                    self.enhanced_weather_display.current_weather = None
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating enhanced weather display: {e}")
+    
+    def _update_temperature_charts(self, location_data: dict):
+        """Update temperature charts with new location context."""
+        try:
+            # Update main temperature chart
+            if hasattr(self, 'temperature_chart'):
+                if hasattr(self.temperature_chart, 'update_location'):
+                    self.temperature_chart.update_location(location_data)
+                elif hasattr(self.temperature_chart, 'clear_data'):
+                    self.temperature_chart.clear_data()
+            
+            # Update any other chart components
+            chart_elements = ['forecast_chart', 'trend_chart', 'analytics_chart']
+            for chart_name in chart_elements:
+                if hasattr(self, chart_name):
+                    chart = getattr(self, chart_name)
+                    if hasattr(chart, 'update_location'):
+                        chart.update_location(location_data)
+                    elif hasattr(chart, 'refresh'):
+                        chart.refresh()
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating temperature charts: {e}")
+    
+    def _update_maps_component(self, location_data: dict):
+        """Update maps component with new location."""
+        try:
+            if hasattr(self, 'maps_component'):
+                coordinates = {
+                    'lat': location_data.get('lat'),
+                    'lon': location_data.get('lon')
+                }
+                
+                if coordinates['lat'] and coordinates['lon']:
+                    if hasattr(self.maps_component, 'update_location'):
+                        self.maps_component.update_location(coordinates['lat'], coordinates['lon'])
+                    elif hasattr(self.maps_component, 'set_center'):
+                        self.maps_component.set_center(coordinates['lat'], coordinates['lon'])
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating maps component: {e}")
+    
+    def _update_journal_components(self, location_data: dict):
+        """Update journal components with new location context."""
+        try:
+            # Update weather journal
+            if hasattr(self, 'weather_journal'):
+                if hasattr(self.weather_journal, 'update_location'):
+                    self.weather_journal.update_location(location_data)
+            
+            # Update journal manager
+            if hasattr(self, 'journal_manager'):
+                if hasattr(self.journal_manager, 'set_current_location'):
+                    self.journal_manager.set_current_location(location_data)
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating journal components: {e}")
+    
+    def _update_activity_suggester(self, location_data: dict):
+        """Update activity suggester with new location."""
+        try:
+            if hasattr(self, 'activity_suggester'):
+                if hasattr(self.activity_suggester, 'update_location'):
+                    self.activity_suggester.update_location(location_data)
+                elif hasattr(self.activity_suggester, 'refresh_suggestions'):
+                    self.activity_suggester.refresh_suggestions()
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating activity suggester: {e}")
+    
+    def _update_analytics_components(self, location_data: dict):
+        """Update analytics components with new location context."""
+        try:
+            # Update mood analytics
+            if hasattr(self, 'mood_analytics'):
+                if hasattr(self.mood_analytics, 'update_location'):
+                    self.mood_analytics.update_location(location_data)
+            
+            # Update any other analytics components
+            analytics_elements = ['weather_analytics', 'trend_analytics', 'comparison_analytics']
+            for analytics_name in analytics_elements:
+                if hasattr(self, analytics_name):
+                    analytics = getattr(self, analytics_name)
+                    if hasattr(analytics, 'update_location'):
+                        analytics.update_location(location_data)
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating analytics components: {e}")
+    
+    def _update_location_settings(self, location_data: dict):
+        """Update location-dependent settings."""
+        try:
+            # Update timezone if available
+            timezone = location_data.get('timezone')
+            if timezone and hasattr(self, 'config_service'):
+                if hasattr(self.config_service, 'set_timezone'):
+                    self.config_service.set_timezone(timezone)
+            
+            # Update units based on location (metric for most countries, imperial for US)
+            country = location_data.get('country', '')
+            if country and hasattr(self, 'config_service'):
+                units = 'imperial' if country.upper() in ['US', 'USA', 'UNITED STATES'] else 'metric'
+                if hasattr(self.config_service, 'set_units'):
+                    self.config_service.set_units(units)
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating location settings: {e}")
+    
+    def _on_location_selected(self, location_data: dict):
+        """Handle location selection from enhanced search with comprehensive updates."""
+        try:
+            # Validate location data
+            if not isinstance(location_data, dict):
+                self.logger.error(f"Invalid location data type: {type(location_data)}")
+                return
+                
+            # Extract location information
             city_name = location_data.get('name', '')
-            if city_name:
+            display_name = location_data.get('display', '')
+            coordinates = {
+                'lat': location_data.get('lat'),
+                'lon': location_data.get('lon')
+            }
+            
+            # Use display name if available for better formatting, otherwise use name
+            if display_name:
+                self.current_city = display_name
+            elif city_name:
                 self.current_city = city_name
-                if hasattr(self, '_perform_weather_update'):
-                    self._perform_weather_update()
+            else:
+                self.logger.error("No valid city name found in location data")
+                return
+                
+            self.logger.info(f"Location selected: {self.current_city}")
+            
+            # Store complete location data for other components
+            self.current_location_data = location_data
+            
+            # Update weather service with new location
+            if hasattr(self, 'weather_service') and self.weather_service:
+                try:
+                    # Set the new city in weather service
+                    if hasattr(self.weather_service, 'set_city'):
+                        self.weather_service.set_city(self.current_city)
+                    elif hasattr(self.weather_service, 'set_location'):
+                        self.weather_service.set_location(coordinates['lat'], coordinates['lon'])
+                except Exception as e:
+                    self.logger.warning(f"Failed to update weather service location: {e}")
+            
+            # Comprehensive dashboard updates
+            self._update_all_components_for_location(location_data)
+            
+            # Trigger weather data refresh
+            if hasattr(self, '_perform_weather_update'):
+                self._perform_weather_update()
+            else:
+                self.logger.warning("_perform_weather_update method not available")
+                
         except Exception as e:
             self.logger.error(f"Location selection callback failed: {e}")
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
     
     def _create_main_content(self) -> None:
         """Create main content area with tabs."""

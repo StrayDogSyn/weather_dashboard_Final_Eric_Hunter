@@ -682,3 +682,36 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         self.temp_label.configure(text="❌")
         self.condition_label.configure(text=error_message)
         self.weather_icon.configure(text="❌")
+    
+    def update_location(self, location_data: dict):
+        """Update the display with new location information."""
+        try:
+            # Update location label
+            display_name = location_data.get('display', location_data.get('name', 'Unknown Location'))
+            self.location_label.configure(text=f"📍 {display_name}")
+            
+            # Clear current weather data to force refresh
+            self.current_weather = None
+            
+            # Show loading state while new data is fetched
+            self.show_loading_state()
+            
+            # Store location data for future reference
+            self.current_location = location_data
+            
+            self.logger.info(f"Enhanced weather display updated for location: {display_name}")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating location in enhanced weather display: {e}")
+            self.show_error_state("Failed to update location")
+    
+    def refresh_display(self):
+        """Refresh the weather display with current data."""
+        try:
+            if hasattr(self, 'current_weather') and self.current_weather:
+                self.update_weather(self.current_weather)
+            else:
+                self.show_loading_state()
+        except Exception as e:
+            self.logger.error(f"Error refreshing weather display: {e}")
+            self.show_error_state("Failed to refresh display")

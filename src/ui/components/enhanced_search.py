@@ -105,7 +105,7 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             height=40
         )
         self.quick_access_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=(0, 10), sticky="ew")
-        self.quick_access_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        self.quick_access_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
         
         # Recent searches button
         self.recent_button = ctk.CTkButton(
@@ -133,6 +133,19 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         )
         self.favorites_button.grid(row=0, column=1, padx=2, sticky="ew")
         
+        # Random city button
+        self.random_button = ctk.CTkButton(
+            self.quick_access_frame,
+            text="🎲 Random",
+            height=30,
+            font=ctk.CTkFont(size=12),
+            fg_color="transparent",
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
+            hover_color=DataTerminalTheme.CARD_BG,
+            command=self._select_random_city
+        )
+        self.random_button.grid(row=0, column=2, padx=2, sticky="ew")
+        
         # Clear button
         self.clear_button = ctk.CTkButton(
             self.quick_access_frame,
@@ -144,7 +157,7 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             hover_color=DataTerminalTheme.CARD_BG,
             command=self._clear_search
         )
-        self.clear_button.grid(row=0, column=2, padx=2, sticky="ew")
+        self.clear_button.grid(row=0, column=3, padx=2, sticky="ew")
         
     def _on_search_input(self, event):
         """Handle search input with autocomplete."""
@@ -171,8 +184,22 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             # Get suggestions from weather service
             suggestions = self.weather_service.search_locations(query, limit=8)
             
+            # Convert LocationSearchResult objects to dictionaries
+            suggestion_dicts = []
+            for suggestion in suggestions:
+                if hasattr(suggestion, 'to_dict'):
+                    suggestion_dicts.append(suggestion.to_dict())
+                elif isinstance(suggestion, dict):
+                    suggestion_dicts.append(suggestion)
+                else:
+                    # Fallback for unexpected data types
+                    suggestion_dicts.append({
+                        'name': str(suggestion),
+                        'display': str(suggestion)
+                    })
+            
             # Update UI in main thread
-            self.after(0, lambda: self._update_suggestions(suggestions))
+            self.after(0, lambda: self._update_suggestions(suggestion_dicts))
             
         except Exception as e:
             print(f"Search error: {e}")
@@ -180,9 +207,15 @@ class EnhancedSearchComponent(ctk.CTkFrame):
     
     def _update_suggestions(self, suggestions: List[Dict[str, Any]]):
         """Update suggestions dropdown."""
-        self.search_suggestions = suggestions
+        # Validate suggestions data
+        validated_suggestions = []
+        for suggestion in suggestions:
+            if isinstance(suggestion, dict) and suggestion.get('name'):
+                validated_suggestions.append(suggestion)
         
-        if suggestions:
+        self.search_suggestions = validated_suggestions
+        
+        if validated_suggestions:
             self._show_suggestions()
         else:
             self._hide_suggestions()
@@ -251,9 +284,17 @@ class EnhancedSearchComponent(ctk.CTkFrame):
     def _search_direct(self, query: str):
         """Perform direct search for location."""
         try:
+            # Validate and clean the query
+            query = query.strip()
+            if len(query) < 2:
+                self._show_error("Please enter at least 2 characters")
+                return
+                
             results = self.weather_service.search_locations(query, limit=1)
             if results:
-                self._select_location(results[0])
+                # Convert LocationSearchResult to dictionary format
+                location_data = results[0].to_dict() if hasattr(results[0], 'to_dict') else results[0]
+                self._select_location(location_data)
             else:
                 self._show_error(f"No results found for '{query}'")
         except Exception as e:
@@ -264,47 +305,122 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         # Hide suggestions
         self._hide_suggestions()
         
-        # Update search entry
+        # Ensure location data is in proper dictionary format
+        if hasattr(location, 'to_dict'):
+            location = location.to_dict()
+        
+        # Validate required fields
+        if not location.get('name'):
+            self._show_error("Invalid location data")
+            return
+            
+        # Update search entry with proper display name
+        display_name = location.get('display', location.get('name', ''))
         self.search_entry.delete(0, tk.END)
-        self.search_entry.insert(0, location.get('display', location.get('name', '')))
+        self.search_entry.insert(0, display_name)
         
         # Add to recent searches
         self._add_to_recent(location)
         
-        # Notify parent
+        # Notify parent with validated location data
         self.on_location_selected(location)
     
     def _detect_location(self):
-        """Detect current location using GPS/IP."""
+        """Detect user's current location using IP geolocation."""
         self.gps_button.configure(text="⏳")
         
         def detect_thread():
             try:
-                # Use IP-based geolocation as fallback
                 import requests
-                response = requests.get('http://ip-api.com/json/', timeout=5)
-                data = response.json()
                 
-                if data['status'] == 'success':
-                    location = {
-                        'name': data['city'],
-                        'country': data['country'],
-                        'state': data.get('regionName', ''),
-                        'lat': data['lat'],
-                        'lon': data['lon'],
-                        'display': f"{data['city']}, {data['country']}"
-                    }
-                    
-                    self.after(0, lambda: self._select_location(location))
-                else:
-                    self.after(0, lambda: self._show_error("Could not detect location"))
+                # Try multiple IP geolocation services for better reliability
+                services = [
+                    ('http://ip-api.com/json/', self._parse_ip_api),
+                    ('https://ipapi.co/json/', self._parse_ipapi_co),
+                    ('https://ipinfo.io/json', self._parse_ipinfo)
+                ]
+                
+                for service_url, parser in services:
+                    try:
+                        response = requests.get(service_url, timeout=5)
+                        if response.status_code == 200:
+                            location = parser(response.json())
+                            if location:
+                                # Update UI in main thread
+                                self.after(0, lambda loc=location: self._select_location(loc))
+                                return
+                    except Exception as e:
+                        print(f"Service {service_url} failed: {e}")
+                        continue
+                
+                # If all services fail, use a default location
+                default_location = {
+                    'name': 'New York',
+                    'display': 'New York, NY, USA (Default)',
+                    'lat': 40.7128,
+                    'lon': -74.0060,
+                    'country': 'US',
+                    'region': 'New York'
+                }
+                self.after(0, lambda: self._select_location(default_location))
+                self.after(0, lambda: self._show_error("Using default location - location detection unavailable"))
                     
             except Exception as e:
-                self.after(0, lambda: self._show_error(f"Location detection failed: {str(e)}"))
+                # Fallback to default location
+                default_location = {
+                    'name': 'New York',
+                    'display': 'New York, NY, USA (Default)',
+                    'lat': 40.7128,
+                    'lon': -74.0060,
+                    'country': 'US',
+                    'region': 'New York'
+                }
+                self.after(0, lambda: self._select_location(default_location))
+                self.after(0, lambda: self._show_error(f"Location detection failed, using default: {str(e)}"))
             finally:
                 self.after(0, lambda: self.gps_button.configure(text="📍"))
         
         threading.Thread(target=detect_thread, daemon=True).start()
+    
+    def _parse_ip_api(self, data):
+        """Parse response from ip-api.com"""
+        if data.get('status') == 'success':
+            return {
+                'name': data.get('city', 'Unknown'),
+                'display': f"{data.get('city', 'Unknown')}, {data.get('regionName', '')}, {data.get('country', '')}",
+                'lat': data.get('lat'),
+                'lon': data.get('lon'),
+                'country': data.get('country', ''),
+                'region': data.get('regionName', '')
+            }
+        return None
+    
+    def _parse_ipapi_co(self, data):
+        """Parse response from ipapi.co"""
+        if data.get('city') and data.get('latitude'):
+            return {
+                'name': data.get('city', 'Unknown'),
+                'display': f"{data.get('city', 'Unknown')}, {data.get('region', '')}, {data.get('country_name', '')}",
+                'lat': data.get('latitude'),
+                'lon': data.get('longitude'),
+                'country': data.get('country_name', ''),
+                'region': data.get('region', '')
+            }
+        return None
+    
+    def _parse_ipinfo(self, data):
+        """Parse response from ipinfo.io"""
+        if data.get('city') and data.get('loc'):
+            lat, lon = data.get('loc', '0,0').split(',')
+            return {
+                'name': data.get('city', 'Unknown'),
+                'display': f"{data.get('city', 'Unknown')}, {data.get('region', '')}, {data.get('country', '')}",
+                'lat': float(lat),
+                'lon': float(lon),
+                'country': data.get('country', ''),
+                'region': data.get('region', '')
+            }
+        return None
     
     def _show_recent_searches(self):
         """Show recent searches in suggestions."""
@@ -328,6 +444,36 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         """Clear search entry and hide suggestions."""
         self.search_entry.delete(0, tk.END)
         self._hide_suggestions()
+    
+    def _select_random_city(self):
+        """Select a random city from popular destinations."""
+        popular_cities = [
+            {"name": "New York", "display": "New York, NY, USA", "lat": 40.7128, "lon": -74.0060},
+            {"name": "London", "display": "London, England, UK", "lat": 51.5074, "lon": -0.1278},
+            {"name": "Tokyo", "display": "Tokyo, Japan", "lat": 35.6762, "lon": 139.6503},
+            {"name": "Paris", "display": "Paris, France", "lat": 48.8566, "lon": 2.3522},
+            {"name": "Sydney", "display": "Sydney, NSW, Australia", "lat": -33.8688, "lon": 151.2093},
+            {"name": "Dubai", "display": "Dubai, UAE", "lat": 25.2048, "lon": 55.2708},
+            {"name": "Singapore", "display": "Singapore", "lat": 1.3521, "lon": 103.8198},
+            {"name": "Los Angeles", "display": "Los Angeles, CA, USA", "lat": 34.0522, "lon": -118.2437},
+            {"name": "Berlin", "display": "Berlin, Germany", "lat": 52.5200, "lon": 13.4050},
+            {"name": "Mumbai", "display": "Mumbai, India", "lat": 19.0760, "lon": 72.8777},
+            {"name": "São Paulo", "display": "São Paulo, Brazil", "lat": -23.5505, "lon": -46.6333},
+            {"name": "Cairo", "display": "Cairo, Egypt", "lat": 30.0444, "lon": 31.2357},
+            {"name": "Bangkok", "display": "Bangkok, Thailand", "lat": 13.7563, "lon": 100.5018},
+            {"name": "Moscow", "display": "Moscow, Russia", "lat": 55.7558, "lon": 37.6176},
+            {"name": "Cape Town", "display": "Cape Town, South Africa", "lat": -33.9249, "lon": 18.4241}
+        ]
+        
+        import random
+        random_city = random.choice(popular_cities)
+        
+        # Update search entry
+        self.search_entry.delete(0, tk.END)
+        self.search_entry.insert(0, random_city["display"])
+        
+        # Select the location
+        self._select_location(random_city)
     
     def _add_to_recent(self, location: Dict[str, Any]):
         """Add location to recent searches."""

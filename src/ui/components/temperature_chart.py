@@ -156,3 +156,58 @@ class TemperatureChart(ctk.CTkFrame,
         """Export chart to PNG or PDF format."""
         # Call the parent ChartExportMixin method
         super().export_chart(format_type)
+    
+    def update_location(self, location_data: dict):
+        """Update chart with new location information."""
+        try:
+            # Store location data for future reference
+            self.current_location = location_data
+            
+            # Clear existing data
+            self.clear_data()
+            
+            # Update chart title with new location
+            display_name = location_data.get('display', location_data.get('name', 'Unknown Location'))
+            self.chart_title = f"Temperature Trends - {display_name}"
+            
+            # Refresh chart display
+            self.refresh_chart_display()
+            
+            print(f"Temperature chart updated for location: {display_name}")
+            
+        except Exception as e:
+            print(f"Error updating temperature chart location: {e}")
+    
+    def clear_data(self):
+        """Clear all chart data."""
+        try:
+            # Clear forecast data
+            self.forecast_data = None
+            
+            # Clear stored data
+            if hasattr(self, 'data_storage'):
+                self.data_storage.clear()
+            
+            # Clear chart display
+            self.clear_chart_data()
+            
+            # Generate placeholder data for the current timeframe
+            placeholder_data = self.generate_realistic_data(self.current_timeframe)
+            self.update_data_storage(placeholder_data)
+            
+        except Exception as e:
+            print(f"Error clearing temperature chart data: {e}")
+    
+    def refresh(self):
+        """Refresh the chart display."""
+        try:
+            if hasattr(self, 'forecast_data') and self.forecast_data:
+                # Refresh with existing forecast data
+                self.update_forecast(self.forecast_data)
+            else:
+                # Generate sample data for current timeframe
+                sample_data = self.generate_realistic_data(self.current_timeframe)
+                self.update_data_storage(sample_data)
+                self.refresh_chart_display()
+        except Exception as e:
+            print(f"Error refreshing temperature chart: {e}")

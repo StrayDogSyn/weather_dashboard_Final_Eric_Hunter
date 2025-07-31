@@ -1,0 +1,39 @@
+{
+  "recent": [
+    {
+      "name": "Pawtucket",
+      "display": "Pawtucket, Rhode Island, United States",
+      "lat": 41.874,
+      "lon": -71.3844,
+      "country": "United States",
+      "region": "Rhode Island",
+      "timestamp": "2025-07-31T19:08:38.663334"
+    },
+    {
+      "name": "Bangkok",
+      "country": "ID",
+      "state": "East Java",
+      "lat": -7.0964164,
+      "lon": 112.5124298,
+      "display": "Bangkok, East Java, ID",
+      "timestamp": "2025-07-31T19:08:08.324523"
+    },
+    {
+      "name": "Pawtucket",
+      "country": "US",
+      "state": "Rhode Island",
+      "lat": 41.8789531,
+      "lon": -71.3821203,
+      "display": "Pawtucket, Rhode Island, US",
+      "timestamp": "2025-07-31T19:07:44.934721"
+    },
+    {
+      "name": "Bangkok",
+      "display": "Bangkok, Thailand",
+      "lat": 13.7563,
+      "lon": 100.5018,
+      "timestamp": "2025-07-31T18:52:53.615013"
+    }
+  ],
+  "favorites": []
+}

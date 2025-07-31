@@ -275,3 +275,39 @@ class WeatherJournalUI(ctk.CTkFrame):
     def update_weather_data(self, weather_data):
         """Update current weather data for journal entries."""
         self.current_weather = weather_data
+    
+    def update_location(self, location_data: dict):
+        """Update journal with new location context.
+        
+        Args:
+            location_data: Dictionary containing location information
+        """
+        try:
+            # Store location context
+            self.current_location = location_data
+            
+            # Update location display in journal entries
+            location_name = location_data.get('display_name', location_data.get('city', 'Unknown Location'))
+            
+            # Clear current weather to force refresh with new location
+            self.current_weather = None
+            
+            # Update any location-specific UI elements
+            self._update_location_display(location_name)
+            
+        except Exception as e:
+            print(f"Error updating weather journal location: {e}")
+    
+    def _update_location_display(self, location_name: str):
+        """Update UI elements to show current location context.
+        
+        Args:
+            location_name: Name of the current location
+        """
+        try:
+            # Update any location labels or context displays
+            # This can be expanded based on the actual UI structure
+            pass
+            
+        except Exception as e:
+            print(f"Error updating location display in journal: {e}")

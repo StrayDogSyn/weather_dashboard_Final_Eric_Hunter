@@ -568,6 +568,52 @@ MOOD DISTRIBUTION:
         self.end_date_var.set(end_date.strftime('%Y-%m-%d'))
         self._load_data()
     
+    def update_location(self, location_data: dict):
+        """Update analytics with new location context.
+        
+        Args:
+            location_data: Dictionary containing location information
+        """
+        try:
+            # Store location context for analytics
+            self.current_location = location_data
+            
+            # Update title to include location context
+            location_name = location_data.get('display_name', location_data.get('city', 'Unknown Location'))
+            title_text = f"Mood Analytics & Weather Correlation - {location_name}"
+            
+            # Find and update the title label
+            for child in self.frame.winfo_children():
+                if isinstance(child, ttk.Label) and hasattr(child, 'cget'):
+                    try:
+                        if 'Mood Analytics' in child.cget('text'):
+                            child.config(text=title_text)
+                            break
+                    except tk.TclError:
+                        continue
+            
+            # Refresh data to include location-specific analysis
+            self._load_data()
+            
+        except Exception as e:
+            print(f"Error updating mood analytics location: {e}")
+    
+    def update_weather_data(self, weather_data: dict):
+        """Update analytics with current weather data for context.
+        
+        Args:
+            weather_data: Current weather data dictionary
+        """
+        try:
+            # Store current weather for real-time context
+            self.current_weather = weather_data
+            
+            # Update insights with current weather context
+            self._update_insights()
+            
+        except Exception as e:
+            print(f"Error updating mood analytics weather data: {e}")
+    
     def export_chart(self, filename: str):
         """Export the current chart to a file."""
         try:

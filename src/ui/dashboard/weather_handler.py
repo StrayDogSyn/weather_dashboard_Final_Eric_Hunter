@@ -135,6 +135,9 @@ class WeatherHandlerMixin:
             # Store weather data for other components
             self.current_weather_data = weather_data
             
+            # Update all dashboard components with new weather data
+            self._update_all_dashboard_components(weather_data)
+            
         except Exception as e:
             self.logger.error(f"Error updating weather display: {e}")
     
@@ -379,3 +382,154 @@ class WeatherHandlerMixin:
             
         except Exception as e:
             self.logger.error(f"Error cleaning up weather timers: {e}")
+    
+    def _update_all_dashboard_components(self, weather_data: Dict[str, Any]) -> None:
+        """Update all dashboard components with new weather data."""
+        try:
+            self.logger.debug("Updating all dashboard components with new weather data")
+            
+            # Update temperature charts
+            self._update_temperature_charts_with_data(weather_data)
+            
+            # Update forecast charts if forecast data is available
+            self._update_forecast_charts(weather_data)
+            
+            # Update analytics components
+            self._update_analytics_with_weather_data(weather_data)
+            
+            # Update activity suggester
+            self._update_activity_suggester_with_weather(weather_data)
+            
+            # Update journal components
+            self._update_journal_with_weather_data(weather_data)
+            
+            # Update any other weather-dependent components
+            self._update_weather_dependent_components(weather_data)
+            
+            self.logger.debug("All dashboard components updated successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating dashboard components: {e}")
+    
+    def _update_temperature_charts_with_data(self, weather_data: Dict[str, Any]) -> None:
+        """Update temperature charts with current weather data."""
+        try:
+            # Update main temperature chart
+            if hasattr(self, 'temperature_chart') and self.temperature_chart:
+                # If we have forecast data, use it
+                if 'forecast' in weather_data:
+                    self.temperature_chart.update_forecast(weather_data['forecast'])
+                # Otherwise, add current temperature as a data point
+                elif 'temperature' in weather_data:
+                    current_temp = weather_data['temperature']
+                    if hasattr(self.temperature_chart, 'add_current_temperature'):
+                        self.temperature_chart.add_current_temperature(current_temp)
+            
+            # Update any other chart components
+            chart_elements = ['forecast_chart', 'trend_chart', 'analytics_chart']
+            for chart_name in chart_elements:
+                if hasattr(self, chart_name):
+                    chart = getattr(self, chart_name)
+                    if hasattr(chart, 'update_weather_data'):
+                        chart.update_weather_data(weather_data)
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating temperature charts with data: {e}")
+    
+    def _update_forecast_charts(self, weather_data: Dict[str, Any]) -> None:
+        """Update forecast charts with weather data."""
+        try:
+            if 'forecast' in weather_data:
+                forecast_data = weather_data['forecast']
+                
+                # Update forecast chart if available
+                if hasattr(self, 'forecast_chart') and self.forecast_chart:
+                    if hasattr(self.forecast_chart, 'update_forecast'):
+                        self.forecast_chart.update_forecast(forecast_data)
+                
+                # Update any other forecast-dependent components
+                forecast_elements = ['hourly_chart', 'daily_chart', 'extended_forecast']
+                for element_name in forecast_elements:
+                    if hasattr(self, element_name):
+                        element = getattr(self, element_name)
+                        if hasattr(element, 'update_forecast'):
+                            element.update_forecast(forecast_data)
+                            
+        except Exception as e:
+            self.logger.error(f"Error updating forecast charts: {e}")
+    
+    def _update_analytics_with_weather_data(self, weather_data: Dict[str, Any]) -> None:
+        """Update analytics components with weather data."""
+        try:
+            # Update mood analytics
+            if hasattr(self, 'mood_analytics') and self.mood_analytics:
+                if hasattr(self.mood_analytics, 'update_weather_context'):
+                    self.mood_analytics.update_weather_context(weather_data)
+            
+            # Update weather analytics
+            if hasattr(self, 'weather_analytics') and self.weather_analytics:
+                if hasattr(self.weather_analytics, 'add_weather_data'):
+                    self.weather_analytics.add_weather_data(weather_data)
+            
+            # Update trend analytics
+            analytics_elements = ['trend_analytics', 'comparison_analytics', 'historical_analytics']
+            for analytics_name in analytics_elements:
+                if hasattr(self, analytics_name):
+                    analytics = getattr(self, analytics_name)
+                    if hasattr(analytics, 'update_weather_data'):
+                        analytics.update_weather_data(weather_data)
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating analytics with weather data: {e}")
+    
+    def _update_activity_suggester_with_weather(self, weather_data: Dict[str, Any]) -> None:
+        """Update activity suggester with current weather conditions."""
+        try:
+            if hasattr(self, 'activity_suggester') and self.activity_suggester:
+                if hasattr(self.activity_suggester, 'update_weather_conditions'):
+                    self.activity_suggester.update_weather_conditions(weather_data)
+                elif hasattr(self.activity_suggester, 'refresh_suggestions'):
+                    self.activity_suggester.refresh_suggestions()
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating activity suggester with weather: {e}")
+    
+    def _update_journal_with_weather_data(self, weather_data: Dict[str, Any]) -> None:
+        """Update journal components with weather data."""
+        try:
+            # Update weather journal
+            if hasattr(self, 'weather_journal') and self.weather_journal:
+                if hasattr(self.weather_journal, 'update_current_weather'):
+                    self.weather_journal.update_current_weather(weather_data)
+            
+            # Update journal manager
+            if hasattr(self, 'journal_manager') and self.journal_manager:
+                if hasattr(self.journal_manager, 'set_weather_context'):
+                    self.journal_manager.set_weather_context(weather_data)
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating journal with weather data: {e}")
+    
+    def _update_weather_dependent_components(self, weather_data: Dict[str, Any]) -> None:
+        """Update any other weather-dependent components."""
+        try:
+            # Update maps component with weather overlay
+            if hasattr(self, 'maps_component') and self.maps_component:
+                if hasattr(self.maps_component, 'update_weather_overlay'):
+                    self.maps_component.update_weather_overlay(weather_data)
+            
+            # Update notification system
+            if hasattr(self, 'notification_manager') and self.notification_manager:
+                if hasattr(self.notification_manager, 'check_weather_alerts'):
+                    self.notification_manager.check_weather_alerts(weather_data)
+            
+            # Update any weather widgets
+            widget_elements = ['weather_widget', 'mini_weather', 'status_weather']
+            for widget_name in widget_elements:
+                if hasattr(self, widget_name):
+                    widget = getattr(self, widget_name)
+                    if hasattr(widget, 'update_weather'):
+                        widget.update_weather(weather_data)
+                        
+        except Exception as e:
+            self.logger.error(f"Error updating weather-dependent components: {e}")

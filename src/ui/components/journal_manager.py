@@ -407,6 +407,48 @@ class JournalManager(tk.Frame):
         
         messagebox.showerror("Error", message)
     
+    def set_current_location(self, location_data: dict):
+        """Set current location context for journal entries.
+        
+        Args:
+            location_data: Dictionary containing location information
+        """
+        try:
+            # Store location context
+            self.current_location = location_data
+            
+            # Update journal editor with location context
+            if hasattr(self, 'journal_editor') and self.journal_editor:
+                if hasattr(self.journal_editor, 'set_location_context'):
+                    location_name = location_data.get('display_name', location_data.get('city', 'Unknown Location'))
+                    self.journal_editor.set_location_context(location_name)
+            
+            # Update journal list with location context
+            if hasattr(self, 'journal_list') and self.journal_list:
+                if hasattr(self.journal_list, 'set_location_filter'):
+                    self.journal_list.set_location_filter(location_data)
+            
+        except Exception as e:
+            print(f"Error setting journal manager location: {e}")
+    
+    def set_weather_context(self, weather_data: dict):
+        """Set current weather context for journal entries.
+        
+        Args:
+            weather_data: Current weather data dictionary
+        """
+        try:
+            # Store weather context
+            self.current_weather = weather_data
+            
+            # Update journal editor with weather context
+            if hasattr(self, 'journal_editor') and self.journal_editor:
+                if hasattr(self.journal_editor, 'update_weather_context'):
+                    self.journal_editor.update_weather_context(weather_data)
+            
+        except Exception as e:
+            print(f"Error setting journal manager weather context: {e}")
+    
     def refresh(self) -> None:
         """Refresh the journal interface."""
         self.journal_list.refresh()
