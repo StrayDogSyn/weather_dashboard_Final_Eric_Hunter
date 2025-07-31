@@ -199,7 +199,7 @@ class UIComponentsMixin:
         # Card frame
         card = ctk.CTkFrame(
             self.suggestions_frame,
-            fg_color=DataTerminalTheme.BG,
+            fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
             border_width=1,
             border_color=DataTerminalTheme.BORDER
