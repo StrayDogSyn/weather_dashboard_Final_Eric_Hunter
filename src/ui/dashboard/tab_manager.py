@@ -20,28 +20,35 @@ class TabManagerMixin:
     """Mixin class containing tab management methods."""
     
     def _create_tabs(self) -> None:
-        """Create all dashboard tabs."""
-        # Weather Overview Tab
-        self._create_weather_tab()
-        
-        # Analytics Tab
-        self._create_analytics_tab()
-        
-        # Journal Tab
-        self._create_journal_tab()
-        
-        # Activities Tab
-        self._create_activities_tab()
-        
-        # Maps Tab
-        self._create_maps_tab()
-        
-        # Settings Tab
-        self._create_settings_tab()
+        """Create all tabs in correct order"""
+        try:
+            # CREATE ALL TABS FIRST (this is critical!)
+            self.tabview.add("Weather")     # Main weather tab
+            self.tabview.add("Analytics")   # Analytics tab
+            self.tabview.add("Journal")     # Journal tab
+            self.tabview.add("Activities")  # Activities tab
+            self.tabview.add("Maps")        # Maps tab
+            self.tabview.add("Settings")    # Settings tab
+            
+            # NOW populate each tab
+            self._create_weather_tab()
+            self._create_analytics_tab()    # This will now work!
+            self._create_journal_tab()
+            self._create_activities_tab()
+            self._create_maps_tab()
+            self._create_settings_tab()
+            
+            # Set default tab
+            self.tabview.set("Weather")
+            
+            self.logger.info("✅ All tabs created successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create tabs: {e}")
     
     def _create_weather_tab(self) -> None:
         """Create weather overview tab with current conditions and forecast."""
-        weather_tab = self.tabview.add("🌤️ Weather")
+        weather_tab = self.tabview.tab("Weather")
         weather_tab.grid_rowconfigure(0, weight=1)
         weather_tab.grid_columnconfigure((0, 1), weight=1)
         
@@ -317,7 +324,7 @@ class TabManagerMixin:
     
     def _create_journal_tab(self) -> None:
         """Create journal tab with writing and management features."""
-        journal_tab = self.tabview.add("📝 Journal")
+        journal_tab = self.tabview.tab("Journal")
         journal_tab.grid_rowconfigure(0, weight=1)
         journal_tab.grid_columnconfigure((0, 1), weight=1)
         
@@ -376,7 +383,7 @@ class TabManagerMixin:
     
     def _create_activities_tab(self) -> None:
         """Create activities tab with AI-powered suggestions."""
-        activities_tab = self.tabview.add("🎯 Activities")
+        activities_tab = self.tabview.tab("Activities")
         activities_tab.grid_rowconfigure(0, weight=1)
         activities_tab.grid_columnconfigure(0, weight=1)
         
@@ -400,7 +407,7 @@ class TabManagerMixin:
     
     def _create_maps_tab(self) -> None:
         """Create maps tab with weather visualization."""
-        maps_tab = self.tabview.add("🗺️ Maps")
+        maps_tab = self.tabview.tab("Maps")
         maps_tab.grid_rowconfigure(0, weight=1)
         maps_tab.grid_columnconfigure(0, weight=1)
         
@@ -423,7 +430,7 @@ class TabManagerMixin:
     
     def _create_settings_tab(self) -> None:
         """Create settings tab with API management."""
-        settings_tab = self.tabview.add("⚙️ Settings")
+        settings_tab = self.tabview.tab("Settings")
         settings_tab.grid_rowconfigure(0, weight=1)
         settings_tab.grid_columnconfigure(0, weight=1)
         
