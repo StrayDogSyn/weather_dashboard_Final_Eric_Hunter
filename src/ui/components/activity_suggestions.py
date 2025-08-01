@@ -20,6 +20,7 @@ from ...models.activity_models import (
 from ...models.weather_models import WeatherData
 from ...services.config_service import ConfigService
 from ...services.gemini_service import GeminiService
+from ...services.activity_service import ActivityService
 
 from ..theme import DataTerminalTheme
 
@@ -38,7 +39,7 @@ class ActivitySuggesterComponent(ctk.CTkFrame):
 
         Args:
             parent: Parent widget
-            gemini_service: Gemini AI service
+            gemini_service: Gemini AI service (legacy compatibility)
             config_service: Configuration service
             weather_data: Current weather data
         """
@@ -47,6 +48,9 @@ class ActivitySuggesterComponent(ctk.CTkFrame):
         self.gemini_service = gemini_service
         self.config_service = config_service
         self.weather_data = weather_data
+        
+        # Initialize the new ActivityService for better AI integration
+        self.activity_service = ActivityService(config_service)
 
         # State management
         self.current_suggestions: List[ActivitySuggestion] = []
@@ -434,11 +438,27 @@ class ActivitySuggesterComponent(ctk.CTkFrame):
     async def _generate_suggestions(self):
         """Generate AI-powered activity suggestions."""
         try:
-            time_context = TimeContext(available_minutes=self.user_preferences.time_availability)
-
-            suggestions = await self.gemini_service.generate_activity_suggestions(
-                self.weather_data, self.user_preferences, time_context
-            )
+            # Use the new ActivityService for better AI integration
+            raw_suggestions = self.activity_service.get_activity_suggestions(self.weather_data)
+            
+            # Convert to ActivitySuggestion objects
+            suggestions = []
+            for i, raw_suggestion in enumerate(raw_suggestions):
+                suggestion = ActivitySuggestion(
+                    id=f"ai_suggestion_{i}",
+                    title=raw_suggestion.get("title", "Activity"),
+                    description=raw_suggestion.get("description", "No description available"),
+                    category=self._map_category(raw_suggestion.get("category", "Outdoor")),
+                    indoor=raw_suggestion.get("category", "Outdoor").lower() == "indoor",
+                    duration_minutes=self._parse_duration(raw_suggestion.get("time", "1 hour")),
+                    difficulty_level=2,  # Default difficulty
+                    equipment_needed=self._parse_items(raw_suggestion.get("items", "")),
+                    weather_suitability={"current": 0.9},
+                    cost_estimate="varies",
+                    safety_considerations=["Follow safety guidelines"],
+                    icon=raw_suggestion.get("icon", "🎯")
+                )
+                suggestions.append(suggestion)
 
             self.current_suggestions = suggestions
             self._display_suggestions(suggestions)
@@ -446,6 +466,45 @@ class ActivitySuggesterComponent(ctk.CTkFrame):
         except Exception as e:
             print(f"Error generating suggestions: {e}")
             self._show_error_message("Failed to generate AI suggestions")
+    
+    def _map_category(self, category_str: str) -> ActivityCategory:
+        """Map category string to ActivityCategory enum."""
+        category_mapping = {
+            "fitness": ActivityCategory.FITNESS,
+            "creative": ActivityCategory.CREATIVE,
+            "social": ActivityCategory.SOCIAL,
+            "educational": ActivityCategory.EDUCATIONAL,
+            "relaxation": ActivityCategory.RELAXATION,
+            "adventure": ActivityCategory.ADVENTURE,
+            "cultural": ActivityCategory.CULTURAL,
+            "outdoor": ActivityCategory.ADVENTURE,
+            "indoor": ActivityCategory.RELAXATION
+        }
+        return category_mapping.get(category_str.lower(), ActivityCategory.ADVENTURE)
+    
+    def _parse_duration(self, time_str: str) -> int:
+        """Parse duration string to minutes."""
+        try:
+            # Extract numbers from time string
+            import re
+            numbers = re.findall(r'\d+', time_str)
+            if numbers:
+                duration = int(numbers[0])
+                # Convert hours to minutes if needed
+                if 'hour' in time_str.lower():
+                    duration *= 60
+                return duration
+            return 60  # Default 1 hour
+        except:
+            return 60
+    
+    def _parse_items(self, items_str: str) -> List[str]:
+        """Parse items string to list."""
+        if not items_str:
+            return []
+        # Split by common separators
+        items = items_str.replace(',', ';').split(';')
+        return [item.strip() for item in items if item.strip()]
 
     def _show_placeholder_suggestions(self):
         """Show placeholder suggestions when weather data is unavailable."""
