@@ -230,6 +230,7 @@ The Weather Dashboard follows clean architecture principles with dependency inje
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture documentation
 - **[API_GUIDE.md](API_GUIDE.md)** - API integration and internal interfaces
+- **[WORKS_CITED.md](docs/WORKS_CITED.md)** - Comprehensive citations for all external resources
 - **Development tools** - Automated cleanup, code quality, and testing scripts
 
 > 🔧 **Modern Practices**: Type hints, async support, comprehensive error handling, and automated code quality tools
@@ -339,6 +340,8 @@ MIT License - This project is open source and available under the MIT License.
 - **[CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)** - Modern GUI framework
 - **[Microsoft Cortana](https://www.microsoft.com/en-us/cortana)** - Voice assistant integration
 - **Python Community** - Excellent libraries and documentation
+
+> 📚 **Complete Attribution**: See [WORKS_CITED.md](docs/WORKS_CITED.md) for comprehensive citations of all external resources, APIs, libraries, and frameworks used in this project.
 
 ---
 
