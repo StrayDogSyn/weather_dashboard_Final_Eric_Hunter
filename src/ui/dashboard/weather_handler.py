@@ -35,8 +35,12 @@ class WeatherHandlerMixin:
             self.hide_loading_state()
     
     def _perform_weather_update(self) -> None:
-        """Perform the actual weather update."""
+        """Perform the actual weather update with enhanced status feedback."""
         try:
+            # Update status to loading
+            if hasattr(self, 'update_status'):
+                self.update_status("Fetching weather data...", "loading")
+            
             # Get current weather data
             weather_data = self._get_current_weather()
             
@@ -50,14 +54,27 @@ class WeatherHandlerMixin:
                 # Update last update time
                 self.last_weather_update = datetime.now()
                 
-                # Puscifer audio update removed
+                # Update status to success
+                if hasattr(self, 'update_status'):
+                    location = getattr(weather_data, 'location', self.current_city)
+                    self.update_status(f"Weather data updated for {location}", "success")
+                
+                # Update connection status
+                if hasattr(self, 'update_connection_status'):
+                    self.update_connection_status(True)
                 
                 self.logger.info("Weather data updated successfully")
             else:
                 self.logger.warning("No weather data received")
+                if hasattr(self, 'update_status'):
+                    self.update_status("No weather data available", "warning")
                 
         except Exception as e:
             self.logger.error(f"Error performing weather update: {e}")
+            if hasattr(self, 'update_status'):
+                self.update_status(f"Error updating weather: {str(e)[:50]}...", "error")
+            if hasattr(self, 'update_connection_status'):
+                self.update_connection_status(False)
         finally:
             self.hide_loading_state()
     
@@ -66,17 +83,25 @@ class WeatherHandlerMixin:
         self._search_weather()
     
     def _search_weather(self) -> None:
-        """Search for weather data for the entered city."""
+        """Search for weather data for the entered city with enhanced feedback."""
         try:
             city = self.search_entry.get().strip()
             if city:
+                # Update status
+                if hasattr(self, 'update_status'):
+                    self.update_status(f"Searching weather for {city}...", "loading")
+                
                 self.show_loading_state()
                 # Update the weather service with new city
                 self.weather_service.set_city(city)
+                self.current_city = city
+                
                 # Refresh weather data
                 self._perform_weather_update()
             else:
                 self.logger.warning("No city entered for search")
+                if hasattr(self, 'update_status'):
+                    self.update_status("Please enter a city name", "warning")
         except Exception as e:
             self.logger.error(f"Error searching weather: {e}")
             self.hide_loading_state()

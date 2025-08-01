@@ -31,16 +31,36 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         # Configure grid
         self.grid_columnconfigure((0, 1), weight=1)
         
-        # Main weather card
+        # Main weather card with enhanced styling
         self.main_weather_frame = ctk.CTkFrame(
             self,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
             border_color=DataTerminalTheme.PRIMARY,
-            border_width=1
+            border_width=2
         )
         self.main_weather_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
         self.main_weather_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        
+        # Status indicator
+        self.status_frame = ctk.CTkFrame(self.main_weather_frame, fg_color="transparent")
+        self.status_frame.grid(row=0, column=0, columnspan=3, sticky="ew", padx=10, pady=(10, 5))
+        
+        self.status_indicator = ctk.CTkLabel(
+            self.status_frame,
+            text="🔄 Loading weather data...",
+            font=ctk.CTkFont(size=12),
+            text_color=DataTerminalTheme.TEXT_SECONDARY
+        )
+        self.status_indicator.pack(side="left")
+        
+        self.last_updated = ctk.CTkLabel(
+            self.status_frame,
+            text="",
+            font=ctk.CTkFont(size=10),
+            text_color=DataTerminalTheme.TEXT_SECONDARY
+        )
+        self.last_updated.pack(side="right")
         
         # Current conditions section
         self._create_current_conditions()
@@ -66,61 +86,82 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         self._create_alerts_section()
         
     def _create_current_conditions(self):
-        """Create current weather conditions display."""
-        # Location and time
+        """Create enhanced current weather conditions display."""
+        # Location and time with improved styling
         self.location_label = ctk.CTkLabel(
             self.main_weather_frame,
-            text="Loading...",
-            font=ctk.CTkFont(size=24, weight="bold"),
+            text="🌍 Select a location to view weather",
+            font=ctk.CTkFont(size=20, weight="bold"),
             text_color=DataTerminalTheme.PRIMARY
         )
-        self.location_label.grid(row=0, column=0, columnspan=3, padx=20, pady=(20, 5), sticky="w")
+        self.location_label.grid(row=1, column=0, columnspan=3, padx=15, pady=(10, 5), sticky="w")
         
         self.time_label = ctk.CTkLabel(
             self.main_weather_frame,
             text="",
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=13),
             text_color=DataTerminalTheme.TEXT_SECONDARY
         )
-        self.time_label.grid(row=1, column=0, columnspan=3, padx=20, pady=(0, 15), sticky="w")
+        self.time_label.grid(row=2, column=0, columnspan=3, padx=15, pady=(0, 15), sticky="w")
         
-        # Temperature and condition
+        # Temperature and condition with enhanced styling
         temp_frame = ctk.CTkFrame(self.main_weather_frame, fg_color="transparent")
-        temp_frame.grid(row=2, column=0, padx=20, pady=10, sticky="w")
+        temp_frame.grid(row=3, column=0, padx=20, pady=10, sticky="w")
         
+        # Main temperature with gradient effect
         self.temp_label = ctk.CTkLabel(
             temp_frame,
             text="--°",
-            font=ctk.CTkFont(size=48, weight="bold"),
-            text_color=DataTerminalTheme.TEXT
+            font=ctk.CTkFont(size=52, weight="bold"),
+            text_color=DataTerminalTheme.PRIMARY
         )
         self.temp_label.grid(row=0, column=0, sticky="w")
         
-        self.condition_label = ctk.CTkLabel(
+        # Feels like temperature inline
+        self.feels_like_inline = ctk.CTkLabel(
             temp_frame,
             text="",
-            font=ctk.CTkFont(size=16),
+            font=ctk.CTkFont(size=14),
             text_color=DataTerminalTheme.TEXT_SECONDARY
         )
-        self.condition_label.grid(row=1, column=0, sticky="w")
+        self.feels_like_inline.grid(row=0, column=1, sticky="sw", padx=(10, 0), pady=(0, 8))
         
-        # Weather icon (large)
+        # Weather condition with enhanced styling
+        condition_frame = ctk.CTkFrame(temp_frame, fg_color="transparent")
+        condition_frame.grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        
+        self.condition_icon = ctk.CTkLabel(
+            condition_frame,
+            text="🌤️",
+            font=ctk.CTkFont(size=20)
+        )
+        self.condition_icon.grid(row=0, column=0, sticky="w")
+        
+        self.condition_label = ctk.CTkLabel(
+            condition_frame,
+            text="",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=DataTerminalTheme.TEXT
+        )
+        self.condition_label.grid(row=0, column=1, sticky="w", padx=(8, 0))
+        
+        # Weather icon (large) - enhanced
         self.weather_icon = ctk.CTkLabel(
             self.main_weather_frame,
             text="🌤️",
-            font=ctk.CTkFont(size=64)
+            font=ctk.CTkFont(size=72)
         )
-        self.weather_icon.grid(row=2, column=1, padx=20, pady=10)
+        self.weather_icon.grid(row=3, column=1, padx=20, pady=10)
         
-        # Quick stats
+        # Quick stats with better organization
         stats_frame = ctk.CTkFrame(self.main_weather_frame, fg_color="transparent")
-        stats_frame.grid(row=2, column=2, padx=20, pady=10, sticky="e")
+        stats_frame.grid(row=3, column=2, padx=20, pady=10, sticky="e")
         
         self.feels_like_label = ctk.CTkLabel(
             stats_frame,
             text="Feels like: --°",
-            font=ctk.CTkFont(size=14),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=DataTerminalTheme.TEXT
         )
         self.feels_like_label.grid(row=0, column=0, sticky="e")
         
@@ -257,7 +298,7 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             text="🌑",
             font=ctk.CTkFont(size=32)
         )
-        self.moon_visual.grid(row=1, column=1, rowspan=3, padx=15, pady=5)
+        self.moon_visual.grid(row=1, column=1, rowspan=4, padx=15, pady=5)
         
     def _create_weather_details_card(self):
         """Create detailed weather information card."""
@@ -412,9 +453,23 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             # Update alerts if available
             if 'alerts' in weather_data:
                 self._update_alerts(weather_data['alerts'])
+            
+            # Update status indicator
+            self.status_indicator.configure(text="✅ Weather data loaded")
+            
+            # Update last updated time
+            update_time = datetime.now().strftime("%H:%M:%S")
+            self.last_updated.configure(text=f"Last updated: {update_time}")
+            
+            # Update parent status if available
+            if hasattr(self, 'parent') and hasattr(self.parent, 'update_status'):
+                self.parent.update_status(f"Weather display updated for {location}", "success")
                 
         except Exception as e:
             print(f"Error updating weather display: {e}")
+            # Update parent status with error if available
+            if hasattr(self, 'parent') and hasattr(self.parent, 'update_status'):
+                self.parent.update_status("Error updating weather display", "error")
     
     def _update_weather_details(self, current: Dict[str, Any]):
         """Update detailed weather information."""
@@ -675,6 +730,13 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         self.temp_label.configure(text="--°")
         self.condition_label.configure(text="")
         self.weather_icon.configure(text="⏳")
+        
+        # Update status indicator
+        self.status_indicator.configure(text="🔄 Loading weather data...")
+        
+        # Update parent status if available
+        if hasattr(self, 'parent') and hasattr(self.parent, 'update_status'):
+            self.parent.update_status("Loading weather data...", "info")
     
     def show_error_state(self, error_message: str):
         """Show error state."""
@@ -682,6 +744,13 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         self.temp_label.configure(text="❌")
         self.condition_label.configure(text=error_message)
         self.weather_icon.configure(text="❌")
+        
+        # Update status indicator
+        self.status_indicator.configure(text="❌ Error loading weather data")
+        
+        # Update parent status if available
+        if hasattr(self, 'parent') and hasattr(self.parent, 'update_status'):
+            self.parent.update_status(f"Weather error: {error_message}", "error")
     
     def update_location(self, location_data: dict):
         """Update the display with new location information."""
@@ -699,19 +768,21 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             # Store location data for future reference
             self.current_location = location_data
             
-            self.logger.info(f"Enhanced weather display updated for location: {display_name}")
+            # Update parent status if available
+            if hasattr(self, 'parent') and hasattr(self.parent, 'update_status'):
+                self.parent.update_status(f"Location updated to {display_name}", "info")
             
         except Exception as e:
-            self.logger.error(f"Error updating location in enhanced weather display: {e}")
+            print(f"Error updating location in enhanced weather display: {e}")
             self.show_error_state("Failed to update location")
     
     def refresh_display(self):
         """Refresh the weather display with current data."""
         try:
             if hasattr(self, 'current_weather') and self.current_weather:
-                self.update_weather(self.current_weather)
+                self.update_weather_data(self.current_weather)
             else:
                 self.show_loading_state()
         except Exception as e:
-            self.logger.error(f"Error refreshing weather display: {e}")
+            print(f"Error refreshing weather display: {e}")
             self.show_error_state("Failed to refresh display")

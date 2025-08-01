@@ -1,7 +1,8 @@
-"""Chart Data Mixin for Temperature Chart Component.
+"""Enhanced Chart Data Mixin for Advanced Weather Analytics.
 
-This module provides the ChartDataMixin class that handles data processing,
-generation, and transformation for the temperature chart.
+This mixin handles comprehensive data processing, storage, and management
+for the weather analytics system, including forecast data processing,
+historical data management, and advanced analytics data preparation.
 """
 
 import numpy as np
@@ -10,19 +11,34 @@ from typing import List, Dict, Tuple, Optional, Any
 import random
 import math
 from utils.safe_math import safe_divide, safe_average
+try:
+    from .chart_data_generator import WeatherDataGenerator
+except ImportError:
+    # Fallback if data generator is not available
+    WeatherDataGenerator = None
 
 
 class ChartDataMixin:
-    """Mixin for chart data processing and generation."""
+    """Enhanced mixin for comprehensive weather data operations."""
     
     def __init__(self):
-        """Initialize data storage."""
+        """Initialize enhanced data storage and generator."""
         self.temperature_data = []
         self.dates = []
         self.temperatures = []
         self.humidity_data = []
         self.wind_data = []
         self.pressure_data = []
+        self.historical_data = {}
+        self.multi_city_data = {}
+        self.statistics_cache = {}
+        self.extreme_events = []
+        
+        # Initialize data generator if available
+        if WeatherDataGenerator:
+            self.data_generator = WeatherDataGenerator()
+        else:
+            self.data_generator = None
         
     def generate_realistic_data(self, timeframe: str) -> Dict[str, List]:
         """Generate realistic temperature data for different timeframes."""
@@ -204,13 +220,19 @@ class ChartDataMixin:
         return seasonal_humidity.get(month, 60)
         
     def process_forecast_data(self, forecast_data: Dict[str, Any]) -> Dict[str, List]:
-        """Process real forecast data into chart format."""
+        """Process real forecast data into enhanced chart format."""
         processed_data = {
             'dates': [],
             'temperatures': [],
             'humidity': [],
             'wind': [],
-            'pressure': []
+            'pressure': [],
+            'feels_like': [],
+            'weather_conditions': [],
+            'precipitation': [],
+            'visibility': [],
+            'uv_index': [],
+            'cloud_cover': []
         }
         
         try:
@@ -226,6 +248,10 @@ class ChartDataMixin:
                     temp = item['main']['temp'] - 273.15  # Convert from Kelvin
                     processed_data['temperatures'].append(round(temp, 1))
                     
+                    # Feels like temperature
+                    feels_like = item['main'].get('feels_like', item['main']['temp']) - 273.15
+                    processed_data['feels_like'].append(round(feels_like, 1))
+                    
                     # Humidity
                     humidity = item['main']['humidity']
                     processed_data['humidity'].append(humidity)
@@ -238,6 +264,16 @@ class ChartDataMixin:
                     pressure = item['main']['pressure']
                     processed_data['pressure'].append(pressure)
                     
+                    # Weather conditions
+                    weather = item.get('weather', [{}])[0]
+                    processed_data['weather_conditions'].append(weather.get('main', 'Clear'))
+                    
+                    # Additional metrics with defaults
+                    processed_data['precipitation'].append(item.get('rain', {}).get('3h', 0))
+                    processed_data['visibility'].append(item.get('visibility', 10000) / 1000)  # Convert to km
+                    processed_data['uv_index'].append(item.get('uvi', 3))
+                    processed_data['cloud_cover'].append(item.get('clouds', {}).get('all', 30))
+                    
             elif 'daily' in forecast_data:
                 # Alternative format
                 for item in forecast_data['daily']:
@@ -246,6 +282,9 @@ class ChartDataMixin:
                     
                     temp = item['temp']['day']
                     processed_data['temperatures'].append(round(temp, 1))
+                    
+                    feels_like = item.get('feels_like', {}).get('day', temp)
+                    processed_data['feels_like'].append(round(feels_like, 1))
                     
                     humidity = item['humidity']
                     processed_data['humidity'].append(humidity)
@@ -256,6 +295,14 @@ class ChartDataMixin:
                     pressure = item['pressure']
                     processed_data['pressure'].append(pressure)
                     
+                    weather = item.get('weather', [{}])[0]
+                    processed_data['weather_conditions'].append(weather.get('main', 'Clear'))
+                    
+                    processed_data['precipitation'].append(item.get('rain', 0))
+                    processed_data['visibility'].append(15)  # Default visibility
+                    processed_data['uv_index'].append(item.get('uvi', 3))
+                    processed_data['cloud_cover'].append(item.get('clouds', 30))
+                    
         except (KeyError, TypeError, ValueError) as e:
             print(f"Error processing forecast data: {e}")
             # Return empty data on error
@@ -264,7 +311,13 @@ class ChartDataMixin:
                 'temperatures': [],
                 'humidity': [],
                 'wind': [],
-                'pressure': []
+                'pressure': [],
+                'feels_like': [],
+                'weather_conditions': [],
+                'precipitation': [],
+                'visibility': [],
+                'uv_index': [],
+                'cloud_cover': []
             }
             
         return processed_data
@@ -418,7 +471,7 @@ class ChartDataMixin:
         return interpolated_temps, interpolated_dates
         
     def update_data_storage(self, new_data: Dict[str, List]):
-        """Update internal data storage with new data."""
+        """Update comprehensive data storage with new data."""
         self.dates = new_data.get('dates', [])
         self.temperatures = new_data.get('temperatures', [])
         self.humidity_data = new_data.get('humidity', [])
@@ -428,12 +481,224 @@ class ChartDataMixin:
         # Store complete data structure
         self.temperature_data = new_data
         
+        # Generate and cache statistics
+        if self.temperatures:
+            self.statistics_cache['current'] = self.calculate_temperature_trends(self.temperatures, self.dates)
+        
+        # Identify extreme weather events
+        self.extreme_events = self._identify_extreme_events(new_data)
+        
     def get_current_data(self) -> Dict[str, List]:
-        """Get current data storage."""
+        """Get comprehensive current data storage."""
         return {
             'dates': self.dates,
             'temperatures': self.temperatures,
             'humidity': self.humidity_data,
             'wind': self.wind_data,
-            'pressure': self.pressure_data
+            'pressure': self.pressure_data,
+            'feels_like': self.temperature_data.get('feels_like', []),
+            'weather_conditions': self.temperature_data.get('weather_conditions', []),
+            'precipitation': self.temperature_data.get('precipitation', []),
+            'visibility': self.temperature_data.get('visibility', []),
+            'uv_index': self.temperature_data.get('uv_index', []),
+            'cloud_cover': self.temperature_data.get('cloud_cover', [])
         }
+        
+    def get_statistics(self, metric: str = 'temperature') -> Dict[str, Any]:
+        """Get statistics for a specific metric."""
+        if metric == 'temperature':
+            return self.statistics_cache.get('current', {})
+        
+        # Calculate statistics for other metrics
+        data = getattr(self, f'{metric}_data', [])
+        if not data:
+            return {}
+        
+        return {
+            'min': min(data),
+            'max': max(data),
+            'average': safe_average(data),
+            'range': max(data) - min(data) if data else 0
+        }
+        
+    def get_extreme_events(self) -> List[Dict[str, Any]]:
+        """Get identified extreme weather events."""
+        return self.extreme_events
+        
+    def _identify_extreme_events(self, data: Dict[str, List]) -> List[Dict[str, Any]]:
+        """Identify extreme weather events in the data."""
+        events = []
+        
+        temperatures = data.get('temperatures', [])
+        wind_speeds = data.get('wind', [])
+        precipitation = data.get('precipitation', [])
+        dates = data.get('dates', [])
+        
+        for i, (temp, wind, precip, date) in enumerate(zip(temperatures, wind_speeds, precipitation, dates)):
+            # Extreme temperature events
+            if temp > 35:
+                events.append({
+                    'type': 'extreme_heat',
+                    'value': temp,
+                    'date': date,
+                    'description': f'Extreme heat: {temp}°C'
+                })
+            elif temp < -10:
+                events.append({
+                    'type': 'extreme_cold',
+                    'value': temp,
+                    'date': date,
+                    'description': f'Extreme cold: {temp}°C'
+                })
+            
+            # High wind events
+            if wind > 50:
+                events.append({
+                    'type': 'high_wind',
+                    'value': wind,
+                    'date': date,
+                    'description': f'High wind: {wind} km/h'
+                })
+            
+            # Heavy precipitation events
+            if precip > 10:
+                events.append({
+                    'type': 'heavy_rain',
+                    'value': precip,
+                    'date': date,
+                    'description': f'Heavy precipitation: {precip} mm'
+                })
+        
+        return events
+    
+    def generate_sample_data(self, timeframe: str) -> Dict[str, Any]:
+        """Generate sample data for the specified timeframe."""
+        if self.data_generator:
+            return self.data_generator.generate_comprehensive_data(timeframe)
+        else:
+            # Fallback to existing realistic data generation
+            return self.generate_realistic_data(timeframe)
+    
+    def get_extreme_events_for_metric(self, metric: str) -> List[Dict[str, Any]]:
+        """Get extreme events filtered by metric type."""
+        metric_event_types = {
+            'temperature': ['extreme_heat', 'extreme_cold'],
+            'wind_speed': ['high_wind'],
+            'precipitation': ['heavy_rain'],
+            'pressure': ['low_pressure', 'high_pressure']
+        }
+        
+        event_types = metric_event_types.get(metric, [])
+        return [event for event in self.extreme_events if event['type'] in event_types]
+    
+    def calculate_trend(self, values: List[float]) -> Dict[str, Any]:
+        """Calculate trend information for a series of values."""
+        if len(values) < 2:
+            return {'direction': 'stable', 'slope': 0, 'correlation': 0}
+        
+        # Simple linear trend calculation
+        x = list(range(len(values)))
+        n = len(values)
+        
+        # Calculate slope using least squares
+        sum_x = sum(x)
+        sum_y = sum(values)
+        sum_xy = sum(x[i] * values[i] for i in range(n))
+        sum_x2 = sum(x[i] ** 2 for i in range(n))
+        
+        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
+        
+        # Determine trend direction
+        if abs(slope) < 0.1:
+            direction = 'stable'
+        elif slope > 0:
+            direction = 'increasing'
+        else:
+            direction = 'decreasing'
+        
+        # Calculate correlation coefficient
+        mean_x = sum_x / n
+        mean_y = sum_y / n
+        
+        numerator = sum((x[i] - mean_x) * (values[i] - mean_y) for i in range(n))
+        denominator_x = sum((x[i] - mean_x) ** 2 for i in range(n))
+        denominator_y = sum((values[i] - mean_y) ** 2 for i in range(n))
+        
+        correlation = numerator / (denominator_x * denominator_y) ** 0.5 if denominator_x * denominator_y > 0 else 0
+        
+        return {
+            'direction': direction,
+            'slope': slope,
+            'correlation': correlation
+        }
+    
+    def get_metric_unit(self, metric: str) -> str:
+        """Get the unit for a specific metric."""
+        units = {
+            'temperature': '°C',
+            'feels_like': '°C',
+            'humidity': '%',
+            'pressure': 'hPa',
+            'wind_speed': 'km/h',
+            'precipitation': 'mm',
+            'visibility': 'km',
+            'uv_index': 'index',
+            'cloud_cover': '%',
+            'dew_point': '°C'
+        }
+        return units.get(metric, '')
+    
+    def get_historical_data(self, timeframe: str, city: str = None) -> Dict[str, Any]:
+        """Get historical data for comparison."""
+        cache_key = f"historical_{timeframe}_{city or 'default'}"
+        
+        if cache_key not in self.historical_data:
+            if self.data_generator:
+                # Generate historical data using data generator
+                self.historical_data[cache_key] = self.data_generator.generate_historical_comparison_data(timeframe)
+            else:
+                # Fallback to modified current data
+                current_data = self.generate_realistic_data(timeframe)
+                # Modify temperatures slightly for historical comparison
+                historical_data = current_data.copy()
+                if 'temperatures' in historical_data:
+                    historical_data['temperatures'] = [t - 2 + (i % 3) for i, t in enumerate(historical_data['temperatures'])]
+                self.historical_data[cache_key] = historical_data
+        
+        return self.historical_data[cache_key]
+    
+    def get_multi_city_data(self, cities: List[str], timeframe: str) -> Dict[str, Any]:
+        """Get multi-city data for comparison."""
+        cache_key = f"multi_city_{'_'.join(cities)}_{timeframe}"
+        
+        if cache_key not in self.multi_city_data:
+            if self.data_generator:
+                # Generate multi-city data using data generator
+                self.multi_city_data[cache_key] = self.data_generator.generate_multi_city_data(cities, timeframe)
+            else:
+                # Fallback to generate data for each city
+                base_data = self.generate_realistic_data(timeframe)
+                multi_city_data = {'cities': {}}
+                
+                for i, city in enumerate(cities):
+                    city_data = base_data.copy()
+                    # Vary temperatures by city
+                    if 'temperatures' in city_data:
+                        offset = (i - len(cities)//2) * 3  # Temperature offset per city
+                        city_data['temperatures'] = [t + offset for t in city_data['temperatures']]
+                    multi_city_data['cities'][city] = city_data
+                
+                self.multi_city_data[cache_key] = multi_city_data
+        
+        return self.multi_city_data[cache_key]
+    
+    def clear_cache(self, cache_type: str = 'all'):
+        """Clear specific or all data caches."""
+        if cache_type == 'all' or cache_type == 'historical':
+            self.historical_data.clear()
+        if cache_type == 'all' or cache_type == 'multi_city':
+            self.multi_city_data.clear()
+        if cache_type == 'all' or cache_type == 'statistics':
+            self.statistics_cache.clear()
+        if cache_type == 'all' or cache_type == 'events':
+            self.extreme_events.clear()

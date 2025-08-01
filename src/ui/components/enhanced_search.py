@@ -28,9 +28,11 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         self.recent_searches: List[Dict[str, Any]] = []
         self.favorite_locations: List[Dict[str, Any]] = []
         
-        # UI state
+        # UI state with enhanced navigation
         self.suggestions_visible = False
         self.current_search_thread = None
+        self.selected_suggestion_index = -1
+        self.suggestion_buttons = []
         
         # Load saved data
         self._load_search_data()
@@ -52,10 +54,14 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         )
         search_icon.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="w")
         
-        # Search entry with enhanced styling
+        # Search entry with enhanced styling and loading indicator
+        self.search_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.search_container.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+        self.search_container.grid_columnconfigure(0, weight=1)
+        
         self.search_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Search cities, coordinates, or airport codes...",
+            self.search_container,
+            placeholder_text="🌍 Search cities, coordinates, or airport codes...",
             font=ctk.CTkFont(size=14),
             fg_color=DataTerminalTheme.BACKGROUND,
             border_color=DataTerminalTheme.PRIMARY,
@@ -64,13 +70,27 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             height=40,
             corner_radius=6
         )
-        self.search_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+        self.search_entry.grid(row=0, column=0, sticky="ew")
         
-        # Bind events
+        # Loading indicator
+        self.loading_indicator = ctk.CTkLabel(
+            self.search_container,
+            text="⟳",
+            font=ctk.CTkFont(size=16),
+            text_color=DataTerminalTheme.PRIMARY
+        )
+        # Initially hidden
+        self.is_loading = False
+        
+        # Bind events with enhanced keyboard navigation
         self.search_entry.bind("<KeyRelease>", self._on_search_input)
         self.search_entry.bind("<Return>", self._on_search_submit)
         self.search_entry.bind("<FocusIn>", self._on_search_focus)
         self.search_entry.bind("<FocusOut>", self._on_search_blur)
+        self.search_entry.bind("<Up>", self._on_arrow_up)
+        self.search_entry.bind("<Down>", self._on_arrow_down)
+        self.search_entry.bind("<Escape>", self._on_escape)
+        self.search_entry.bind("<Tab>", self._on_tab)
         
         # GPS location button
         self.gps_button = ctk.CTkButton(
@@ -160,13 +180,16 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         self.clear_button.grid(row=0, column=3, padx=2, sticky="ew")
         
     def _on_search_input(self, event):
-        """Handle search input with autocomplete."""
+        """Handle search input with autocomplete and loading indicator."""
         query = self.search_entry.get().strip()
         
         if len(query) >= 2:  # Start searching after 2 characters
             # Cancel previous search thread
             if self.current_search_thread and self.current_search_thread.is_alive():
                 return  # Let the current search complete
+            
+            # Show loading indicator
+            self._show_loading()
             
             # Start new search thread
             self.current_search_thread = threading.Thread(
@@ -177,6 +200,7 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             self.current_search_thread.start()
         else:
             self._hide_suggestions()
+            self._hide_loading()
     
     def _search_suggestions(self, query: str):
         """Search for location suggestions in background thread."""
@@ -204,6 +228,9 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         except Exception as e:
             print(f"Search error: {e}")
             self.after(0, self._hide_suggestions)
+        finally:
+            # Always hide loading indicator
+            self.after(0, self._hide_loading)
     
     def _update_suggestions(self, suggestions: List[Dict[str, Any]]):
         """Update suggestions dropdown."""
@@ -221,7 +248,7 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             self._hide_suggestions()
     
     def _show_suggestions(self):
-        """Show suggestions dropdown."""
+        """Show suggestions dropdown with enhanced navigation support."""
         if self.suggestions_visible:
             # Clear existing suggestions
             for widget in self.suggestions_frame.winfo_children():
@@ -231,24 +258,39 @@ class EnhancedSearchComponent(ctk.CTkFrame):
             self.suggestions_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky="ew")
             self.suggestions_visible = True
         
-        # Add suggestion items
-        for i, suggestion in enumerate(self.search_suggestions):
+        # Reset navigation state
+        self.selected_suggestion_index = -1
+        self.suggestion_buttons = []
+        
+        # Add suggestion items with enhanced styling
+        for i, suggestion in enumerate(self.search_suggestions[:5]):  # Limit to 5 suggestions
             self._create_suggestion_item(suggestion, i)
+            
+        # Store current suggestions for keyboard navigation
+        self.current_suggestions = self.search_suggestions[:5]
     
     def _create_suggestion_item(self, location: Dict[str, Any], index: int):
-        """Create a suggestion item."""
-        # Suggestion button
+        """Create a suggestion item button with enhanced details."""
+        # Enhanced display text with location details
+        display_text = location.get('display', location.get('name', 'Unknown Location'))
+        if 'country' in location and location['country']:
+            display_text += f" • {location['country']}"
+        if 'region' in location and location['region']:
+            display_text += f", {location['region']}"
+        
         suggestion_btn = ctk.CTkButton(
             self.suggestions_frame,
-            text=f"📍 {location.get('display', location.get('name', 'Unknown'))}",
-            font=ctk.CTkFont(size=12),
+            text=f"📍 {display_text}",
+            command=lambda: self._select_suggestion_by_index(index),
             fg_color="transparent",
-            text_color=DataTerminalTheme.TEXT,
             hover_color=DataTerminalTheme.PRIMARY,
+            text_color=DataTerminalTheme.TEXT,
             anchor="w",
-            command=lambda loc=location: self._select_location(loc)
+            height=35,
+            font=ctk.CTkFont(size=13)
         )
-        suggestion_btn.grid(row=index, column=0, padx=5, pady=2, sticky="ew")
+        suggestion_btn.grid(row=index, column=0, sticky="ew", padx=5, pady=2)
+        self.suggestion_buttons.append(suggestion_btn)
         
         # Configure grid
         self.suggestions_frame.grid_columnconfigure(0, weight=1)
@@ -269,6 +311,67 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         """Handle search entry blur."""
         # Hide suggestions after a short delay to allow clicking
         self.after(200, self._hide_suggestions)
+    
+    def _on_arrow_up(self, event=None):
+        """Handle up arrow key navigation."""
+        if self.suggestions_visible and self.suggestion_buttons:
+            if self.selected_suggestion_index > 0:
+                self.selected_suggestion_index -= 1
+            else:
+                self.selected_suggestion_index = len(self.suggestion_buttons) - 1
+            self._update_suggestion_selection()
+        return "break"
+    
+    def _on_arrow_down(self, event=None):
+        """Handle down arrow key navigation."""
+        if self.suggestions_visible and self.suggestion_buttons:
+            if self.selected_suggestion_index < len(self.suggestion_buttons) - 1:
+                self.selected_suggestion_index += 1
+            else:
+                self.selected_suggestion_index = 0
+            self._update_suggestion_selection()
+        return "break"
+    
+    def _on_escape(self, event=None):
+        """Handle escape key to hide suggestions."""
+        self._hide_suggestions()
+        return "break"
+    
+    def _on_tab(self, event=None):
+        """Handle tab key to accept current suggestion."""
+        if self.suggestions_visible and self.selected_suggestion_index >= 0:
+            self._select_suggestion(self.selected_suggestion_index)
+            return "break"
+    
+    def _update_suggestion_selection(self):
+        """Update visual selection of suggestions."""
+        for i, button in enumerate(self.suggestion_buttons):
+            if i == self.selected_suggestion_index:
+                button.configure(fg_color=DataTerminalTheme.SELECTED)
+            else:
+                button.configure(fg_color="transparent")
+    
+    def _show_loading(self):
+        """Show loading indicator."""
+        if not self.is_loading:
+            self.is_loading = True
+            self.loading_indicator.grid(row=0, column=1, padx=(5, 0))
+            self._animate_loading()
+    
+    def _hide_loading(self):
+        """Hide loading indicator."""
+        self.is_loading = False
+        self.loading_indicator.grid_remove()
+    
+    def _animate_loading(self):
+        """Animate the loading indicator."""
+        if self.is_loading:
+            current_text = self.loading_indicator.cget("text")
+            if current_text == "⟳":
+                self.loading_indicator.configure(text="⟲")
+            else:
+                self.loading_indicator.configure(text="⟳")
+            self.after(500, self._animate_loading)
     
     def _on_search_submit(self, event):
         """Handle search submission."""
@@ -300,8 +403,13 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         except Exception as e:
             self._show_error(f"Search error: {str(e)}")
     
+    def _select_suggestion_by_index(self, index: int):
+        """Select suggestion by index for keyboard navigation."""
+        if 0 <= index < len(self.current_suggestions):
+            self._select_location(self.current_suggestions[index])
+    
     def _select_location(self, location: Dict[str, Any]):
-        """Select a location and update weather."""
+        """Select a location and update weather with enhanced feedback."""
         # Hide suggestions
         self._hide_suggestions()
         
@@ -318,6 +426,16 @@ class EnhancedSearchComponent(ctk.CTkFrame):
         display_name = location.get('display', location.get('name', ''))
         self.search_entry.delete(0, tk.END)
         self.search_entry.insert(0, display_name)
+        
+        # Brief visual confirmation
+        original_color = self.search_entry.cget("border_color")
+        self.search_entry.configure(border_color=DataTerminalTheme.SUCCESS)
+        self.after(1000, lambda: self.search_entry.configure(border_color=original_color))
+        
+        # Update parent status if available
+        if hasattr(self.parent, 'update_status'):
+            location_name = location.get('name', 'Unknown location')
+            self.parent.update_status(f"Selected location: {location_name}", "success")
         
         # Add to recent searches
         self._add_to_recent(location)

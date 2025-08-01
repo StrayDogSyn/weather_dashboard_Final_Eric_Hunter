@@ -55,17 +55,25 @@ class JournalService:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS journal_entries (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        date_created TEXT NOT NULL,
-                        weather_data TEXT,
-                        mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 10),
-                        entry_content TEXT NOT NULL,
+                        date TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        mood_score INTEGER DEFAULT 5 CHECK(mood_score >= 1 AND mood_score <= 10),
+                        mood_tags TEXT,
                         tags TEXT,
                         location TEXT,
-                        category TEXT,
+                        temperature REAL,
+                        weather_condition TEXT,
+                        weather_data TEXT,
                         photos TEXT,
-                        template_used TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TEXT,
+                        updated_at TEXT,
+                        -- Legacy columns for backward compatibility
+                        date_created TEXT,
+                        mood_rating INTEGER,
+                        entry_content TEXT,
+                        category TEXT,
+                        template_used TEXT
                     )
                 """)
                 
@@ -139,7 +147,36 @@ class JournalService:
                 cursor.execute("PRAGMA table_info(journal_entries)")
                 columns = [column[1] for column in cursor.fetchall()]
                 
-                # Add missing columns
+                # Add missing columns for new schema
+                if 'title' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN title TEXT DEFAULT ''")
+                    self.logger.info("Added title column to journal_entries")
+                
+                if 'content' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN content TEXT DEFAULT ''")
+                    self.logger.info("Added content column to journal_entries")
+                
+                if 'mood_score' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN mood_score INTEGER DEFAULT 5")
+                    self.logger.info("Added mood_score column to journal_entries")
+                
+                if 'mood_tags' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN mood_tags TEXT")
+                    self.logger.info("Added mood_tags column to journal_entries")
+                
+                if 'temperature' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN temperature REAL")
+                    self.logger.info("Added temperature column to journal_entries")
+                
+                if 'weather_condition' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN weather_condition TEXT")
+                    self.logger.info("Added weather_condition column to journal_entries")
+                
+                if 'date' not in columns:
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN date TEXT")
+                    self.logger.info("Added date column to journal_entries")
+                
+                # Legacy columns for backward compatibility
                 if 'category' not in columns:
                     cursor.execute("ALTER TABLE journal_entries ADD COLUMN category TEXT")
                     self.logger.info("Added category column to journal_entries")
@@ -153,12 +190,23 @@ class JournalService:
                     self.logger.info("Added template_used column to journal_entries")
                 
                 if 'created_at' not in columns:
-                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN created_at TEXT")
                     self.logger.info("Added created_at column to journal_entries")
                 
                 if 'updated_at' not in columns:
-                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                    cursor.execute("ALTER TABLE journal_entries ADD COLUMN updated_at TEXT")
                     self.logger.info("Added updated_at column to journal_entries")
+                
+                # Migrate data from legacy columns to new schema
+                cursor.execute("""
+                    UPDATE journal_entries 
+                    SET date = COALESCE(date, date_created),
+                        content = COALESCE(content, entry_content, ''),
+                        mood_score = COALESCE(mood_score, mood_rating, 5),
+                        title = COALESCE(title, 'Journal Entry')
+                    WHERE date IS NULL OR content IS NULL OR mood_score IS NULL OR title IS NULL
+                """)
+                self.logger.info("Migrated legacy data to new schema")
                 
                 # Create indexes for new columns
                 cursor.execute("""

@@ -886,6 +886,22 @@ class EnhancedWeatherService:
         self.logger.info(f"✅ Enhanced weather data retrieved for {location}")
         return weather_data
     
+    def _get_wind_direction(self, degrees: float) -> str:
+        """Convert wind direction degrees to compass direction."""
+        if degrees is None:
+            return 'N'
+        
+        directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                     'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+        
+        # Normalize degrees to 0-360 range
+        degrees = degrees % 360
+        
+        # Calculate index (16 directions, so 360/16 = 22.5 degrees per direction)
+        index = round(degrees / 22.5) % 16
+        
+        return directions[index]
+    
     def get_weather(self, location: str) -> EnhancedWeatherData:
         """Get weather data - compatibility method that delegates to get_enhanced_weather."""
         return self.get_enhanced_weather(location)
@@ -906,35 +922,97 @@ class EnhancedWeatherService:
             enhanced_data = self.get_enhanced_weather(location)
             self.logger.debug(f"Enhanced data type: {type(enhanced_data)}, location type: {type(enhanced_data.location)}")
             
-            # Convert to dictionary format expected by other components
-            return {
-                'location': enhanced_data.location.name,
-                'country': enhanced_data.location.country,
-                'temperature': enhanced_data.temperature,
-                'feels_like': enhanced_data.feels_like,
-                'humidity': enhanced_data.humidity,
-                'pressure': enhanced_data.pressure,
-                'description': enhanced_data.description,
-                'condition': enhanced_data.condition.value,
-                'wind_speed': enhanced_data.wind_speed,
-                'wind_direction': enhanced_data.wind_direction,
-                'cloudiness': enhanced_data.cloudiness,
-                'visibility': enhanced_data.visibility,
+            # Get forecast data
+            forecast_data = self.get_forecast_data(location)
+            
+            # Convert to enhanced weather display format
+            weather_dict = {
+                'location': {
+                    'name': enhanced_data.location.name,
+                    'country': enhanced_data.location.country
+                },
+                'current': {
+                    'temp_c': enhanced_data.temperature,
+                    'feelslike_c': enhanced_data.feels_like,
+                    'humidity': enhanced_data.humidity,
+                    'pressure_mb': enhanced_data.pressure,
+                    'condition': {
+                        'text': enhanced_data.description,
+                        'code': enhanced_data.condition.value
+                    },
+                    'wind_kph': enhanced_data.wind_speed * 3.6 if enhanced_data.wind_speed else 0,  # Convert m/s to km/h
+                    'wind_dir': self._get_wind_direction(enhanced_data.wind_direction) if enhanced_data.wind_direction else 'N',
+                    'vis_km': enhanced_data.visibility if enhanced_data.visibility else 0,
+                    'cloud': enhanced_data.cloudiness if enhanced_data.cloudiness else 0,
+                    'uv': 0  # OpenWeatherMap doesn't provide UV in current weather
+                },
                 'timestamp': enhanced_data.timestamp.isoformat(),
                 'air_quality': enhanced_data.air_quality.to_dict() if enhanced_data.air_quality else None,
                 'astronomical': enhanced_data.astronomical.to_dict() if enhanced_data.astronomical else None
             }
             
+            # Add forecast data if available
+            if forecast_data:
+                weather_dict['forecast'] = forecast_data
+            
+            return weather_dict
+            
         except Exception as e:
             self.logger.error(f"Failed to get current weather: {e}")
             # Return minimal fallback data
             return {
-                'location': location,
-                'temperature': 20.0,
-                'description': 'Weather data unavailable',
-                'condition': 'unknown',
+                'location': {'name': location, 'country': ''},
+                'current': {
+                    'temp_c': 20.0,
+                    'condition': {'text': 'Weather data unavailable', 'code': 'unknown'},
+                    'humidity': 0,
+                    'pressure_mb': 0,
+                    'wind_kph': 0,
+                    'vis_km': 0,
+                    'cloud': 0
+                },
                 'timestamp': datetime.now().isoformat()
             }
+    
+    def get_forecast_data(self, location: str) -> Optional[Dict[str, Any]]:
+        """
+        Get forecast data from OpenWeatherMap API.
+        
+        Args:
+            location: Location to get forecast for
+            
+        Returns:
+            Dictionary containing forecast data in OpenWeatherMap format
+        """
+        try:
+            # Check cache first
+            cache_key = f"forecast_{location.lower()}"
+            if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+                self.logger.debug(f"📋 Using cached forecast data for {location}")
+                return self._cache[cache_key]['data']
+            
+            # Fetch forecast data from API
+            self.logger.info(f"🌤️ Fetching forecast data for {location}")
+            
+            forecast_data = self._make_request('forecast', {'q': location})
+            
+            if forecast_data:
+                # Cache the forecast data
+                self._cache[cache_key] = {
+                    'data': forecast_data,
+                    'timestamp': datetime.now()
+                }
+                self._save_cache()
+                
+                self.logger.debug(f"✅ Forecast data retrieved for {location}")
+                return forecast_data
+            else:
+                self.logger.warning(f"No forecast data received for {location}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get forecast data for {location}: {e}")
+            return None
     
     def clear_cache(self) -> None:
         """Clear enhanced weather cache."""

@@ -1,13 +1,59 @@
 {
   "recent": [
     {
+      "name": "Tokyo",
+      "country": "JP",
+      "state": "",
+      "lat": 35.6768601,
+      "lon": 139.7638947,
+      "display": "Tokyo, JP",
+      "timestamp": "2025-07-31T19:55:30.984359"
+    },
+    {
+      "name": "Tokyo",
+      "display": "Tokyo, Japan",
+      "lat": 35.6762,
+      "lon": 139.6503,
+      "timestamp": "2025-07-31T19:54:27.041580"
+    },
+    {
+      "name": "Bangkok",
+      "display": "Bangkok, Thailand",
+      "lat": 13.7563,
+      "lon": 100.5018,
+      "timestamp": "2025-07-31T19:17:54.543213"
+    },
+    {
+      "name": "Los Angeles",
+      "display": "Los Angeles, CA, USA",
+      "lat": 34.0522,
+      "lon": -118.2437,
+      "timestamp": "2025-07-31T19:17:51.019067"
+    },
+    {
+      "name": "Cape Town",
+      "display": "Cape Town, South Africa",
+      "lat": -33.9249,
+      "lon": 18.4241,
+      "timestamp": "2025-07-31T19:17:48.858791"
+    },
+    {
+      "name": "jami",
+      "country": "IR",
+      "state": "Isfahan Province",
+      "lat": 32.6709314,
+      "lon": 51.6624313,
+      "display": "jami, Isfahan Province, IR",
+      "timestamp": "2025-07-31T19:17:43.258092"
+    },
+    {
       "name": "Pawtucket",
       "display": "Pawtucket, Rhode Island, United States",
       "lat": 41.874,
       "lon": -71.3844,
       "country": "United States",
       "region": "Rhode Island",
-      "timestamp": "2025-07-31T19:08:38.663334"
+      "timestamp": "2025-07-31T19:17:21.818092"
     },
     {
       "name": "Bangkok",
@@ -26,13 +72,6 @@
       "lon": -71.3821203,
       "display": "Pawtucket, Rhode Island, US",
       "timestamp": "2025-07-31T19:07:44.934721"
-    },
-    {
-      "name": "Bangkok",
-      "display": "Bangkok, Thailand",
-      "lat": 13.7563,
-      "lon": 100.5018,
-      "timestamp": "2025-07-31T18:52:53.615013"
     }
   ],
   "favorites": []

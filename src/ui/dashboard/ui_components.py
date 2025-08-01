@@ -11,8 +11,8 @@ class UIComponentsMixin:
     """Mixin class containing UI component creation methods."""
     
     def _configure_window(self) -> None:
-        """Configure main window properties."""
-        self.title("Professional Weather Dashboard")
+        """Configure main window properties with enhanced styling."""
+        self.title("🌤️ Professional Weather Dashboard - CodeFront Analytics")
         self.configure(fg_color=self.BACKGROUND)
         
         # Set window icon if available
@@ -21,12 +21,17 @@ class UIComponentsMixin:
         except Exception:
             pass  # Icon file not found, continue without it
         
-        # Configure window size and position
+        # Configure window size and position with better defaults
         self.center_window()
         
-        # Configure grid weights for responsive design
-        self.grid_rowconfigure(1, weight=1)  # Main content area
+        # Configure grid weights for responsive design with status bar
+        self.grid_rowconfigure(0, weight=0)  # Status bar
+        self.grid_rowconfigure(1, weight=0)  # Header
+        self.grid_rowconfigure(2, weight=1)  # Main content area
         self.grid_columnconfigure(0, weight=1)
+        
+        # Create status bar
+        self._create_status_bar()
         
         # Bind resize event for responsive design
         self.bind("<Configure>", self.on_window_resize)
@@ -564,9 +569,11 @@ class UIComponentsMixin:
         )
     
     def _setup_layout(self) -> None:
-        """Setup the layout of all components."""
-        # Header layout
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+        """Setup the layout of all components with enhanced status bar."""
+        # Status bar is already created in _configure_window at row 0
+        
+        # Header layout (moved to row 1)
+        self.header_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
         self.header_frame.grid_columnconfigure(1, weight=1)
         
         self.header_accent.grid(row=0, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
@@ -587,23 +594,28 @@ class UIComponentsMixin:
             self.search_entry.grid(row=0, column=0, padx=(0, 10))
             self.search_button.grid(row=0, column=1)
         
-        # Main content layout
-        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        # Main content layout (moved to row 2)
+        self.main_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
         self.main_frame.grid_rowconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
         
         self.tabview.grid(row=0, column=0, sticky="nsew")
         
-        # Status bar layout
-        self.status_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
-        self.status_frame.grid_columnconfigure(1, weight=1)
-        
-        self.status_accent.grid(row=0, column=0, columnspan=3, sticky="ew")
-        self.status_content.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=5)
-        self.status_content.grid_columnconfigure(1, weight=1)
-        
-        self.last_update_label.grid(row=0, column=0, sticky="w")
-        self.system_status_label.grid(row=0, column=2, sticky="e")
+        # Legacy status bar layout (if exists) - moved to row 3
+        if hasattr(self, 'status_frame'):
+            self.status_frame.grid(row=3, column=0, sticky="ew", padx=0, pady=0)
+            self.status_frame.grid_columnconfigure(1, weight=1)
+            
+            if hasattr(self, 'status_accent'):
+                self.status_accent.grid(row=0, column=0, columnspan=3, sticky="ew")
+            if hasattr(self, 'status_content'):
+                self.status_content.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=5)
+                self.status_content.grid_columnconfigure(1, weight=1)
+            
+            if hasattr(self, 'last_update_label'):
+                self.last_update_label.grid(row=0, column=0, sticky="w")
+            if hasattr(self, 'system_status_label'):
+                self.system_status_label.grid(row=0, column=2, sticky="e")
     
     def show_loading_state(self):
         """Show loading indicators on all data fields."""
@@ -759,6 +771,104 @@ class UIComponentsMixin:
         if hasattr(self, 'search_entry'):
             # Could add placeholder behavior or styling changes here
             pass
+    
+    def _create_status_bar(self) -> None:
+        """Create enhanced status bar with connection and system status."""
+        try:
+            # Status bar frame
+            self.status_bar = ctk.CTkFrame(
+                self,
+                height=30,
+                fg_color=self.CARD_COLOR,
+                corner_radius=0
+            )
+            self.status_bar.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+            self.status_bar.grid_columnconfigure(0, weight=1)
+            self.status_bar.grid_columnconfigure(1, weight=0)
+            self.status_bar.grid_columnconfigure(2, weight=0)
+            
+            # Status message label
+            self.status_label = ctk.CTkLabel(
+                self.status_bar,
+                text="🟢 Ready - Weather dashboard initialized",
+                font=ctk.CTkFont(size=12),
+                text_color=self.TEXT_COLOR
+            )
+            self.status_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+            
+            # Connection status indicator
+            self.connection_status = ctk.CTkLabel(
+                self.status_bar,
+                text="🌐 Connected",
+                font=ctk.CTkFont(size=12),
+                text_color=self.ACCENT_COLOR
+            )
+            self.connection_status.grid(row=0, column=1, sticky="e", padx=10, pady=5)
+            
+            # System time indicator
+            self.system_time = ctk.CTkLabel(
+                self.status_bar,
+                text="",
+                font=ctk.CTkFont(size=12),
+                text_color=self.TEXT_COLOR
+            )
+            self.system_time.grid(row=0, column=2, sticky="e", padx=10, pady=5)
+            
+            # Start time update
+            self._update_system_time()
+            
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Failed to create status bar: {e}")
+    
+    def _update_system_time(self) -> None:
+        """Update system time display."""
+        try:
+            from datetime import datetime
+            current_time = datetime.now().strftime("%H:%M:%S")
+            if hasattr(self, 'system_time'):
+                self.system_time.configure(text=f"🕐 {current_time}")
+            # Schedule next update
+            self.after(1000, self._update_system_time)
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Failed to update system time: {e}")
+    
+    def update_status(self, message: str, status_type: str = "info") -> None:
+        """Update status bar message with appropriate icon."""
+        try:
+            icons = {
+                "info": "ℹ️",
+                "success": "✅",
+                "warning": "⚠️",
+                "error": "❌",
+                "loading": "🔄"
+            }
+            icon = icons.get(status_type, "ℹ️")
+            
+            if hasattr(self, 'status_label'):
+                self.status_label.configure(text=f"{icon} {message}")
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Failed to update status: {e}")
+    
+    def update_connection_status(self, connected: bool) -> None:
+        """Update connection status indicator."""
+        try:
+            if hasattr(self, 'connection_status'):
+                if connected:
+                    self.connection_status.configure(
+                        text="🌐 Connected",
+                        text_color=self.ACCENT_COLOR
+                    )
+                else:
+                    self.connection_status.configure(
+                        text="🔴 Disconnected",
+                        text_color="#ff4444"
+                    )
+        except Exception as e:
+            if hasattr(self, 'logger'):
+                self.logger.error(f"Failed to update connection status: {e}")
     
     def _on_search_focus_out(self, event=None):
         """Handle search entry focus out"""

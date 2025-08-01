@@ -7,6 +7,7 @@ import customtkinter as ctk
 from ..components.temperature_chart import TemperatureChart
 from ..components.weather_journal import WeatherJournal
 from ..components.weather_journal_ui import WeatherJournalUI
+from ..components.enhanced_journal_ui import EnhancedJournalUI
 from ..components.journal_manager import JournalManager
 from ..components.journal_search import JournalSearchComponent
 from ..components.journal_calendar import JournalCalendarComponent
@@ -407,7 +408,7 @@ class TabManagerMixin:
             self.logger.error(f"Failed to create stat card: {e}")
     
     def _create_journal_tab(self) -> None:
-        """Create the journal tab with weather diary functionality."""
+        """Create the journal tab with enhanced weather diary functionality."""
         # Get journal tab
         journal_tab = self.tabview.tab("Journal")
         
@@ -415,13 +416,16 @@ class TabManagerMixin:
         journal_tab.grid_columnconfigure(0, weight=1)
         journal_tab.grid_rowconfigure(0, weight=1)
         
-        # Create journal UI
-        self.journal_ui = WeatherJournalUI(
+        # Create enhanced journal UI with comprehensive layout
+        self.journal_ui = EnhancedJournalUI(
             journal_tab,
-            weather_service=self.weather_service
+            journal_service=self.journal_service
         )
-        self.journal_ui.dashboard = self  # Reference for status updates
         self.journal_ui.grid(row=0, column=0, sticky="nsew")
+        
+        # Set reference for status updates if needed
+        if hasattr(self.journal_ui, 'dashboard'):
+            self.journal_ui.dashboard = self
     
     def _create_journal_management_section(self, parent) -> None:
         """Create journal management section."""
