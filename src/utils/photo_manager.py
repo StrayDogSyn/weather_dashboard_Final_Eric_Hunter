@@ -213,14 +213,26 @@ class PhotoManager:
 
             # Store metadata
             relative_path = str(Path(self.PHOTOS_DIR) / new_filename)
+            if "photos" not in self.metadata:
+                self.metadata["photos"] = {}
+                
+            try:
+                file_size = photo_path.stat().st_size if photo_path.exists() else 0
+                with Image.open(photo_path) as img:
+                    dimensions = list(img.size)
+            except Exception as e:
+                self.logger.warning(f"Error getting file stats: {e}")
+                file_size = 0
+                dimensions = [0, 0]
+                
             self.metadata["photos"][relative_path] = {
-                "original_name": source_path.name,
+                "original_name": source_path.name if source_path else "",
                 "entry_id": entry_id,
-                "description": description,
+                "description": description or "",
                 "added_at": datetime.now().isoformat(),
-                "file_size": photo_path.stat().st_size,
-                "dimensions": list(Image.open(photo_path).size),
-                "hash": image_hash,
+                "file_size": file_size,
+                "dimensions": dimensions,
+                "hash": image_hash or "",
             }
 
             self._save_metadata()
@@ -370,17 +382,26 @@ class PhotoManager:
             "entries_with_photos": set(),
         }
 
-        for path, info in self.metadata["photos"].items():
+        for path, info in self.metadata.get("photos", {}).items():
+            if not isinstance(info, dict):
+                continue
+                
             file_size = info.get("file_size", 0)
-            stats["total_size_bytes"] += file_size
+            if isinstance(file_size, (int, float)):
+                stats["total_size_bytes"] += file_size
 
             # Track format
-            ext = Path(path).suffix.lower()
-            stats["formats"][ext] = stats["formats"].get(ext, 0) + 1
+            try:
+                ext = Path(path).suffix.lower() if path else ""
+                if ext:
+                    stats["formats"][ext] = stats["formats"].get(ext, 0) + 1
+            except Exception as e:
+                self.logger.warning(f"Error processing path format {path}: {e}")
 
             # Track entries with photos
-            if info.get("entry_id"):
-                stats["entries_with_photos"].add(info["entry_id"])
+            entry_id = info.get("entry_id")
+            if entry_id is not None:
+                stats["entries_with_photos"].add(entry_id)
 
         stats["total_size_mb"] = round(stats["total_size_bytes"] / (1024 * 1024), 2)
         stats["entries_with_photos"] = len(stats["entries_with_photos"])
@@ -406,13 +427,20 @@ class PhotoManager:
 
             exported_count = 0
 
-            for path, info in self.metadata["photos"].items():
-                if info.get("entry_id") in entry_ids:
-                    source_path = self.base_path / path
-                    if source_path.exists():
-                        dest_path = export_path / Path(path).name
-                        shutil.copy2(source_path, dest_path)
-                        exported_count += 1
+            for path, info in self.metadata.get("photos", {}).items():
+                if not isinstance(info, dict) or not path:
+                    continue
+                    
+                entry_id = info.get("entry_id")
+                if entry_id in entry_ids:
+                    try:
+                        source_path = self.base_path / path
+                        if source_path.exists():
+                            dest_path = export_path / Path(path).name
+                            shutil.copy2(source_path, dest_path)
+                            exported_count += 1
+                    except Exception as e:
+                        self.logger.warning(f"Error exporting photo {path}: {e}")
 
             self.logger.info(f"Exported {exported_count} photos to {export_dir}")
             return True

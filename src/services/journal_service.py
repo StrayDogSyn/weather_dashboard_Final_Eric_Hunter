@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from models.journal_entry import JournalEntry
-from utils.photo_manager import PhotoManager
+from ..models.journal_entry import JournalEntry
+from ..utils.photo_manager import PhotoManager
 
 from .enhanced_weather_service import EnhancedWeatherService
 

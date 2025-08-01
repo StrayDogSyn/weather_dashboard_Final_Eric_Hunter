@@ -842,8 +842,12 @@ class UIComponentsMixin:
             current_time = datetime.now().strftime("%H:%M:%S")
             if hasattr(self, "system_time"):
                 self.system_time.configure(text=f"🕐 {current_time}")
-            # Schedule next update
-            self.after(1000, self._update_system_time)
+            
+            # Schedule next update only if not closing
+            if not getattr(self, '_is_closing', False) and hasattr(self, 'winfo_exists') and self.winfo_exists():
+                if not hasattr(self, '_system_time_callback_id'):
+                    self._system_time_callback_id = None
+                self._system_time_callback_id = self.after(1000, self._update_system_time)
         except Exception as e:
             if hasattr(self, "logger"):
                 self.logger.error(f"Failed to update system time: {e}")

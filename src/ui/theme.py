@@ -26,6 +26,7 @@ class DataTerminalTheme:
 
     # UI Element Colors
     CARD_BG = "#1E1E1E"  # Card background
+    SURFACE_COLOR = "#1E1E1E"  # Surface color (same as card background)
     BORDER = "#333333"  # Border color
     HOVER = "#2A2A2A"  # Hover state
     SELECTED = "#003D2B"  # Selected state (darker green)

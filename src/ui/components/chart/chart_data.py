@@ -10,7 +10,7 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
-from utils.safe_math import safe_average, safe_divide
+from ....utils.safe_math import safe_average, safe_divide
 
 try:
     from .chart_data_generator import WeatherDataGenerator

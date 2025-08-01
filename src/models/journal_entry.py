@@ -103,35 +103,91 @@ class JournalEntry:
         Returns:
             JournalEntry instance
         """
-        # Parse datetime fields
-        date_created = (
-            datetime.fromisoformat(data["date_created"])
-            if data.get("date_created")
-            else datetime.now()
-        )
-        created_at = (
-            datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now()
-        )
-        updated_at = (
-            datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now()
-        )
+        if not isinstance(data, dict):
+            raise ValueError("Data must be a dictionary")
+            
+        # Parse datetime fields with error handling
+        try:
+            date_created = (
+                datetime.fromisoformat(str(data["date_created"]))
+                if data.get("date_created")
+                else datetime.now()
+            )
+        except (ValueError, TypeError):
+            date_created = datetime.now()
+            
+        try:
+            created_at = (
+                datetime.fromisoformat(str(data["created_at"])) 
+                if data.get("created_at") 
+                else datetime.now()
+            )
+        except (ValueError, TypeError):
+            created_at = datetime.now()
+            
+        try:
+            updated_at = (
+                datetime.fromisoformat(str(data["updated_at"])) 
+                if data.get("updated_at") 
+                else datetime.now()
+            )
+        except (ValueError, TypeError):
+            updated_at = datetime.now()
 
-        # Parse JSON fields
-        weather_data = json.loads(data["weather_data"]) if data.get("weather_data") else None
-        tags = json.loads(data["tags"]) if data.get("tags") else []
-        photos = json.loads(data["photos"]) if data.get("photos") else []
+        # Parse JSON fields with error handling
+        weather_data = None
+        if data.get("weather_data"):
+            try:
+                if isinstance(data["weather_data"], str):
+                    weather_data = json.loads(data["weather_data"])
+                elif isinstance(data["weather_data"], dict):
+                    weather_data = data["weather_data"]
+            except (json.JSONDecodeError, TypeError):
+                weather_data = None
+                
+        tags = []
+        if data.get("tags"):
+            try:
+                if isinstance(data["tags"], str):
+                    parsed_tags = json.loads(data["tags"])
+                    tags = parsed_tags if isinstance(parsed_tags, list) else []
+                elif isinstance(data["tags"], list):
+                    tags = [str(tag) for tag in data["tags"] if tag is not None]
+            except (json.JSONDecodeError, TypeError):
+                tags = []
+                
+        photos = []
+        if data.get("photos"):
+            try:
+                if isinstance(data["photos"], str):
+                    parsed_photos = json.loads(data["photos"])
+                    photos = parsed_photos if isinstance(parsed_photos, list) else []
+                elif isinstance(data["photos"], list):
+                    photos = [str(photo) for photo in data["photos"] if photo is not None]
+            except (json.JSONDecodeError, TypeError):
+                photos = []
+        
+        # Validate mood_rating
+        mood_rating = data.get("mood_rating")
+        if mood_rating is not None:
+            try:
+                mood_rating = int(mood_rating)
+                if not 1 <= mood_rating <= 10:
+                    mood_rating = None
+            except (ValueError, TypeError):
+                mood_rating = None
 
         return cls(
             id=data.get("id"),
             date_created=date_created,
             weather_data=weather_data,
-            mood_rating=data.get("mood_rating"),
-            entry_content=data.get("entry_content", ""),
+            mood_rating=mood_rating,
+            entry_content=str(data.get("entry_content", "")),
             tags=tags,
-            location=data.get("location"),
-            category=data.get("category"),
+            location=str(data["location"]) if data.get("location") is not None else None,
+            category=str(data["category"]) if data.get("category") is not None else None,
             photos=photos,
-            template_used=data.get("template_used"),
+            template_used=str(data["template_used"]) if data.get("template_used") is not None else None,
             created_at=created_at,
             updated_at=updated_at,
         )

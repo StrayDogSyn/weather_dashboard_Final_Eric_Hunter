@@ -9,9 +9,9 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Optional
 
-from models.journal_entry import JournalEntry
-from services.enhanced_weather_service import EnhancedWeatherService
-from services.journal_service import JournalService
+from ...models.journal_entry import JournalEntry
+from ...services.enhanced_weather_service import EnhancedWeatherService
+from ...services.journal_service import JournalService
 
 from ..theme import WeatherTheme
 from .journal_editor import JournalEditor

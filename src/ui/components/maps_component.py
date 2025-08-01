@@ -15,8 +15,8 @@ import customtkinter as ctk
 import requests
 from PIL import Image, ImageTk
 
-from services.config_service import ConfigService
-from services.maps_service import (
+from ...services.config_service import ConfigService
+from ...services.maps_service import (
     GoogleMapsService,
     PlaceResult,
 )
@@ -37,6 +37,24 @@ class MapsComponent(ctk.CTkFrame):
         self.maps_service = GoogleMapsService(config_service)
         self.on_location_selected = on_location_selected
         self.logger = logging.getLogger("weather_dashboard.maps_component")
+        
+    def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
+        """Safely schedule a callback with proper error handling."""
+        try:
+            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+                return None
+            
+            def safe_callback():
+                try:
+                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                        func(*args)
+                except Exception as e:
+                    self.logger.error(f"Error in scheduled callback: {e}")
+            
+            return self.after(ms, safe_callback)
+        except Exception as e:
+            self.logger.error(f"Error scheduling callback: {e}")
+            return None
 
         # Current state
         self.current_location: Optional[Tuple[float, float]] = None
@@ -289,17 +307,21 @@ class MapsComponent(ctk.CTkFrame):
             results = self.maps_service.search_places(query, location=self.current_location)
 
             # Update UI in main thread
-            self.after(0, self._update_search_results, results)
+            self.safe_after(0, self._update_search_results, results)
 
         except Exception as e:
             self.logger.error(f"❌ Search failed: {e}")
-            self.after(0, self._show_search_error, str(e))
+            self.safe_after(0, self._show_search_error, str(e))
         finally:
 
             def reset_search_button():
-                self.search_button.configure(text="Search", state="normal")
+                try:
+                    if hasattr(self, 'search_button') and self.search_button and self.search_button.winfo_exists():
+                        self.search_button.configure(text="Search", state="normal")
+                except Exception as e:
+                    self.logger.error(f"Error resetting search button: {e}")
 
-            self.after(0, reset_search_button)
+            self.safe_after(0, reset_search_button)
 
     def _update_search_results(self, results: List[PlaceResult]) -> None:
         """Update search results display."""
@@ -448,11 +470,11 @@ class MapsComponent(ctk.CTkFrame):
             photo = ImageTk.PhotoImage(image)
 
             # Update UI in main thread
-            self.after(0, self._display_map_image, photo)
+            self.safe_after(0, self._display_map_image, photo)
 
         except Exception as e:
             self.logger.error(f"❌ Failed to load map image: {e}")
-            self.after(0, self._show_map_placeholder, "Failed to load map")
+            self.safe_after(0, self._show_map_placeholder, "Failed to load map")
 
     def _display_map_image(self, photo: ImageTk.PhotoImage) -> None:
         """Display map image in UI."""

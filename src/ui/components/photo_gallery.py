@@ -6,8 +6,8 @@ from typing import Callable, Dict, List, Optional
 
 from PIL import Image, ImageTk
 
-from models.journal_entry import JournalEntry
-from utils.photo_manager import PhotoManager
+from ...models.journal_entry import JournalEntry
+from ...utils.photo_manager import PhotoManager
 
 
 class PhotoGalleryComponent(ttk.Frame):

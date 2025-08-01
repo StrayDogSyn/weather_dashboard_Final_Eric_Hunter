@@ -10,7 +10,7 @@ from typing import Callable, List, Optional
 
 import numpy as np
 
-from utils.safe_math import safe_divide
+from ....utils.safe_math import safe_divide
 
 
 class ChartAnimationMixin:

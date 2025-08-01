@@ -9,7 +9,7 @@ from typing import List, Optional
 
 import customtkinter as ctk
 
-from models.activity_models import (
+from ...models.activity_models import (
     DIFFICULTY_DESCRIPTIONS,
     ActivityCategory,
     ActivityPlan,
@@ -17,9 +17,9 @@ from models.activity_models import (
     TimeContext,
     UserPreferences,
 )
-from models.weather_models import WeatherData
-from services.config_service import ConfigService
-from services.gemini_service import GeminiService
+from ...models.weather_models import WeatherData
+from ...services.config_service import ConfigService
+from ...services.gemini_service import GeminiService
 
 from ..theme import DataTerminalTheme
 

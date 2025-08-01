@@ -525,11 +525,23 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
         except Exception as e:
             print(f"Error updating astronomical data: {e}")
 
-    def _update_air_quality(self, aqi_data: Dict[str, Any]):
+    def _update_air_quality(self, aqi_data):
         """Update air quality information."""
         try:
-            # AQI value
-            aqi = aqi_data.get("us-epa-index", 1)  # Default to 1 (Good)
+            # Check if aqi_data is None
+            if aqi_data is None:
+                return
+                
+            # Handle both dictionary and AirQualityData object
+            if hasattr(aqi_data, 'aqi'):
+                # AirQualityData object
+                aqi = aqi_data.aqi
+            elif isinstance(aqi_data, dict):
+                # Dictionary format
+                aqi = aqi_data.get("us-epa-index", aqi_data.get("aqi", 1))
+            else:
+                # Fallback
+                aqi = 1
 
             self.aqi_value_label.configure(text=f"AQI: {aqi}")
 
@@ -543,7 +555,10 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             self.aqi_progress.configure(progress_color=color)
 
             # Health recommendation
-            recommendation = self._get_aqi_recommendation(aqi)
+            if hasattr(aqi_data, 'get_health_recommendation'):
+                recommendation = aqi_data.get_health_recommendation()
+            else:
+                recommendation = self._get_aqi_recommendation(aqi)
             self.aqi_recommendation.configure(text=recommendation)
 
         except Exception as e:

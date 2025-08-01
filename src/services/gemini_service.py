@@ -11,14 +11,14 @@ try:
 except ImportError:
     genai = None
 
-from models.activity_models import (
+from ..models.activity_models import (
     ActivityCategory,
     ActivitySuggestion,
     TimeContext,
     UserPreferences,
 )
-from models.weather_models import WeatherData
-from services.config_service import ConfigService
+from ..models.weather_models import WeatherData
+from .config_service import ConfigService
 
 
 class GeminiService:

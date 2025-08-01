@@ -9,8 +9,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import Callable, List, Optional
 
-from models.journal_entry import JournalEntry
-from services.journal_service import JournalService
+from ...models.journal_entry import JournalEntry
+from ...services.journal_service import JournalService
 
 from ..theme import WeatherTheme
 

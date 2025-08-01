@@ -5,7 +5,7 @@ Contains all tab creation and management methods for the dashboard.
 
 import customtkinter as ctk
 
-from services.gemini_service import GeminiService
+from ...services.gemini_service import GeminiService
 
 from ..components.activity_suggestions import ActivitySuggesterComponent
 from ..components.enhanced_journal_ui import EnhancedJournalUI
@@ -541,7 +541,7 @@ class TabManagerMixin:
         api_title.pack(anchor="w", pady=(0, 10))
 
         # API Key Entry
-        self.api_key_var = ctk.StringVar(value=self.config_service.get_api_key() or "")
+        self.api_key_var = ctk.StringVar(value=self.config_service.get_api_key("openweather") or "")
 
         api_key_label = ctk.CTkLabel(
             api_frame,

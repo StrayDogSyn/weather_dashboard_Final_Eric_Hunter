@@ -4,13 +4,32 @@ This module provides the ChartWidgetsMixin class that handles UI widget creation
 layout management, and widget styling for the temperature chart.
 """
 
-from typing import Any, Dict
+import logging
+from typing import Any, Dict, Optional
 
 import customtkinter as ctk
 
 
 class ChartWidgetsMixin:
     """Mixin for chart widget creation and layout management."""
+    
+    def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
+        """Safely schedule a callback with proper error handling."""
+        try:
+            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+                return None
+            
+            def safe_callback():
+                try:
+                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                        func(*args)
+                except Exception as e:
+                    logging.error(f"Error in scheduled callback: {e}")
+            
+            return self.after(ms, safe_callback)
+        except Exception as e:
+            logging.error(f"Error scheduling callback: {e}")
+            return None
 
     def create_widgets(self):
         """Create all UI widgets for the temperature chart."""
@@ -220,9 +239,13 @@ class ChartWidgetsMixin:
 
         # Hide tooltip after brief delay
         def hide_tooltip():
-            self.tooltip_frame.place_forget()
+            try:
+                if hasattr(self, 'tooltip_frame') and self.tooltip_frame and self.tooltip_frame.winfo_exists():
+                    self.tooltip_frame.place_forget()
+            except Exception as e:
+                logging.error(f"Error hiding tooltip: {e}")
 
-        self.after(50, hide_tooltip)
+        self.safe_after(50, hide_tooltip)
 
     def _add_button_hover_effects(self, button):
         """Add glassmorphic hover effects to buttons."""
@@ -248,9 +271,13 @@ class ChartWidgetsMixin:
         button.configure(fg_color="#00cc66")
 
         def change_timeframe_callback():
-            self.change_timeframe(timeframe)
+            try:
+                if hasattr(self, 'change_timeframe') and callable(self.change_timeframe):
+                    self.change_timeframe(timeframe)
+            except Exception as e:
+                logging.error(f"Error changing timeframe: {e}")
 
-        self.after(100, change_timeframe_callback)
+        self.safe_after(100, change_timeframe_callback)
 
     def show_notification(self, message: str, notification_type: str = "info"):
         """Show a temporary notification message."""
@@ -276,7 +303,14 @@ class ChartWidgetsMixin:
         notification_frame.place(relx=0.5, rely=0.1, anchor="center")
 
         # Auto-hide after 3 seconds
-        self.after(3000, notification_frame.destroy)
+        def safe_destroy():
+            try:
+                if notification_frame and notification_frame.winfo_exists():
+                    notification_frame.destroy()
+            except Exception as e:
+                logging.error(f"Error destroying notification: {e}")
+        
+        self.safe_after(3000, safe_destroy)
 
     def get_widget_dimensions(self) -> Dict[str, Any]:
         """Get current widget dimensions for calculations."""

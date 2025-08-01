@@ -241,33 +241,40 @@ class AutoRefreshComponent(ctk.CTkFrame):
 
     def update_countdown(self):
         """Update countdown display and progress bar."""
-        if not self.auto_refresh_enabled or not self.last_refresh:
-            self.next_refresh_label.configure(text="Auto-refresh disabled")
-            self.refresh_progress.set(0)
-        else:
-            # Calculate time until next refresh
-            next_refresh_time = self.last_refresh + timedelta(seconds=self.refresh_interval)
-            now = datetime.now()
-            time_until_refresh = next_refresh_time - now
-
-            if time_until_refresh.total_seconds() <= 0:
-                self.next_refresh_label.configure(text="Refreshing...")
-                self.refresh_progress.set(1.0)
+        try:
+            if not self.auto_refresh_enabled or not self.last_refresh:
+                self.next_refresh_label.configure(text="Auto-refresh disabled")
+                self.refresh_progress.set(0)
             else:
-                # Format time remaining
-                total_seconds = int(time_until_refresh.total_seconds())
-                minutes = total_seconds // 60
-                seconds = total_seconds % 60
+                # Calculate time until next refresh
+                next_refresh_time = self.last_refresh + timedelta(seconds=self.refresh_interval)
+                now = datetime.now()
+                time_until_refresh = next_refresh_time - now
 
-                self.next_refresh_label.configure(text=f"Next update: {minutes:02d}:{seconds:02d}")
+                if time_until_refresh.total_seconds() <= 0:
+                    self.next_refresh_label.configure(text="Refreshing...")
+                    self.refresh_progress.set(1.0)
+                else:
+                    # Format time remaining
+                    total_seconds = int(time_until_refresh.total_seconds())
+                    minutes = total_seconds // 60
+                    seconds = total_seconds % 60
 
-                # Update progress bar
-                elapsed = self.refresh_interval - time_until_refresh.total_seconds()
-                progress = max(0, min(1, elapsed / self.refresh_interval))
-                self.refresh_progress.set(progress)
+                    self.next_refresh_label.configure(text=f"Next update: {minutes:02d}:{seconds:02d}")
 
-        # Schedule next update
-        self.after(1000, self.update_countdown)
+                    # Update progress bar
+                    elapsed = self.refresh_interval - time_until_refresh.total_seconds()
+                    progress = max(0, min(1, elapsed / self.refresh_interval))
+                    self.refresh_progress.set(progress)
+
+            # Schedule next update only if widget still exists and not destroyed
+            if hasattr(self, 'winfo_exists') and self.winfo_exists() and not getattr(self, '_is_destroyed', False):
+                if not hasattr(self, '_countdown_callback_id'):
+                    self._countdown_callback_id = None
+                self._countdown_callback_id = self.after(1000, self.update_countdown)
+        except Exception as e:
+            # Silently handle errors during shutdown
+            pass
 
     def update_last_refresh_display(self):
         """Update the last refresh time display."""

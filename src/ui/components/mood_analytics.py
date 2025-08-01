@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from services.journal_service import JournalService
+from ...services.journal_service import JournalService
 
 
 class MoodAnalyticsComponent:

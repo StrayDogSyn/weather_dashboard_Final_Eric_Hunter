@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from tkinter import ttk
 from typing import Callable, Dict, List, Optional
 
-from models.journal_entry import JournalEntry
-from services.journal_service import JournalService
+from ...models.journal_entry import JournalEntry
+from ...services.journal_service import JournalService
 
 
 class JournalCalendarComponent(ttk.Frame):

@@ -7,7 +7,7 @@ import traceback
 from typing import Dict, List
 
 # Import the enhanced AI service
-from services.ai_service import AIService
+from ....services.ai_service import AIService
 
 # Optional imports for AI services (kept for backward compatibility)
 try:

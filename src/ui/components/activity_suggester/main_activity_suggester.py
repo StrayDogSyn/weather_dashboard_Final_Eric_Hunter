@@ -3,7 +3,7 @@
 Combines all mixins to create the complete ActivitySuggester component.
 """
 
-from services.ai_service import AIService
+from ....services.ai_service import AIService
 
 from ..base_component import BaseComponent
 

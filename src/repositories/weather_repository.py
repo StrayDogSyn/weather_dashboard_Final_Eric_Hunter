@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional
 
 from ..core.exceptions import CacheError, DataPersistenceError
 from .base_repository import BaseRepository
+from ..models.weather_models import Location, WeatherCondition, WeatherData
+from ..utils.safe_math import safe_average, safe_divide
 
 
 @dataclass

@@ -15,15 +15,16 @@ try:
 except Exception:
     pass
 
-from models.weather_models import ForecastData, WeatherData
-from services.config_service import ConfigService
-from services.enhanced_weather_service import EnhancedWeatherService
-from services.journal_service import JournalService
-from services.logging_service import LoggingService
-from services.thread_safe_service import ThreadSafeUIUpdater
+from ...models.weather_models import ForecastData, WeatherData
+from ...services.config_service import ConfigService
+from ...services.enhanced_weather_service import EnhancedWeatherService
+from ...services.journal_service import JournalService
+from ...services.logging_service import LoggingService
+from ...services.thread_safe_service import ThreadSafeUIUpdater
 
 # Import new enhanced components
 from ..components.secure_api_manager import SecureAPIManager
+from ..safe_widgets import SafeCTk
 from ..theme import DataTerminalTheme
 from .tab_manager import TabManagerMixin
 from .ui_components import UIComponentsMixin
@@ -35,7 +36,7 @@ from .weather_handler import WeatherHandlerMixin
 
 
 class ProfessionalWeatherDashboard(
-    ctk.CTk, UIComponentsMixin, TabManagerMixin, WeatherHandlerMixin
+    SafeCTk, UIComponentsMixin, TabManagerMixin, WeatherHandlerMixin
 ):
     """Professional weather dashboard with clean, minimal design."""
 
@@ -291,13 +292,16 @@ class ProfessionalWeatherDashboard(
         try:
             # Find the weather display container
             weather_container = None
-            for attr_name in ["weather_frame", "main_weather_frame", "weather_display"]:
-                if hasattr(self, attr_name):
+            for attr_name in ["enhanced_weather_display", "weather_frame", "main_weather_frame", "weather_display"]:
+                if hasattr(self, attr_name) and getattr(self, attr_name) is not None:
                     weather_container = getattr(self, attr_name)
+                    # For enhanced_weather_display, get the main_weather_frame
+                    if attr_name == "enhanced_weather_display" and hasattr(weather_container, "main_weather_frame"):
+                        weather_container = weather_container.main_weather_frame
                     break
 
             if not weather_container:
-                self.logger.warning("No weather container found")
+                self.logger.debug("No weather container found - this is normal during initialization")
                 return
 
             # Create missing labels
@@ -528,11 +532,26 @@ class ProfessionalWeatherDashboard(
     def _on_closing(self):
         """Handle application closing - cleanup timers and resources."""
         try:
+            # Set closing flag to prevent new callbacks
+            self._is_closing = True
+            
             # Cancel auto-refresh timer
             if hasattr(self, "auto_refresh_timer_id") and self.auto_refresh_timer_id:
                 self.after_cancel(self.auto_refresh_timer_id)
                 self.auto_refresh_timer_id = None
                 self.logger.info("Auto-refresh timer cancelled")
+
+            # Cancel system time callback
+            if hasattr(self, "_system_time_callback_id") and self._system_time_callback_id:
+                try:
+                    self.after_cancel(self._system_time_callback_id)
+                    self._system_time_callback_id = None
+                except Exception:
+                    pass
+
+            # Cancel countdown callback in auto-refresh components
+            for widget in self.winfo_children():
+                self._cancel_widget_callbacks(widget)
 
             # Cancel all tracked scheduled callbacks
             if hasattr(self, "_scheduled_callbacks"):
@@ -546,6 +565,10 @@ class ProfessionalWeatherDashboard(
                 self._scheduled_callbacks.clear()
                 if cancelled_count > 0:
                     self.logger.info(f"Cancelled {cancelled_count} pending callbacks")
+
+            # Stop thread safe updater
+            if hasattr(self, 'ui_updater') and self.ui_updater:
+                self.ui_updater.stop()
 
             # Call the new cleanup method
             self.cleanup()
@@ -562,3 +585,24 @@ class ProfessionalWeatherDashboard(
         finally:
             # Always destroy the window
             self.destroy()
+            
+    def _cancel_widget_callbacks(self, widget):
+        """Recursively cancel callbacks in widget hierarchy."""
+        try:
+            # Cancel countdown callback if it exists
+            if hasattr(widget, '_countdown_callback_id') and widget._countdown_callback_id:
+                try:
+                    self.after_cancel(widget._countdown_callback_id)
+                    widget._countdown_callback_id = None
+                except Exception:
+                    pass
+            
+            # Set destroyed flag
+            if hasattr(widget, '_is_destroyed'):
+                widget._is_destroyed = True
+            
+            # Recursively check children
+            for child in widget.winfo_children():
+                self._cancel_widget_callbacks(child)
+        except Exception:
+            pass  # Ignore errors during cleanup

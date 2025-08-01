@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from utils.safe_math import safe_divide
+from ..utils.safe_math import safe_divide
 
 
 class WeatherCondition(Enum):

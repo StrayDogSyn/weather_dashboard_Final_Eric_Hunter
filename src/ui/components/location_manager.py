@@ -4,6 +4,7 @@ Handles favorite locations, recent searches, and GPS detection.
 """
 
 import json
+import logging
 import os
 import threading
 from datetime import datetime
@@ -222,12 +223,31 @@ class LocationManagerUI(ctk.CTkFrame):
         self.location_manager = location_manager
         self.location_selected_callback = location_selected_callback
         self.current_location: Optional[LocationData] = None
+        self.logger = logging.getLogger("weather_dashboard.location_manager")
 
         # Create UI
         self._create_location_ui()
 
         # Refresh display
         self.refresh_display()
+        
+    def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
+        """Safely schedule a callback with proper error handling."""
+        try:
+            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+                return None
+            
+            def safe_callback():
+                try:
+                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                        func(*args)
+                except Exception as e:
+                    self.logger.error(f"Error in scheduled callback: {e}")
+            
+            return self.after(ms, safe_callback)
+        except Exception as e:
+            self.logger.error(f"Error scheduling callback: {e}")
+            return None
 
     def _create_location_ui(self):
         """Create location management UI."""
@@ -386,12 +406,12 @@ class LocationManagerUI(ctk.CTkFrame):
                     self.current_location = location
 
                     # Update UI on main thread
-                    self.after(0, self._location_detected_success, location)
+                    self.safe_after(0, self._location_detected_success, location)
                 else:
-                    self.after(0, self._location_detected_error, "Unable to detect location")
+                    self.safe_after(0, self._location_detected_error, "Unable to detect location")
 
             except Exception as e:
-                self.after(0, self._location_detected_error, str(e))
+                self.safe_after(0, self._location_detected_error, str(e))
 
         # Run detection in background thread
         threading.Thread(target=detect_location, daemon=True).start()
@@ -416,13 +436,17 @@ class LocationManagerUI(ctk.CTkFrame):
         self.gps_status.configure(text=f"Error: {error_message}", text_color="#FF6B6B")
 
         # Reset status after 5 seconds
-        self.after(
-            5000,
-            lambda: self.gps_status.configure(
-                text="Click to detect your current location",
-                text_color=DataTerminalTheme.TEXT_SECONDARY,
-            ),
-        )
+        def reset_status():
+            try:
+                if hasattr(self, 'gps_status') and self.gps_status and self.gps_status.winfo_exists():
+                    self.gps_status.configure(
+                        text="Click to detect your current location",
+                        text_color=DataTerminalTheme.TEXT_SECONDARY,
+                    )
+            except Exception as e:
+                self.logger.error(f"Error resetting GPS status: {e}")
+        
+        self.safe_after(5000, reset_status)
 
     def refresh_display(self):
         """Refresh the favorites and recent searches display."""
