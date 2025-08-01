@@ -5,9 +5,9 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-A modern weather dashboard application with voice assistant integration, built using Python and CustomTkinter. Features real-time weather data, interactive visualizations, and a professional Data Terminal interface with neon green accents on dark backgrounds.
+A modern, professional weather dashboard application built with Python and CustomTkinter. Features real-time weather data, interactive visualizations, weather journaling, and AI integration with a sleek Data Terminal interface.
 
-> **📋 Status**: ✅ Production Ready | 🎯 All Features Implemented | 🔧 CI/CD Enabled | 🛠️ Recently Updated
+> **📋 Status**: ✅ Production Ready | 🎯 Clean Architecture | 🔧 Dependency Injection | 🛠️ Recently Refactored
 
 ## **Screenshots**
 
@@ -44,10 +44,15 @@ A modern weather dashboard application with voice assistant integration, built u
 
 ### 🔧 Technical Features
 
-- **Clean Architecture** with modular design
-- **SQLite database** for data persistence
-- **Intelligent caching** for performance
-- **Comprehensive testing** with CI/CD
+- **Clean Architecture** with dependency injection and repository patterns
+- **Type Safety** with comprehensive type hints and validation
+- **Async Support** for non-blocking operations
+- **SQLite database** with repository pattern for data persistence
+- **Intelligent caching** with configurable TTL
+- **Custom exceptions** for structured error handling
+- **Comprehensive logging** with rotating file handlers
+- **Code quality** tools (Black, isort, flake8, autoflake)
+- **Development tools** and automated cleanup scripts
 - **Cross-platform** compatibility
 - **🆕 Enhanced Services**: Rate limiting, advanced caching, error recovery
 - **🆕 Progressive Loading**: Basic data first, enhanced details after
@@ -201,6 +206,34 @@ weather_dashboard_Final_Eric_Hunter/
 
 > 📁 **Clean Structure**: Streamlined architecture focusing on essential components with clear separation of concerns
 
+## 🏗️ Architecture
+
+The Weather Dashboard follows clean architecture principles with dependency injection and separation of concerns:
+
+### Core Components
+
+- **`src/core/`** - Dependency injection container, interfaces, and custom exceptions
+- **`src/models/`** - Data models and domain entities (WeatherData, JournalEntry, etc.)
+- **`src/repositories/`** - Data access layer with repository pattern
+- **`src/services/`** - Business logic layer (weather, configuration, logging services)
+- **`src/ui/`** - User interface components and dashboard
+- **`src/utils/`** - Utility functions and helpers
+
+### Key Patterns
+
+- **Dependency Injection**: Centralized service container for loose coupling
+- **Repository Pattern**: Abstract data access with consistent interfaces
+- **Observer Pattern**: Event-driven UI updates
+- **Strategy Pattern**: Multiple weather API providers
+
+### Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture documentation
+- **[API_GUIDE.md](API_GUIDE.md)** - API integration and internal interfaces
+- **Development tools** - Automated cleanup, code quality, and testing scripts
+
+> 🔧 **Modern Practices**: Type hints, async support, comprehensive error handling, and automated code quality tools
+
 ## 🌟 Project Highlights
 
 ### Technical Excellence
@@ -258,7 +291,7 @@ python --version
 
 ## 📖 Technical Details
 
-### Core Components
+### Application Architecture
 
 - **Configuration Service** (`src/config/`) - Centralized application configuration management
 - **Weather Models** (`src/models/`) - Data structures for weather information

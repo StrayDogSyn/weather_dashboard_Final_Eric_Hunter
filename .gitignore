@@ -56,14 +56,23 @@ Thumbs.db
 # Application specific
 weather_dashboard.log
 *.log
-logs/
-cache/
+logs/*.log
+logs/*.txt
+data/cache/
 exports/
 backups/
 temp/
 *.tmp
 *.bak
 *_backup.py
+
+# New directory structure
+src/utils/temp/
+src/database/migrations/
+scripts/temp/
+data/exports/
+data/backups/
+data/temp/
 
 # Database files
 *.db
@@ -164,42 +173,53 @@ celerybeat.pid
 .dmypy.json
 dmypy.json
 
-# Exclude parent and sibling directories to prevent 10k changes issue
-../*/
-../../*/
-../../../*/
-../../../../*/
+# Development and build artifacts
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+node_modules/
 
-# Specific exclusions for known sibling projects
-../Complete-Python-3-Bootcamp/
-../JTC-Recipes/
-../JTC_Tech_Pathway_Capstone/
-../Learner-Files-1/
-../Marvel-Quiz/
-../MyFull_MontyPython/
-../MyManaBox/
-../New_Team_Dashboard/
-../RPi5-AI/
-../Second_Story_Splash/
-../StrayDogSyn/
-../TEAM_Capstone-_Group/
-../TPS25-SQLITE/
-../TopherClassCode/
-../Weather_Dominator/
-../autarch/
-../cartpole/
-../mern-jobify-v2/
-../penguin_attack/
-../photoshot/
-../py-dreambooth/
-../python/
-../sorting-midi/
-../tech_support/
-../tps25-*/
-../vite/
-../w13d*/
-../weather-starter-code/
-../weather_dashboard_E_Hunter_Petross/
-../../scikit_learn_data/
-../../tabletop_inventory/
-../../tailwind.config.js
+# IDE and editor files
+.vscode/settings.json
+.idea/workspace.xml
+*.swp
+*.swo
+
+# Performance and profiling
+profile_results/
+*.prof
+*.pstats
+
+# Documentation builds
+docs/_build/
+site/
+
+# Large files and media
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.zip
+*.tar.gz
+*.rar
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+
+# System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Keep directory structure but ignore contents
+logs/*
+!logs/.gitkeep
+data/cache/*
+!data/cache/.gitkeep

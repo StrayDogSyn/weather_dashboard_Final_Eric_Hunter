@@ -1,0 +1,43 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type should be one of the following:
+# * feat: A new feature
+# * fix: A bug fix
+# * docs: Documentation only changes
+# * style: Changes that do not affect the meaning of the code
+# * refactor: A code change that neither fixes a bug nor adds a feature
+# * perf: A code change that improves performance
+# * test: Adding missing tests or correcting existing tests
+# * chore: Changes to the build process or auxiliary tools
+# * ci: Changes to CI configuration files and scripts
+# * build: Changes that affect the build system or external dependencies
+# * revert: Reverts a previous commit
+#
+# Scope is optional and should be the name of the package affected
+# Examples: ui, api, database, config, weather, charts
+#
+# Subject line should:
+# - Use imperative mood ("Add feature" not "Added feature")
+# - Not end with a period
+# - Be limited to 50 characters
+#
+# Body should:
+# - Wrap at 72 characters
+# - Explain what and why, not how
+# - Can include multiple paragraphs
+#
+# Footer should:
+# - Reference issues and pull requests
+# - Include breaking change notes
+# - Use format: "Fixes #123" or "Closes #123"
+#
+# Examples:
+# feat(weather): add real-time weather alerts
+# fix(ui): resolve chart rendering issue on resize
+# docs: update API documentation for weather endpoints
+# refactor(database): implement repository pattern
+# test(weather): add unit tests for weather service

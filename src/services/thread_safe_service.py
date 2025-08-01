@@ -1,25 +1,24 @@
 """Thread-safe service wrapper for all UI updates."""
 
-import threading
-import queue
 import logging
-from typing import Callable, Any, Optional
+import queue
 from functools import wraps
+from typing import Callable
 
 
 class ThreadSafeUIUpdater:
     """Thread-safe UI update service that ensures all updates happen on main thread."""
-    
+
     def __init__(self, root_widget):
         """Initialize with reference to root widget."""
         self.root = root_widget
         self.update_queue = queue.Queue()
         self.logger = logging.getLogger(__name__)
         self._running = True
-        
+
         # Start processing updates
         self._process_updates()
-    
+
     def _process_updates(self):
         """Process queued UI updates on main thread."""
         try:
@@ -33,34 +32,35 @@ class ThreadSafeUIUpdater:
                     break
                 except Exception as e:
                     self.logger.warning(f"UI update error: {e}")
-            
+
             # Schedule next processing cycle
             if self._running and self.root.winfo_exists():
                 self.root.after(50, self._process_updates)  # Process every 50ms
-                
+
         except Exception as e:
             self.logger.error(f"Update processing error: {e}")
             if self._running and self.root.winfo_exists():
                 self.root.after(100, self._process_updates)  # Retry with longer delay
-    
+
     def schedule_update(self, update_func: Callable):
         """Schedule a UI update to run on the main thread."""
         try:
             self.update_queue.put(update_func)
         except Exception as e:
             self.logger.warning(f"Failed to schedule update: {e}")
-    
+
     def safe_update(self, widget, update_func):
         """Safely update a widget with existence check."""
+
         def _update():
             try:
-                if hasattr(widget, 'winfo_exists') and widget.winfo_exists():
+                if hasattr(widget, "winfo_exists") and widget.winfo_exists():
                     update_func()
             except Exception as e:
                 self.logger.warning(f"Widget update failed: {e}")
-        
+
         self.schedule_update(_update)
-    
+
     def stop(self):
         """Stop the update processor."""
         self._running = False
@@ -68,6 +68,7 @@ class ThreadSafeUIUpdater:
 
 def thread_safe_ui_update(ui_updater: ThreadSafeUIUpdater):
     """Decorator to make UI update methods thread-safe."""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -76,7 +77,9 @@ def thread_safe_ui_update(ui_updater: ThreadSafeUIUpdater):
                     return func(*args, **kwargs)
                 except Exception as e:
                     logging.getLogger(__name__).warning(f"Thread-safe update error: {e}")
-            
+
             ui_updater.schedule_update(_update)
+
         return wrapper
+
     return decorator

@@ -1,0 +1,295 @@
+{
+  "created": "2025-07-29T17:56:17.189057",
+  "version": "1.0",
+  "weather_data": {
+    "current_new york": {
+      "data": {
+        "city": "New York",
+        "country": "US",
+        "temperature": 33.6,
+        "feels_like": 38.2,
+        "humidity": 52,
+        "pressure": 1014,
+        "visibility": 10,
+        "wind_speed": 5.1,
+        "wind_direction": 170,
+        "description": "Scattered Clouds",
+        "icon": "03d",
+        "timestamp": "2025-07-29T19:53:29.027872",
+        "temp_min": 30.7,
+        "temp_max": 36.0,
+        "clouds": 40,
+        "uv_index": null
+      },
+      "timestamp": "2025-07-29T19:53:29.027932"
+    },
+    "forecast_new york_5": {
+      "data": [
+        {
+          "date": "2025-07-29T20:00:00",
+          "temp_min": 31.0,
+          "temp_max": 33.3,
+          "description": "Scattered Clouds",
+          "icon": "03d",
+          "humidity": 54,
+          "wind_speed": 4.1
+        },
+        {
+          "date": "2025-07-30T02:00:00",
+          "temp_min": 26.2,
+          "temp_max": 28.6,
+          "description": "Scattered Clouds",
+          "icon": "03n",
+          "humidity": 53,
+          "wind_speed": 2.2
+        },
+        {
+          "date": "2025-07-31T02:00:00",
+          "temp_min": 27.4,
+          "temp_max": 27.4,
+          "description": "Light Rain",
+          "icon": "10n",
+          "humidity": 77,
+          "wind_speed": 2.6
+        },
+        {
+          "date": "2025-08-01T02:00:00",
+          "temp_min": 19.2,
+          "temp_max": 19.2,
+          "description": "Moderate Rain",
+          "icon": "10n",
+          "humidity": 93,
+          "wind_speed": 7.5
+        },
+        {
+          "date": "2025-08-02T02:00:00",
+          "temp_min": 17.4,
+          "temp_max": 17.4,
+          "description": "Broken Clouds",
+          "icon": "04n",
+          "humidity": 71,
+          "wind_speed": 4.5
+        }
+      ],
+      "timestamp": "2025-07-29T19:53:29.229934"
+    },
+    "current_austin, us": {
+      "data": {
+        "city": "Austin",
+        "country": "US",
+        "temperature": 37.6,
+        "feels_like": 38.2,
+        "humidity": 28,
+        "pressure": 1017,
+        "visibility": 10,
+        "wind_speed": 2.6,
+        "wind_direction": 220,
+        "description": "Clear Sky",
+        "icon": "01d",
+        "timestamp": "2025-07-29T17:57:02.300044",
+        "temp_min": 36.6,
+        "temp_max": 39.4,
+        "clouds": 0,
+        "uv_index": null
+      },
+      "timestamp": "2025-07-29T17:57:02.300128"
+    },
+    "forecast_austin, us_5": {
+      "data": [
+        {
+          "date": "2025-07-29T20:00:00",
+          "temp_min": 36.4,
+          "temp_max": 37.2,
+          "description": "Clear Sky",
+          "icon": "01d",
+          "humidity": 26,
+          "wind_speed": 3.6
+        },
+        {
+          "date": "2025-07-30T02:00:00",
+          "temp_min": 28.2,
+          "temp_max": 28.2,
+          "description": "Clear Sky",
+          "icon": "01n",
+          "humidity": 34,
+          "wind_speed": 4.3
+        },
+        {
+          "date": "2025-07-31T02:00:00",
+          "temp_min": 29.6,
+          "temp_max": 29.6,
+          "description": "Overcast Clouds",
+          "icon": "04n",
+          "humidity": 40,
+          "wind_speed": 4.6
+        },
+        {
+          "date": "2025-08-01T02:00:00",
+          "temp_min": 29.3,
+          "temp_max": 29.3,
+          "description": "Broken Clouds",
+          "icon": "04n",
+          "humidity": 55,
+          "wind_speed": 4.5
+        },
+        {
+          "date": "2025-08-02T02:00:00",
+          "temp_min": 27.2,
+          "temp_max": 27.2,
+          "description": "Light Rain",
+          "icon": "10n",
+          "humidity": 71,
+          "wind_speed": 2.3
+        }
+      ],
+      "timestamp": "2025-07-29T17:57:02.499672"
+    },
+    "current_austin": {
+      "data": {
+        "city": "Austin",
+        "country": "US",
+        "temperature": 36.9,
+        "feels_like": 37.5,
+        "humidity": 30,
+        "pressure": 1016,
+        "visibility": 10,
+        "wind_speed": 2.1,
+        "wind_direction": 210,
+        "description": "Clear Sky",
+        "icon": "01d",
+        "timestamp": "2025-07-29T19:42:16.980023",
+        "temp_min": 35.6,
+        "temp_max": 38.3,
+        "clouds": 0,
+        "uv_index": null
+      },
+      "timestamp": "2025-07-29T19:42:16.980135"
+    },
+    "forecast_austin_5": {
+      "data": [
+        {
+          "date": "2025-07-29T20:00:00",
+          "temp_min": 36.7,
+          "temp_max": 36.9,
+          "description": "Clear Sky",
+          "icon": "01d",
+          "humidity": 29,
+          "wind_speed": 3.6
+        },
+        {
+          "date": "2025-07-30T02:00:00",
+          "temp_min": 28.2,
+          "temp_max": 31.1,
+          "description": "Clear Sky",
+          "icon": "01n",
+          "humidity": 33,
+          "wind_speed": 4.3
+        },
+        {
+          "date": "2025-07-31T02:00:00",
+          "temp_min": 29.6,
+          "temp_max": 29.6,
+          "description": "Overcast Clouds",
+          "icon": "04n",
+          "humidity": 40,
+          "wind_speed": 4.6
+        },
+        {
+          "date": "2025-08-01T02:00:00",
+          "temp_min": 29.3,
+          "temp_max": 29.3,
+          "description": "Broken Clouds",
+          "icon": "04n",
+          "humidity": 55,
+          "wind_speed": 4.5
+        },
+        {
+          "date": "2025-08-02T02:00:00",
+          "temp_min": 27.2,
+          "temp_max": 27.2,
+          "description": "Light Rain",
+          "icon": "10n",
+          "humidity": 71,
+          "wind_speed": 2.3
+        }
+      ],
+      "timestamp": "2025-07-29T19:42:17.149731"
+    },
+    "current_san antonio": {
+      "data": {
+        "city": "San Antonio",
+        "country": "US",
+        "temperature": 37.4,
+        "feels_like": 36.0,
+        "humidity": 21,
+        "pressure": 1016,
+        "visibility": 10,
+        "wind_speed": 3.6,
+        "wind_direction": 160,
+        "description": "Clear Sky",
+        "icon": "01d",
+        "timestamp": "2025-07-29T19:42:28.585793",
+        "temp_min": 35.4,
+        "temp_max": 38.3,
+        "clouds": 0,
+        "uv_index": null
+      },
+      "timestamp": "2025-07-29T19:42:28.585859"
+    },
+    "forecast_san antonio_5": {
+      "data": [
+        {
+          "date": "2025-07-29T20:00:00",
+          "temp_min": 36.4,
+          "temp_max": 37.4,
+          "description": "Clear Sky",
+          "icon": "01d",
+          "humidity": 21,
+          "wind_speed": 3.6
+        },
+        {
+          "date": "2025-07-30T02:00:00",
+          "temp_min": 26.2,
+          "temp_max": 29.9,
+          "description": "Clear Sky",
+          "icon": "01n",
+          "humidity": 33,
+          "wind_speed": 2.2
+        },
+        {
+          "date": "2025-07-31T02:00:00",
+          "temp_min": 26.8,
+          "temp_max": 26.8,
+          "description": "Overcast Clouds",
+          "icon": "04n",
+          "humidity": 53,
+          "wind_speed": 2.5
+        },
+        {
+          "date": "2025-08-01T02:00:00",
+          "temp_min": 27.4,
+          "temp_max": 27.4,
+          "description": "Broken Clouds",
+          "icon": "04n",
+          "humidity": 64,
+          "wind_speed": 3.1
+        },
+        {
+          "date": "2025-08-02T02:00:00",
+          "temp_min": 26.2,
+          "temp_max": 26.2,
+          "description": "Light Rain",
+          "icon": "10n",
+          "humidity": 70,
+          "wind_speed": 2.3
+        }
+      ],
+      "timestamp": "2025-07-29T19:42:28.776066"
+    }
+  },
+  "metadata": {
+    "last_cleanup": "2025-07-29T17:56:17.189063",
+    "total_entries": 8,
+    "last_update": "2025-07-29T19:53:29.229942"
+  }
+}

@@ -1,0 +1,155 @@
+# Weather Dashboard - Development Dependencies
+# ============================================
+# Install with: pip install -r requirements-dev.txt
+
+# First install production dependencies
+-r requirements.txt
+
+# =============================================================================
+# CODE QUALITY AND FORMATTING
+# =============================================================================
+
+# Code Formatters
+black==23.12.1                # Python code formatter
+isort==5.13.2                 # Import statement sorter
+autoflake==2.2.1              # Remove unused imports and variables
+
+# Linting and Type Checking
+flake8==6.1.0                 # Python linting tool
+mypy==1.8.0                   # Static type checker
+pylint==3.0.3                 # Comprehensive Python linter
+bandit==1.7.5                 # Security linter
+
+# Code Complexity Analysis
+radon==6.0.1                  # Code complexity metrics
+xenoniq==1.0.0                # Code complexity monitoring
+
+# =============================================================================
+# TESTING FRAMEWORK
+# =============================================================================
+
+# Core Testing
+pytest==7.4.3                 # Testing framework
+pytest-asyncio==0.21.1        # Async testing support
+pytest-cov==4.1.0             # Coverage reporting
+pytest-mock==3.12.0           # Mocking library
+pytest-xdist==3.5.0           # Parallel test execution
+
+# Test Utilities
+factory-boy==3.3.0            # Test data generation
+faker==20.1.0                 # Fake data generation
+responses==0.24.1             # Mock HTTP requests
+hypothesis==6.92.1            # Property-based testing
+
+# Coverage Tools
+coverage==7.3.4               # Code coverage measurement
+coverage-badge==1.1.0         # Generate coverage badges
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
+# Documentation Generation
+mkdocs==1.5.3                 # Documentation site generator
+mkdocs-material==9.5.3        # Material theme for MkDocs
+mkdocs-mermaid2-plugin==1.1.1 # Mermaid diagrams support
+mkdocstrings==0.24.0          # API documentation from docstrings
+
+# Documentation Utilities
+sphinx==7.2.6                 # Alternative documentation generator
+sphinx-rtd-theme==2.0.0       # Read the Docs theme for Sphinx
+
+# =============================================================================
+# DEVELOPMENT TOOLS
+# =============================================================================
+
+# Environment Management
+pipenv==2023.11.15            # Python dependency management
+virtualenv==20.25.0           # Virtual environment creation
+
+# Code Analysis
+prospector==1.10.3            # Python static analysis tool
+vulture==2.10                 # Find dead code
+
+# Performance Profiling
+line-profiler==4.1.1          # Line-by-line profiling
+memory-profiler==0.61.0       # Memory usage profiling
+py-spy==0.3.14                # Sampling profiler
+
+# =============================================================================
+# DEBUGGING AND MONITORING
+# =============================================================================
+
+# Debugging Tools
+ipdb==0.13.13                 # Enhanced Python debugger
+pudb==2023.1                  # Full-screen console debugger
+
+# Monitoring and Logging
+watchdog==3.0.0               # File system event monitoring
+coloredlogs==15.0.1           # Colored terminal logs
+
+# =============================================================================
+# BUILD AND DEPLOYMENT
+# =============================================================================
+
+# Build Tools
+setuptools==69.0.3            # Package building
+wheel==0.42.0                 # Built package format
+twine==4.0.2                  # Package uploading to PyPI
+
+# Version Management
+bump2version==1.0.1           # Version bumping utility
+gitpython==3.1.40             # Git repository interaction
+
+# =============================================================================
+# JUPYTER AND NOTEBOOKS
+# =============================================================================
+
+# Jupyter Environment
+jupyter==1.0.0                # Jupyter notebook
+jupyterlab==4.0.9             # JupyterLab interface
+ipykernel==6.27.1             # IPython kernel for Jupyter
+
+# Notebook Extensions
+nbconvert==7.12.0             # Convert notebooks to other formats
+nbformat==5.9.2               # Notebook format utilities
+
+# =============================================================================
+# PRE-COMMIT HOOKS
+# =============================================================================
+
+# Git Hooks
+pre-commit==3.6.0             # Git pre-commit hooks framework
+
+# =============================================================================
+# SECURITY AND VULNERABILITY SCANNING
+# =============================================================================
+
+# Security Tools
+safety==2.3.5                 # Check for known security vulnerabilities
+pip-audit==2.6.1              # Audit Python packages for vulnerabilities
+
+# =============================================================================
+# DEVELOPMENT UTILITIES
+# =============================================================================
+
+# File Watching and Auto-reload
+watchfiles==0.21.0            # Fast file watching
+
+# Terminal Enhancements
+rich==13.7.0                  # Rich text and beautiful formatting in terminal
+click==8.1.7                  # Command line interface creation
+
+# Development Server
+uvicorn==0.24.0               # ASGI server (if needed for API development)
+
+# =============================================================================
+# NOTES
+# =============================================================================
+# 
+# 1. Install all development dependencies: pip install -r requirements-dev.txt
+# 2. For minimal setup, install only what you need
+# 3. Some tools may require additional system dependencies
+# 4. Configure your IDE to use these tools for best development experience
+# 5. Run 'pre-commit install' after installing to set up git hooks
+#

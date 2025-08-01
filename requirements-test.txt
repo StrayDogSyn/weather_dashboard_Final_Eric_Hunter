@@ -1,0 +1,213 @@
+# Weather Dashboard - Testing Dependencies
+# ========================================
+# Install with: pip install -r requirements-test.txt
+
+# Core production dependencies
+-r requirements.txt
+
+# =============================================================================
+# CORE TESTING FRAMEWORK
+# =============================================================================
+
+# Primary Testing Tools
+pytest==7.4.3                 # Modern testing framework
+pytest-asyncio==0.21.1        # Async/await support for pytest
+pytest-cov==4.1.0             # Coverage reporting integration
+pytest-mock==3.12.0           # Enhanced mocking capabilities
+pytest-xdist==3.5.0           # Parallel test execution
+pytest-timeout==2.2.0         # Test timeout handling
+
+# Test Discovery and Organization
+pytest-sugar==0.9.7           # Better test output formatting
+pytest-clarity==1.0.1         # Improved assertion introspection
+pytest-picked==0.4.6          # Run tests related to unstaged files
+
+# =============================================================================
+# MOCKING AND TEST DOUBLES
+# =============================================================================
+
+# HTTP Mocking
+responses==0.24.1             # Mock HTTP requests library
+httpretty==1.1.4              # HTTP request mocking
+requests-mock==1.11.0         # Mock requests library calls
+
+# General Mocking
+mock==5.1.0                   # Enhanced mock library
+freezegun==1.2.2              # Mock datetime for testing
+
+# =============================================================================
+# TEST DATA GENERATION
+# =============================================================================
+
+# Fake Data Generation
+faker==20.1.0                 # Generate fake data for tests
+factory-boy==3.3.0            # Test fixture replacement
+model-bakery==1.17.0          # Django model factory (if needed)
+
+# Property-Based Testing
+hypothesis==6.92.1            # Property-based testing framework
+
+# =============================================================================
+# COVERAGE AND REPORTING
+# =============================================================================
+
+# Coverage Tools
+coverage==7.3.4               # Code coverage measurement
+coverage-badge==1.1.0         # Generate coverage badges
+pytest-html==4.1.1            # HTML test reports
+pytest-json-report==1.5.0     # JSON test reports
+
+# =============================================================================
+# PERFORMANCE AND LOAD TESTING
+# =============================================================================
+
+# Performance Testing
+pytest-benchmark==4.0.0       # Benchmark testing framework
+locust==2.17.0                # Load testing framework
+memory-profiler==0.61.0       # Memory usage profiling
+
+# =============================================================================
+# DATABASE TESTING
+# =============================================================================
+
+# Database Test Utilities
+pytest-postgresql==5.0.0      # PostgreSQL testing fixtures
+pytest-redis==3.0.2           # Redis testing fixtures
+sqlalchemy-utils==0.41.1      # SQLAlchemy testing utilities
+
+# In-Memory Databases
+sqlite3                        # Built-in SQLite (for test databases)
+
+# =============================================================================
+# API TESTING
+# =============================================================================
+
+# API Testing Tools
+tavern==2.4.1                 # API testing framework
+postman-collection==0.0.10    # Postman collection runner
+
+# =============================================================================
+# UI AND INTEGRATION TESTING
+# =============================================================================
+
+# GUI Testing (for Tkinter)
+pyautogui==0.9.54             # GUI automation
+pynput==1.7.6                 # Input control and monitoring
+
+# Selenium (if web components are added)
+# selenium==4.16.0             # Web browser automation
+# webdriver-manager==4.0.1     # WebDriver management
+
+# =============================================================================
+# TESTING UTILITIES
+# =============================================================================
+
+# Test Environment
+tox==4.11.4                   # Testing in multiple environments
+nox==2023.4.22                # Flexible test automation
+
+# Assertion Libraries
+assertpy==1.1                 # Fluent assertion library
+hamcrest==2.1.0               # Matcher library for assertions
+
+# Test Fixtures
+pytest-fixtures==0.1.0        # Additional pytest fixtures
+pytest-factoryboy==2.6.0      # Factory Boy integration
+
+# =============================================================================
+# SNAPSHOT AND REGRESSION TESTING
+# =============================================================================
+
+# Snapshot Testing
+syrupy==4.6.1                 # Snapshot testing for pytest
+pytest-snapshot==0.9.0        # Alternative snapshot testing
+
+# Visual Regression Testing
+pixelmatch==0.3.0             # Pixel-level image comparison
+
+# =============================================================================
+# SECURITY TESTING
+# =============================================================================
+
+# Security Testing
+bandit==1.7.5                 # Security linter
+safety==2.3.5                 # Check for known vulnerabilities
+
+# =============================================================================
+# CONTINUOUS INTEGRATION
+# =============================================================================
+
+# CI/CD Tools
+coveralls==3.3.1              # Coverage reporting for CI
+codecov==2.1.13               # Code coverage reporting
+
+# =============================================================================
+# DEBUGGING AND DEVELOPMENT
+# =============================================================================
+
+# Debugging Tools
+ipdb==0.13.13                 # Enhanced debugger
+pudb==2023.1                  # Full-screen debugger
+
+# Development Utilities
+watchdog==3.0.0               # File system monitoring
+rich==13.7.0                  # Rich terminal output
+
+# =============================================================================
+# WEATHER-SPECIFIC TESTING
+# =============================================================================
+
+# Time and Date Testing
+freezegun==1.2.2              # Mock datetime (duplicate, but important)
+pytz==2023.3                  # Timezone testing
+
+# Geographic Testing
+geopy==2.4.1                  # Location testing utilities
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Test Configuration
+pytest.ini                     # Pytest configuration (create separately)
+conftest.py                    # Shared test fixtures (create separately)
+
+# =============================================================================
+# EXAMPLE TEST COMMANDS
+# =============================================================================
+# 
+# Run all tests:
+#   pytest
+# 
+# Run with coverage:
+#   pytest --cov=src --cov-report=html --cov-report=term
+# 
+# Run specific test file:
+#   pytest tests/test_weather_service.py
+# 
+# Run tests in parallel:
+#   pytest -n auto
+# 
+# Run tests with detailed output:
+#   pytest -v --tb=short
+# 
+# Run only failed tests:
+#   pytest --lf
+# 
+# Generate HTML report:
+#   pytest --html=reports/report.html --self-contained-html
+# 
+# Run performance benchmarks:
+#   pytest --benchmark-only
+# 
+# =============================================================================
+# NOTES
+# =============================================================================
+# 
+# 1. Install testing dependencies: pip install -r requirements-test.txt
+# 2. Configure pytest.ini for project-specific settings
+# 3. Use conftest.py for shared fixtures across test modules
+# 4. Some GUI testing tools may require additional system setup
+# 5. Adjust timeout values based on your system performance
+# 6. Consider using tox for testing across multiple Python versions
+#
