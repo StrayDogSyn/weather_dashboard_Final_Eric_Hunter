@@ -42,7 +42,7 @@ def main():
         logger.info("✅ Weather Dashboard ready!")
         
         # Start application
-        app.run()
+        app.mainloop()
         
     except Exception as e:
         logging.error(f"Application startup error: {e}")
