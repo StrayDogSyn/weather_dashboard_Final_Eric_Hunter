@@ -773,14 +773,16 @@ class UIComponentsMixin:
             pass
     
     def _create_status_bar(self) -> None:
-        """Create enhanced status bar with connection and system status."""
+        """Create clean status bar with proper color references."""
         try:
             # Status bar frame
             self.status_bar = ctk.CTkFrame(
                 self,
                 height=30,
-                fg_color=self.CARD_COLOR,
-                corner_radius=0
+                fg_color=DataTerminalTheme.CARD_BG,  # Use theme constant instead of self.CARD_COLOR
+                corner_radius=0,
+                border_width=1,
+                border_color=DataTerminalTheme.BORDER  # Use theme constant instead of self.BORDER_COLOR
             )
             self.status_bar.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
             self.status_bar.grid_columnconfigure(0, weight=1)
@@ -791,8 +793,8 @@ class UIComponentsMixin:
             self.status_label = ctk.CTkLabel(
                 self.status_bar,
                 text="🟢 Ready - Weather dashboard initialized",
-                font=ctk.CTkFont(size=12),
-                text_color=self.TEXT_COLOR
+                font=(DataTerminalTheme.FONT_FAMILY, 12),
+                text_color=DataTerminalTheme.TEXT_SECONDARY  # Use theme constant instead of self.TEXT_SECONDARY
             )
             self.status_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
             
@@ -800,8 +802,8 @@ class UIComponentsMixin:
             self.connection_status = ctk.CTkLabel(
                 self.status_bar,
                 text="🌐 Connected",
-                font=ctk.CTkFont(size=12),
-                text_color=self.ACCENT_COLOR
+                font=(DataTerminalTheme.FONT_FAMILY, 12),
+                text_color=DataTerminalTheme.PRIMARY  # Use theme constant instead of self.ACCENT_COLOR
             )
             self.connection_status.grid(row=0, column=1, sticky="e", padx=10, pady=5)
             
@@ -809,8 +811,8 @@ class UIComponentsMixin:
             self.system_time = ctk.CTkLabel(
                 self.status_bar,
                 text="",
-                font=ctk.CTkFont(size=12),
-                text_color=self.TEXT_COLOR
+                font=(DataTerminalTheme.FONT_FAMILY, 12),
+                text_color=DataTerminalTheme.TEXT_SECONDARY  # Use theme constant instead of self.TEXT_SECONDARY
             )
             self.system_time.grid(row=0, column=2, sticky="e", padx=10, pady=5)
             

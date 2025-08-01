@@ -55,19 +55,15 @@ class ChartInteractiveMixin:
             if hasattr(self, 'ax') and self.ax:
                 # Setup hover events
                 if self.hover_enabled:
-                    self._setup_hover_events()
+                    self._setup_hover_tooltips()
                 
-                # Setup zoom functionality
-                if self.zoom_enabled:
-                    self._setup_zoom_events()
-                
-                # Setup pan functionality
-                if self.pan_enabled:
-                    self._setup_pan_events()
+                # Setup zoom and pan functionality
+                if self.zoom_enabled or self.pan_enabled:
+                    self._setup_zoom_pan()
                 
                 # Setup crosshair cursor
                 if self.crosshair_enabled:
-                    self._setup_crosshair()
+                    self._setup_crosshair_cursor()
                     
         except Exception as e:
             print(f"Error setting up interactive features: {e}")
@@ -97,7 +93,7 @@ class ChartInteractiveMixin:
             minspany=5,
             spancoords='pixels',
             interactive=True,
-            rectprops=dict(
+            props=dict(
                 facecolor='#00ff88',
                 alpha=0.2,
                 edgecolor='#00ff88',

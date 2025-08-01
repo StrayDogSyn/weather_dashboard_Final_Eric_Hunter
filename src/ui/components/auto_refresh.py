@@ -15,10 +15,11 @@ from ..theme import DataTerminalTheme
 class AutoRefreshComponent(ctk.CTkFrame):
     """Auto-refresh component with manual controls."""
     
-    def __init__(self, parent, refresh_callback: Callable[[], None]):
+    def __init__(self, parent, refresh_callback: Callable[[], None], ui_updater=None):
         super().__init__(parent, fg_color="transparent")
         
         self.refresh_callback = refresh_callback
+        self.ui_updater = ui_updater or parent  # Use parent if no ui_updater provided
         self.auto_refresh_enabled = True
         self.refresh_interval = 300  # 5 minutes default
         self.last_refresh = None
@@ -28,8 +29,8 @@ class AutoRefreshComponent(ctk.CTkFrame):
         # Create UI
         self._create_refresh_ui()
         
-        # Start auto-refresh
-        self.start_auto_refresh()
+        # Don't start auto-refresh automatically
+        # It will be started when the user enables it via the toggle
     
     def _create_refresh_ui(self):
         """Create the refresh control UI."""
@@ -147,7 +148,12 @@ class AutoRefreshComponent(ctk.CTkFrame):
         # Run refresh in thread to avoid blocking UI
         def refresh_thread():
             try:
-                self.refresh_callback()
+                # Schedule the refresh callback on the main thread using ui_updater
+                if hasattr(self.ui_updater, 'schedule_update'):
+                    self.ui_updater.schedule_update(self._safe_refresh_callback)
+                else:
+                    # Fallback to direct after call
+                    self.after(0, self._safe_refresh_callback)
                 self.last_refresh = datetime.now()
                 self.after(0, self._refresh_complete)
             except Exception as e:
@@ -213,14 +219,29 @@ class AutoRefreshComponent(ctk.CTkFrame):
         while not self.stop_refresh.is_set():
             if self.auto_refresh_enabled:
                 try:
-                    self.refresh_callback()
-                    self.last_refresh = datetime.now()
-                    self.after(0, self.update_last_refresh_display)
+                    # Schedule the refresh callback on the main thread using ui_updater
+                    if hasattr(self.ui_updater, 'schedule_update'):
+                        self.ui_updater.schedule_update(self._safe_refresh_callback)
+                        self.last_refresh = datetime.now()
+                        self.ui_updater.schedule_update(self.update_last_refresh_display)
+                    else:
+                        # Fallback to direct after call
+                        self.after(0, self._safe_refresh_callback)
+                        self.last_refresh = datetime.now()
+                        self.after(0, self.update_last_refresh_display)
                 except Exception as e:
                     print(f"Auto-refresh error: {e}")
             
             # Wait for interval or until stopped
             self.stop_refresh.wait(self.refresh_interval)
+    
+    def _safe_refresh_callback(self):
+        """Safely execute refresh callback on main thread."""
+        try:
+            if self.refresh_callback:
+                self.refresh_callback()
+        except Exception as e:
+            print(f"Refresh callback error: {e}")
     
     def update_countdown(self):
         """Update countdown display and progress bar."""

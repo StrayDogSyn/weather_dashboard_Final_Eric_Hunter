@@ -19,6 +19,7 @@ from services.logging_service import LoggingService
 from services.config_service import ConfigService
 from services.enhanced_weather_service import EnhancedWeatherService
 from services.journal_service import JournalService
+from services.thread_safe_service import ThreadSafeUIUpdater
 from utils.photo_manager import PhotoManager
 from ..components.secure_api_manager import SecureAPIManager
 from ..theme import DataTerminalTheme
@@ -109,6 +110,14 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
             self.logger.debug("Journal service initialized successfully")
         except Exception as e:
             self.logger.exception(f"Error initializing journal service: {e}")
+            raise
+        
+        # Initialize thread-safe UI updater
+        try:
+            self.ui_updater = ThreadSafeUIUpdater(self)
+            self.logger.debug("Thread-safe UI updater initialized successfully")
+        except Exception as e:
+            self.logger.exception(f"Error initializing thread-safe UI updater: {e}")
             raise
         
         # Data storage
@@ -496,6 +505,11 @@ class ProfessionalWeatherDashboard(ctk.CTk, UIComponentsMixin, TabManagerMixin, 
                     pass
             
             # Audio cleanup removed
+            
+            # Stop thread-safe UI updater
+            if hasattr(self, 'ui_updater'):
+                self.ui_updater.stop()
+                self.logger.debug("Thread-safe UI updater stopped")
             
             # Stop services
             if hasattr(self, 'ai_service'):

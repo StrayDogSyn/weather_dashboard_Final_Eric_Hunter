@@ -59,6 +59,7 @@ class TemperatureChart(ctk.CTkFrame,
         self.forecast_data = None
         
         # Initialize mixin components
+        ChartDataMixin.__init__(self)
         self.__init_analytics__()
         self.__init_interactive__()
         

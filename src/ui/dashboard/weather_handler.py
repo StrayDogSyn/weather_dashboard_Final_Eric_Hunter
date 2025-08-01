@@ -35,48 +35,57 @@ class WeatherHandlerMixin:
             self.hide_loading_state()
     
     def _perform_weather_update(self) -> None:
-        """Perform the actual weather update with enhanced status feedback."""
+        """Perform the actual weather update with enhanced status feedback - Fixed threading."""
         try:
-            # Update status to loading
-            if hasattr(self, 'update_status'):
-                self.update_status("Fetching weather data...", "loading")
+            # Validate current city
+            if not hasattr(self, 'current_city') or not self.current_city or self.current_city.strip() == "":
+                self.current_city = "London"  # Default fallback
+            
+            # Update status to loading safely
+            if self.winfo_exists():
+                self.ui_updater.schedule_update(lambda: self._safe_update_status("Fetching weather data...", "loading"))
             
             # Get current weather data
             weather_data = self._get_current_weather()
             
             if weather_data:
-                # Update UI with new data
-                self._update_weather_display(weather_data)
+                # Store the data
+                self.current_weather_data = weather_data
+                
+                # Update UI on main thread safely
+                if self.winfo_exists():
+                    self.ui_updater.schedule_update(lambda: self._update_weather_display(weather_data))
                 
                 # Update charts if available
-                self._update_charts()
+                if self.winfo_exists():
+                    self.ui_updater.schedule_update(lambda: self._update_charts())
                 
                 # Update last update time
                 self.last_weather_update = datetime.now()
                 
                 # Update status to success
-                if hasattr(self, 'update_status'):
-                    location = getattr(weather_data, 'location', self.current_city)
-                    self.update_status(f"Weather data updated for {location}", "success")
+                if self.winfo_exists():
+                    location = weather_data.get('location', self.current_city)
+                    self.ui_updater.schedule_update(lambda: self._safe_update_status(f"Weather data updated for {location}", "success"))
                 
                 # Update connection status
-                if hasattr(self, 'update_connection_status'):
-                    self.update_connection_status(True)
+                if self.winfo_exists():
+                    self.ui_updater.schedule_update(lambda: self._safe_update_connection_status(True))
                 
                 self.logger.info("Weather data updated successfully")
             else:
                 self.logger.warning("No weather data received")
-                if hasattr(self, 'update_status'):
-                    self.update_status("No weather data available", "warning")
+                if self.winfo_exists():
+                    self.ui_updater.schedule_update(lambda: self._safe_update_status("No weather data available", "warning"))
                 
         except Exception as e:
             self.logger.error(f"Error performing weather update: {e}")
-            if hasattr(self, 'update_status'):
-                self.update_status(f"Error updating weather: {str(e)[:50]}...", "error")
-            if hasattr(self, 'update_connection_status'):
-                self.update_connection_status(False)
+            error_msg = self._get_user_friendly_error(str(e))
+            if self.winfo_exists():
+                self.ui_updater.schedule_update(lambda: self._show_error_notification(error_msg))
         finally:
-            self.hide_loading_state()
+            if self.winfo_exists():
+                self.ui_updater.schedule_update(lambda: self.hide_loading_state())
     
     def _on_search(self, event=None) -> None:
         """Handle search entry Enter key press."""
@@ -129,9 +138,50 @@ class WeatherHandlerMixin:
             self.logger.error(f"Error getting current weather: {e}")
             return None
     
-    def _update_weather_display(self, weather_data: Dict[str, Any]) -> None:
-        """Update the weather display with new data."""
+    def _safe_update_status(self, message: str, status_type: str = "info") -> None:
+        """Safely update status with widget existence check."""
         try:
+            if hasattr(self, 'update_status'):
+                self.update_status(message, status_type)
+        except Exception as e:
+            self.logger.warning(f"Error updating status: {e}")
+    
+    def _safe_update_connection_status(self, connected: bool) -> None:
+        """Safely update connection status with widget existence check."""
+        try:
+            if hasattr(self, 'update_connection_status'):
+                self.update_connection_status(connected)
+        except Exception as e:
+            self.logger.warning(f"Error updating connection status: {e}")
+    
+    def _get_user_friendly_error(self, error_msg: str) -> str:
+        """Convert technical error messages to user-friendly ones."""
+        if "connection" in error_msg.lower():
+            return "Unable to connect to weather service"
+        elif "api" in error_msg.lower():
+            return "Weather service temporarily unavailable"
+        elif "timeout" in error_msg.lower():
+            return "Request timed out, please try again"
+        else:
+            return f"Error: {error_msg[:50]}..."
+    
+    def _show_error_notification(self, error_msg: str) -> None:
+        """Show error notification safely."""
+        try:
+            if hasattr(self, 'update_status'):
+                self.update_status(error_msg, "error")
+            if hasattr(self, 'update_connection_status'):
+                self.update_connection_status(False)
+        except Exception as e:
+            self.logger.warning(f"Error showing error notification: {e}")
+    
+    def _update_weather_display(self, weather_data: Dict[str, Any]) -> None:
+        """Update the weather display with new data - Fixed threading."""
+        try:
+            # Ensure we're on the main thread
+            if not self.winfo_exists():
+                return
+                
             # Check if weather_data is valid
             if isinstance(weather_data, str):
                 self.logger.error(f"Weather data is a string: {weather_data}")
@@ -143,8 +193,9 @@ class WeatherHandlerMixin:
             
             # Try to update enhanced weather display first
             if hasattr(self, 'enhanced_weather_display') and self.enhanced_weather_display:
-                self.enhanced_weather_display.update_weather_data(weather_data)
-                self.logger.debug("Updated enhanced weather display")
+                if hasattr(self.enhanced_weather_display, 'winfo_exists') and self.enhanced_weather_display.winfo_exists():
+                    self.enhanced_weather_display.update_weather_data(weather_data)
+                    self.logger.debug("Updated enhanced weather display")
             else:
                 # Fallback to basic weather display
                 self._update_basic_weather_display(weather_data)
@@ -154,7 +205,7 @@ class WeatherHandlerMixin:
                 location = weather_data['location']
                 if location and location != self.current_city:
                     self.current_city = location
-                    if hasattr(self, 'location_label'):
+                    if hasattr(self, 'location_label') and self.location_label.winfo_exists():
                         self.location_label.configure(text=f"📍 {location}")
             
             # Store weather data for other components
@@ -167,16 +218,16 @@ class WeatherHandlerMixin:
             self.logger.error(f"Error updating weather display: {e}")
     
     def _update_basic_weather_display(self, weather_data: Dict[str, Any]) -> None:
-        """Update basic weather display as fallback."""
+        """Update basic weather display as fallback - Fixed threading."""
         try:
             # Update temperature
-            if 'temperature' in weather_data and hasattr(self, 'temp_label'):
+            if 'temperature' in weather_data and hasattr(self, 'temp_label') and self.temp_label.winfo_exists():
                 temp = weather_data['temperature']
                 if isinstance(temp, (int, float)):
                     self.temp_label.configure(text=f"{temp:.1f}°C")
             
             # Update condition
-            if 'condition' in weather_data and hasattr(self, 'condition_label'):
+            if 'condition' in weather_data and hasattr(self, 'condition_label') and self.condition_label.winfo_exists():
                 condition = weather_data['condition']
                 if self.display_enhancer:
                     enhanced_condition = self.display_enhancer.enhance_weather_display(condition)
@@ -185,19 +236,19 @@ class WeatherHandlerMixin:
                     self.condition_label.configure(text=str(condition))
             
             # Update feels like temperature
-            if 'feels_like' in weather_data and hasattr(self, 'feels_like_label'):
+            if 'feels_like' in weather_data and hasattr(self, 'feels_like_label') and self.feels_like_label.winfo_exists():
                 feels_like = weather_data['feels_like']
                 if isinstance(feels_like, (int, float)):
                     self.feels_like_label.configure(text=f"Feels like: {feels_like:.1f}°C")
             
             # Update humidity
-            if 'humidity' in weather_data and hasattr(self, 'humidity_label'):
+            if 'humidity' in weather_data and hasattr(self, 'humidity_label') and self.humidity_label.winfo_exists():
                 humidity = weather_data['humidity']
                 if isinstance(humidity, (int, float)):
                     self.humidity_label.configure(text=f"Humidity: {humidity:.0f}%")
             
             # Update wind speed
-            if 'wind_speed' in weather_data and hasattr(self, 'wind_label'):
+            if 'wind_speed' in weather_data and hasattr(self, 'wind_label') and self.wind_label.winfo_exists():
                 wind_speed = weather_data['wind_speed']
                 if isinstance(wind_speed, (int, float)):
                     self.wind_label.configure(text=f"Wind: {wind_speed:.1f} km/h")

@@ -13,7 +13,8 @@ from ..components.journal_search import JournalSearchComponent
 from ..components.journal_calendar import JournalCalendarComponent
 from ..components.photo_gallery import PhotoGalleryComponent
 from ..components.mood_analytics import MoodAnalyticsComponent
-from ..components.activity_suggester import ActivitySuggester
+from ..components.activity_suggestions import ActivitySuggesterComponent
+from services.gemini_service import GeminiService
 from ..components.maps_component import MapsComponent
 from ..theme import DataTerminalTheme
 
@@ -129,7 +130,8 @@ class TabManagerMixin:
             # Create auto-refresh component
             self.auto_refresh_component = AutoRefreshComponent(
                 parent=parent,
-                refresh_callback=self._perform_weather_update if hasattr(self, '_perform_weather_update') else None
+                refresh_callback=self._perform_weather_update if hasattr(self, '_perform_weather_update') else None,
+                ui_updater=getattr(self, 'ui_updater', None)
             )
             self.auto_refresh_component.grid(row=1, column=0, sticky="ew", padx=(0, 10), pady=(0, 10))
             
@@ -474,20 +476,33 @@ class TabManagerMixin:
         activities_tab.grid_columnconfigure(0, weight=1)
         
         try:
-            self.activity_suggester = ActivitySuggester(
+            # Initialize Gemini service for AI suggestions
+            gemini_service = GeminiService(self.config_service)
+            
+            # Get current weather data if available
+            current_weather = None
+            if hasattr(self, 'weather_data') and self.weather_data:
+                current_weather = self.weather_data
+            
+            self.activity_suggester = ActivitySuggesterComponent(
                 activities_tab,
-                weather_service=self.weather_service,
-                config_service=self.config_service
+                gemini_service=gemini_service,
+                config_service=self.config_service,
+                weather_data=current_weather
             )
             self.activity_suggester.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            
+            self.logger.info("✅ Activity suggester component created successfully")
+            
         except Exception as e:
             self.logger.error(f"Error creating activity suggester: {e}")
             # Create placeholder
             placeholder = ctk.CTkLabel(
                 activities_tab,
-                text="Activity suggestions unavailable",
+                text="🤖 AI Activity suggestions unavailable\nPlease check your Gemini API configuration",
                 font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_LARGE),
-                text_color=self.TEXT_SECONDARY
+                text_color=self.TEXT_SECONDARY,
+                justify="center"
             )
             placeholder.grid(row=0, column=0)
     
