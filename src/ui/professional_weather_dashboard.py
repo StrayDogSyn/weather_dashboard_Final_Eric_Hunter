@@ -1,14 +1,14 @@
-import customtkinter as ctk
-from typing import Optional
+import logging
 import threading
 import time
 from datetime import datetime, timedelta
-import logging
+
+import customtkinter as ctk
 from dotenv import load_dotenv
 
-from src.services.enhanced_weather_service import EnhancedWeatherService
-from src.services.config_service import ConfigService
 from src.services.activity_service import ActivityService
+from src.services.config_service import ConfigService
+from src.services.enhanced_weather_service import EnhancedWeatherService
 from src.ui.theme import DataTerminalTheme
 
 # Load environment variables
@@ -17,6 +17,7 @@ load_dotenv()
 # Configure appearance
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
+
 
 class ProfessionalWeatherDashboard(ctk.CTk):
     """Professional weather dashboard with clean design."""
@@ -40,16 +41,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Weather icons mapping
         self.weather_icons = {
-            'clear': '☀️',
-            'partly cloudy': '⛅',
-            'cloudy': '☁️',
-            'overcast': '☁️',
-            'rain': '🌧️',
-            'drizzle': '🌦️',
-            'thunderstorm': '⛈️',
-            'snow': '❄️',
-            'mist': '🌫️',
-            'fog': '🌫️'
+            "clear": "☀️",
+            "partly cloudy": "⛅",
+            "cloudy": "☁️",
+            "overcast": "☁️",
+            "rain": "🌧️",
+            "drizzle": "🌦️",
+            "thunderstorm": "⛈️",
+            "snow": "❄️",
+            "mist": "🌫️",
+            "fog": "🌫️",
         }
 
         # State
@@ -75,6 +76,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_main_content()
         self._create_status_bar()
 
+        # Setup keyboard shortcuts
+        self._setup_keyboard_shortcuts()
+
         # Load initial data
         self.after(100, self._load_weather_data)
 
@@ -83,23 +87,27 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         self.logger.info("Dashboard UI created successfully")
 
+    def _setup_keyboard_shortcuts(self):
+        """Setup keyboard shortcuts."""
+        self.bind("<Control-r>", lambda e: self._load_weather_data())
+        self.bind("<Control-j>", lambda e: self.tabview.set("Journal"))
+        self.bind("<Control-w>", lambda e: self.tabview.set("Weather"))
+        self.bind("<Control-a>", lambda e: self.tabview.set("Activities"))
+        self.bind("<Control-s>", lambda e: self.tabview.set("Settings"))
+        self.bind("<F5>", lambda e: self._load_weather_data())
+        self.bind("<Escape>", lambda e: self.search_entry.delete(0, "end"))
+
     def _create_header(self):
         """Create professional header with PROJECT CODEFRONT branding."""
         self.header_frame = ctk.CTkFrame(
-            self,
-            height=100,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=0
+            self, height=100, fg_color=DataTerminalTheme.CARD_BG, corner_radius=0
         )
         self.header_frame.grid(row=0, column=0, sticky="ew")
         self.header_frame.grid_propagate(False)
 
         # Add accent strip
         accent_strip = ctk.CTkFrame(
-            self.header_frame,
-            height=3,
-            fg_color=DataTerminalTheme.PRIMARY,
-            corner_radius=0
+            self.header_frame, height=3, fg_color=DataTerminalTheme.PRIMARY, corner_radius=0
         )
         accent_strip.pack(fill="x", side="top")
 
@@ -112,7 +120,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             title_container,
             fg_color="transparent",
             border_width=1,
-            border_color=DataTerminalTheme.PRIMARY
+            border_color=DataTerminalTheme.PRIMARY,
         )
         title_frame.pack()
 
@@ -120,7 +128,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             title_frame,
             text="⚡ PROJECT CODEFRONT",
             font=(DataTerminalTheme.FONT_FAMILY, 32, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            text_color=DataTerminalTheme.PRIMARY,
         )
         self.title_label.pack(padx=15, pady=5)
 
@@ -129,7 +137,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             title_container,
             text="Advanced Weather Intelligence System",
             font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         self.subtitle_label.pack()
 
@@ -150,7 +158,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             border_color=DataTerminalTheme.BORDER,
             fg_color=DataTerminalTheme.BACKGROUND,
             text_color=DataTerminalTheme.TEXT,
-            font=(DataTerminalTheme.FONT_FAMILY, 14)
+            font=(DataTerminalTheme.FONT_FAMILY, 14),
         )
         self.search_entry.pack(side="left", padx=(0, 10))
         self.search_entry.bind("<Return>", lambda e: self._search_weather())
@@ -165,7 +173,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             hover_color=DataTerminalTheme.SUCCESS,
             text_color=DataTerminalTheme.BACKGROUND,
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            command=self._search_weather
+            command=self._search_weather,
         )
         self.search_button.pack(side="left")
 
@@ -174,7 +182,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             search_container,
             text=f"📍 Current: {self.current_city}",
             font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         self.location_label.pack(pady=(5, 0))
 
@@ -224,38 +232,38 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.weather_card = ctk.CTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        self.weather_card.grid(row=0, column=0, sticky="nsew", padx=(20, 10), pady=20)
+        self.weather_card.grid(row=0, column=0, sticky="nsew", padx=(15, 8), pady=15)
 
         # Weather icon and city
         self.city_label = ctk.CTkLabel(
             self.weather_card,
             text="Loading...",
-            font=(DataTerminalTheme.FONT_FAMILY, 28, "bold"),
-            text_color=DataTerminalTheme.TEXT
+            font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
+            text_color=DataTerminalTheme.TEXT,
         )
-        self.city_label.pack(pady=(40, 10))
+        self.city_label.pack(pady=(25, 8))
 
         # Large temperature display
         self.temp_label = ctk.CTkLabel(
             self.weather_card,
             text="--°C",
-            font=(DataTerminalTheme.FONT_FAMILY, 72, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 60, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        self.temp_label.pack(pady=20)
+        self.temp_label.pack(pady=15)
 
         # Weather condition with icon
         self.condition_label = ctk.CTkLabel(
             self.weather_card,
             text="--",
-            font=(DataTerminalTheme.FONT_FAMILY, 18),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.condition_label.pack(pady=(0, 30))
+        self.condition_label.pack(pady=(0, 20))
 
         # Weather metrics grid
         self._create_weather_metrics()
@@ -264,11 +272,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         toggle_frame = ctk.CTkFrame(
             self.weather_card,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=8,
+            corner_radius=6,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        toggle_frame.pack(fill="x", padx=20, pady=(20, 30))
+        toggle_frame.pack(fill="x", padx=15, pady=(15, 20))
 
         # Initialize temperature unit
         self.temp_unit = "C"  # Default to Celsius
@@ -276,33 +284,30 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         toggle_label = ctk.CTkLabel(
             toggle_frame,
             text="Temperature Unit:",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        toggle_label.pack(side="left", padx=(15, 10), pady=10)
+        toggle_label.pack(side="left", padx=(12, 8), pady=8)
 
         self.temp_toggle_btn = ctk.CTkButton(
             toggle_frame,
             text="°C",
-            width=60,
-            height=32,
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            width=55,
+            height=28,
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.HOVER,
-            command=self._toggle_temperature_unit
+            command=self._toggle_temperature_unit,
         )
-        self.temp_toggle_btn.pack(side="left", padx=(0, 15), pady=10)
+        self.temp_toggle_btn.pack(side="left", padx=(0, 12), pady=8)
 
         # Right column - Forecast and charts
         self._create_forecast_section()
 
     def _create_weather_metrics(self):
         """Create weather metrics grid."""
-        metrics_frame = ctk.CTkFrame(
-            self.weather_card,
-            fg_color="transparent"
-        )
-        metrics_frame.pack(fill="x", padx=30, pady=20)
+        metrics_frame = ctk.CTkFrame(self.weather_card, fg_color="transparent")
+        metrics_frame.pack(fill="x", padx=20, pady=15)
 
         # Create metric cards
         metrics = [
@@ -311,7 +316,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             ("🌡️", "Feels Like", "--"),
             ("👁️", "Visibility", "--"),
             ("🧭", "Pressure", "--"),
-            ("☁️", "Cloudiness", "--")
+            ("☁️", "Cloudiness", "--"),
         ]
 
         # Store metric labels for updates
@@ -321,39 +326,37 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             metric_card = ctk.CTkFrame(
                 metrics_frame,
                 fg_color=DataTerminalTheme.BACKGROUND,
-                corner_radius=6,
+                corner_radius=4,
                 border_width=1,
-                border_color=DataTerminalTheme.BORDER
+                border_color=DataTerminalTheme.BORDER,
             )
-            metric_card.pack(pady=2, fill="x")
+            metric_card.pack(pady=1, fill="x")
 
             # Icon and name
             header_frame = ctk.CTkFrame(metric_card, fg_color="transparent")
-            header_frame.pack(fill="x", padx=10, pady=(6, 2))
+            header_frame.pack(fill="x", padx=8, pady=(4, 1))
 
             icon_label = ctk.CTkLabel(
-                header_frame,
-                text=icon,
-                font=(DataTerminalTheme.FONT_FAMILY, 12)
+                header_frame, text=icon, font=(DataTerminalTheme.FONT_FAMILY, 10)
             )
             icon_label.pack(side="left")
 
             name_label = ctk.CTkLabel(
                 header_frame,
                 text=name,
-                font=(DataTerminalTheme.FONT_FAMILY, 10),
-                text_color=DataTerminalTheme.TEXT_SECONDARY
+                font=(DataTerminalTheme.FONT_FAMILY, 9),
+                text_color=DataTerminalTheme.TEXT_SECONDARY,
             )
-            name_label.pack(side="left", padx=(4, 0))
+            name_label.pack(side="left", padx=(3, 0))
 
             # Value
             value_label = ctk.CTkLabel(
                 metric_card,
                 text=value,
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.PRIMARY
+                font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+                text_color=DataTerminalTheme.PRIMARY,
             )
-            value_label.pack(pady=(0, 6))
+            value_label.pack(pady=(0, 4))
 
             # Store reference
             self.metric_labels[name.lower().replace(" ", "_")] = value_label
@@ -364,29 +367,28 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         forecast_container = ctk.CTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        forecast_container.grid(row=0, column=1, sticky="nsew", padx=10, pady=20)
+        forecast_container.grid(row=0, column=1, sticky="nsew", padx=8, pady=15)
 
         # Title
         forecast_title = ctk.CTkLabel(
             forecast_container,
             text="📊 Temperature Forecast",
-            font=(DataTerminalTheme.FONT_FAMILY, 20, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        forecast_title.pack(pady=(20, 15))
+        forecast_title.pack(pady=(15, 10))
 
         # Import and create chart
         from src.ui.components.simple_temperature_chart import SimpleTemperatureChart
 
         self.temp_chart = SimpleTemperatureChart(
-            forecast_container,
-            fg_color=DataTerminalTheme.CARD_BG
+            forecast_container, fg_color=DataTerminalTheme.CARD_BG
         )
-        self.temp_chart.pack(fill="both", expand=True, padx=20, pady=(0, 15))
+        self.temp_chart.pack(fill="both", expand=True, padx=15, pady=(0, 10))
 
         # Add 5-day forecast cards below the chart
         self._create_forecast_cards(forecast_container)
@@ -397,7 +399,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_forecast_cards(self, parent):
         """Create 5-day forecast cards with improved spacing."""
         forecast_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        forecast_frame.pack(fill="x", padx=20, pady=(0, 20))
+        forecast_frame.pack(fill="x", padx=15, pady=(0, 15))
 
         # Configure grid for equal distribution
         for i in range(5):
@@ -408,143 +410,139 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             day_card = ctk.CTkFrame(
                 forecast_frame,
                 fg_color=DataTerminalTheme.BACKGROUND,
-                corner_radius=12,
+                corner_radius=8,
                 border_width=1,
                 border_color=DataTerminalTheme.BORDER,
-                height=120
+                height=100,
             )
-            day_card.grid(row=0, column=i, padx=8, pady=5, sticky="ew")
+            day_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
             day_card.grid_propagate(False)
 
             # Day name
-            day = (datetime.now() + timedelta(days=i)).strftime('%a')
+            day = (datetime.now() + timedelta(days=i)).strftime("%a")
             day_label = ctk.CTkLabel(
                 day_card,
                 text=day,
-                font=(DataTerminalTheme.FONT_FAMILY, 13, "bold"),
-                text_color=DataTerminalTheme.TEXT
+                font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+                text_color=DataTerminalTheme.TEXT,
             )
-            day_label.pack(pady=(12, 5))
+            day_label.pack(pady=(8, 3))
 
             # Weather icon
-            icon_label = ctk.CTkLabel(
-                day_card,
-                text="🌤️",
-                font=(DataTerminalTheme.FONT_FAMILY, 28)
-            )
-            icon_label.pack(pady=8)
+            icon_label = ctk.CTkLabel(day_card, text="🌤️", font=(DataTerminalTheme.FONT_FAMILY, 22))
+            icon_label.pack(pady=5)
 
             # Temperature
             temp_label = ctk.CTkLabel(
                 day_card,
                 text="22°/15°",
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.PRIMARY
+                font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
+                text_color=DataTerminalTheme.PRIMARY,
             )
-            temp_label.pack(pady=(5, 12))
+            temp_label.pack(pady=(3, 8))
 
     def _create_additional_metrics_section(self):
         """Create additional metrics section for the third column."""
         metrics_container = ctk.CTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        metrics_container.grid(row=0, column=2, sticky="nsew", padx=(10, 20), pady=20)
+        metrics_container.grid(row=0, column=2, sticky="nsew", padx=(8, 15), pady=15)
 
         # Title
         metrics_title = ctk.CTkLabel(
             metrics_container,
             text="📈 Weather Details",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        metrics_title.pack(pady=(20, 15))
+        metrics_title.pack(pady=(15, 10))
 
         # Air Quality Section
         air_quality_frame = ctk.CTkFrame(
             metrics_container,
             fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12,
+            corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        air_quality_frame.pack(fill="x", padx=15, pady=(0, 15))
+        air_quality_frame.pack(fill="x", padx=12, pady=(0, 10))
 
         ctk.CTkLabel(
             air_quality_frame,
             text="🌬️ Air Quality",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
-        ).pack(pady=(12, 5))
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color=DataTerminalTheme.TEXT,
+        ).pack(pady=(8, 3))
 
         self.air_quality_label = ctk.CTkLabel(
             air_quality_frame,
             text="Good (AQI: 45)",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.SUCCESS
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=DataTerminalTheme.SUCCESS,
         )
-        self.air_quality_label.pack(pady=(0, 12))
+        self.air_quality_label.pack(pady=(0, 8))
 
         # Sun Times Section
         sun_times_frame = ctk.CTkFrame(
             metrics_container,
             fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12,
+            corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        sun_times_frame.pack(fill="x", padx=15, pady=(0, 15))
+        sun_times_frame.pack(fill="x", padx=12, pady=(0, 10))
 
         ctk.CTkLabel(
             sun_times_frame,
             text="☀️ Sun Times",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
-        ).pack(pady=(12, 8))
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color=DataTerminalTheme.TEXT,
+        ).pack(pady=(8, 5))
 
         self.sunrise_label = ctk.CTkLabel(
             sun_times_frame,
             text="🌅 Sunrise: 6:45 AM",
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 9),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.sunrise_label.pack(pady=2)
+        self.sunrise_label.pack(pady=1)
 
         self.sunset_label = ctk.CTkLabel(
             sun_times_frame,
             text="🌇 Sunset: 7:30 PM",
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 9),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.sunset_label.pack(pady=(2, 12))
+        self.sunset_label.pack(pady=(1, 8))
 
         # Weather Alerts Section
         alerts_frame = ctk.CTkFrame(
             metrics_container,
             fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12,
+            corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        alerts_frame.pack(fill="x", padx=15, pady=(0, 20))
+        alerts_frame.pack(fill="x", padx=12, pady=(0, 15))
 
         ctk.CTkLabel(
             alerts_frame,
             text="⚠️ Weather Alerts",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
-        ).pack(pady=(12, 5))
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color=DataTerminalTheme.TEXT,
+        ).pack(pady=(8, 3))
 
         self.alerts_label = ctk.CTkLabel(
             alerts_frame,
             text="No active alerts",
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 9),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.alerts_label.pack(pady=(0, 12))
+        self.alerts_label.pack(pady=(0, 8))
 
     def _search_weather(self):
         """Handle weather search functionality."""
@@ -558,7 +556,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.city_label.configure(text=self.current_city)
 
             # Clear search entry
-            self.search_entry.delete(0, 'end')
+            self.search_entry.delete(0, "end")
 
             # Here you would typically call weather API
             # For now, just update the display with placeholder data
@@ -570,7 +568,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         for key, icon in self.weather_icons.items():
             if key in condition_lower:
                 return icon
-        return '🌤️'  # Default icon
+        return "🌤️"  # Default icon
 
     def _update_weather_display(self, weather_data):
         """Update UI with enhanced weather display."""
@@ -603,60 +601,46 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.condition_label.configure(text=f"{icon} {weather_data.description}")
 
             # Update metrics
-            if 'humidity' in self.metric_labels:
-                self.metric_labels['humidity'].configure(
-                    text=f"{weather_data.humidity}%"
-                )
+            if "humidity" in self.metric_labels:
+                self.metric_labels["humidity"].configure(text=f"{weather_data.humidity}%")
 
-            if 'wind' in self.metric_labels and weather_data.wind_speed:
+            if "wind" in self.metric_labels and weather_data.wind_speed:
                 wind_kmh = weather_data.wind_speed * 3.6
-                self.metric_labels['wind'].configure(
-                    text=f"{wind_kmh:.1f} km/h"
-                )
+                self.metric_labels["wind"].configure(text=f"{wind_kmh:.1f} km/h")
 
-            if 'feels_like' in self.metric_labels:
-                self.metric_labels['feels_like'].configure(
-                    text=f"{int(weather_data.feels_like)}°C"
-                )
+            if "feels_like" in self.metric_labels:
+                self.metric_labels["feels_like"].configure(text=f"{int(weather_data.feels_like)}°C")
 
-            if 'visibility' in self.metric_labels and weather_data.visibility:
-                self.metric_labels['visibility'].configure(
-                    text=f"{weather_data.visibility} km"
-                )
+            if "visibility" in self.metric_labels and weather_data.visibility:
+                self.metric_labels["visibility"].configure(text=f"{weather_data.visibility} km")
 
-            if 'pressure' in self.metric_labels:
-                self.metric_labels['pressure'].configure(
-                    text=f"{weather_data.pressure} hPa"
-                )
+            if "pressure" in self.metric_labels:
+                self.metric_labels["pressure"].configure(text=f"{weather_data.pressure} hPa")
 
-            if 'cloudiness' in self.metric_labels and weather_data.cloudiness is not None:
-                self.metric_labels['cloudiness'].configure(
-                    text=f"{weather_data.cloudiness}%"
-                )
+            if "cloudiness" in self.metric_labels and weather_data.cloudiness is not None:
+                self.metric_labels["cloudiness"].configure(text=f"{weather_data.cloudiness}%")
 
             # Update status
-            self.status_label.configure(
-                text=f"✅ Updated: {datetime.now().strftime('%H:%M:%S')}"
-            )
+            self.status_label.configure(text=f"✅ Updated: {datetime.now().strftime('%H:%M:%S')}")
 
         except Exception as e:
             self.logger.error(f"Error updating display: {e}")
             self.status_label.configure(text=f"❌ Error: {str(e)}")
 
         # Update metrics if they exist
-        if hasattr(self, 'metric_labels'):
+        if hasattr(self, "metric_labels"):
             metrics_data = {
-                'humidity': '65%',
-                'wind': '12 km/h',
-                'feels_like': '24°C',
-                'visibility': '10 km',
-                'pressure': '1013 hPa',
-                'cloudiness': '40%'
+                "humidity": "65%",
+                "wind": "12 km/h",
+                "feels_like": "24°C",
+                "visibility": "10 km",
+                "pressure": "1013 hPa",
+                "cloudiness": "40%",
             }
 
             for key, value in metrics_data.items():
                 if key in self.metric_labels:
-                     self.metric_labels[key].configure(text=value)
+                    self.metric_labels[key].configure(text=value)
 
     def _toggle_temperature_unit(self):
         """Toggle between Celsius and Fahrenheit."""
@@ -669,19 +653,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 try:
                     # Extract numeric value
                     temp_value = float(current_temp.replace("°C", ""))
-                    fahrenheit = (temp_value * 9/5) + 32
+                    fahrenheit = (temp_value * 9 / 5) + 32
                     self.temp_label.configure(text=f"{fahrenheit:.0f}°F")
                 except ValueError:
                     self.temp_label.configure(text="--°F")
 
             # Update feels like temperature if available
-            if hasattr(self, 'metric_labels') and 'feels_like' in self.metric_labels:
-                feels_like_text = self.metric_labels['feels_like'].cget("text")
+            if hasattr(self, "metric_labels") and "feels_like" in self.metric_labels:
+                feels_like_text = self.metric_labels["feels_like"].cget("text")
                 if feels_like_text and feels_like_text != "--":
                     try:
                         temp_value = float(feels_like_text.replace("°C", ""))
-                        fahrenheit = (temp_value * 9/5) + 32
-                        self.metric_labels['feels_like'].configure(text=f"{fahrenheit:.0f}°F")
+                        fahrenheit = (temp_value * 9 / 5) + 32
+                        self.metric_labels["feels_like"].configure(text=f"{fahrenheit:.0f}°F")
                     except ValueError:
                         pass
         else:
@@ -693,19 +677,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 try:
                     # Extract numeric value
                     temp_value = float(current_temp.replace("°F", ""))
-                    celsius = (temp_value - 32) * 5/9
+                    celsius = (temp_value - 32) * 5 / 9
                     self.temp_label.configure(text=f"{celsius:.0f}°C")
                 except ValueError:
                     self.temp_label.configure(text="--°C")
 
             # Update feels like temperature if available
-            if hasattr(self, 'metric_labels') and 'feels_like' in self.metric_labels:
-                feels_like_text = self.metric_labels['feels_like'].cget("text")
+            if hasattr(self, "metric_labels") and "feels_like" in self.metric_labels:
+                feels_like_text = self.metric_labels["feels_like"].cget("text")
                 if feels_like_text and feels_like_text != "--":
                     try:
                         temp_value = float(feels_like_text.replace("°F", ""))
-                        celsius = (temp_value - 32) * 5/9
-                        self.metric_labels['feels_like'].configure(text=f"{celsius:.0f}°C")
+                        celsius = (temp_value - 32) * 5 / 9
+                        self.metric_labels["feels_like"].configure(text=f"{celsius:.0f}°C")
                     except ValueError:
                         pass
 
@@ -722,108 +706,99 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Left side - Journal list
         list_frame = ctk.CTkFrame(
-            self.journal_tab,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16
+            self.journal_tab, fg_color=DataTerminalTheme.CARD_BG, corner_radius=12
         )
-        list_frame.grid(row=0, column=0, sticky="nsew", padx=(20, 10), pady=20)
+        list_frame.grid(row=0, column=0, sticky="nsew", padx=(15, 8), pady=15)
 
         # List header
-        list_header = ctk.CTkFrame(list_frame, fg_color="transparent", height=60)
-        list_header.pack(fill="x", padx=20, pady=(20, 15))
+        list_header = ctk.CTkFrame(list_frame, fg_color="transparent", height=50)
+        list_header.pack(fill="x", padx=15, pady=(15, 10))
         list_header.pack_propagate(False)
 
         journal_title = ctk.CTkLabel(
             list_header,
             text="📔 Weather Journal",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        journal_title.pack(side="left", pady=15)
+        journal_title.pack(side="left", pady=10)
 
         new_entry_btn = ctk.CTkButton(
             list_header,
             text="+ New Entry",
-            width=110,
-            height=32,
+            width=100,
+            height=28,
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.HOVER,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            corner_radius=8
+            font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
+            corner_radius=6,
         )
-        new_entry_btn.pack(side="right", pady=15)
+        new_entry_btn.pack(side="right", pady=10)
 
         # Journal entries list (scrollable)
         self.journal_listbox = ctk.CTkScrollableFrame(
-            list_frame,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12
+            list_frame, fg_color=DataTerminalTheme.BACKGROUND, corner_radius=8
         )
-        self.journal_listbox.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        self.journal_listbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
         # Sample entries
         self._create_sample_journal_entries()
 
         # Right side - Entry editor
         editor_frame = ctk.CTkFrame(
-            self.journal_tab,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16
+            self.journal_tab, fg_color=DataTerminalTheme.CARD_BG, corner_radius=12
         )
-        editor_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 20), pady=20)
+        editor_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 15), pady=15)
 
         # Editor header
         editor_header = ctk.CTkLabel(
             editor_frame,
             text="📝 Entry Editor",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        editor_header.pack(pady=(25, 20))
+        editor_header.pack(pady=(18, 15))
 
         # Weather info bar
         weather_info = ctk.CTkFrame(
-            editor_frame,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            height=50,
-            corner_radius=12
+            editor_frame, fg_color=DataTerminalTheme.BACKGROUND, height=40, corner_radius=8
         )
-        weather_info.pack(fill="x", padx=25, pady=(0, 15))
+        weather_info.pack(fill="x", padx=18, pady=(0, 12))
         weather_info.pack_propagate(False)
 
         weather_text = ctk.CTkLabel(
             weather_info,
             text="🌤️ Partly Cloudy • 22°C • Humidity: 65%",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        weather_text.pack(expand=True, pady=12)
+        weather_text.pack(expand=True, pady=8)
 
         # Text editor
         self.journal_text = ctk.CTkTextbox(
             editor_frame,
             fg_color=DataTerminalTheme.BACKGROUND,
             text_color=DataTerminalTheme.TEXT,
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            height=300,
-            corner_radius=12,
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            height=280,
+            corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        self.journal_text.pack(fill="both", expand=True, padx=25, pady=(0, 20))
+        self.journal_text.pack(fill="both", expand=True, padx=18, pady=(0, 15))
 
         # Mood selector and save button
-        mood_frame = ctk.CTkFrame(editor_frame, fg_color="transparent", height=50)
-        mood_frame.pack(fill="x", padx=25, pady=(0, 25))
+        mood_frame = ctk.CTkFrame(editor_frame, fg_color="transparent", height=40)
+        mood_frame.pack(fill="x", padx=18, pady=(0, 18))
         mood_frame.pack_propagate(False)
 
         mood_label = ctk.CTkLabel(
             mood_frame,
             text="Mood:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color=DataTerminalTheme.TEXT,
         )
-        mood_label.pack(side="left", padx=(0, 15), pady=12)
+        mood_label.pack(side="left", padx=(0, 12), pady=8)
 
         moods = ["😊 Happy", "😐 Neutral", "😔 Sad", "😎 Great", "😴 Tired"]
         self.mood_var = ctk.StringVar(value=moods[0])
@@ -831,27 +806,27 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             mood_frame,
             values=moods,
             variable=self.mood_var,
-            width=160,
-            height=32,
+            width=140,
+            height=28,
             fg_color=DataTerminalTheme.BACKGROUND,
             button_color=DataTerminalTheme.PRIMARY,
             button_hover_color=DataTerminalTheme.HOVER,
-            corner_radius=8
+            corner_radius=6,
         )
-        mood_menu.pack(side="left", pady=12)
+        mood_menu.pack(side="left", pady=8)
 
         # Save button
         save_btn = ctk.CTkButton(
             mood_frame,
             text="💾 Save Entry",
-            width=130,
-            height=32,
+            width=110,
+            height=28,
             fg_color=DataTerminalTheme.SUCCESS,
             hover_color="#2d5a2d",
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            corner_radius=8
+            font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
+            corner_radius=6,
         )
-        save_btn.pack(side="right", pady=12)
+        save_btn.pack(side="right", pady=8)
 
     def _create_sample_journal_entries(self):
         """Create sample journal entries."""
@@ -860,15 +835,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             ("Yesterday", "Rainy mood matches the weather", "😔"),
             ("Mon", "Beautiful sunrise this morning", "😎"),
             ("Sun", "Foggy and mysterious", "😐"),
-            ("Sat", "Perfect beach weather!", "😊")
+            ("Sat", "Perfect beach weather!", "😊"),
         ]
 
         for date, preview, mood in entries:
             entry_card = ctk.CTkFrame(
-                self.journal_listbox,
-                fg_color=DataTerminalTheme.CARD_BG,
-                corner_radius=8,
-                height=80
+                self.journal_listbox, fg_color=DataTerminalTheme.CARD_BG, corner_radius=8, height=80
             )
             entry_card.pack(fill="x", pady=5)
             entry_card.pack_propagate(False)
@@ -885,15 +857,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 header,
                 text=date,
                 font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.PRIMARY
+                text_color=DataTerminalTheme.PRIMARY,
             )
             date_label.pack(side="left")
 
-            mood_label = ctk.CTkLabel(
-                header,
-                text=mood,
-                font=(DataTerminalTheme.FONT_FAMILY, 16)
-            )
+            mood_label = ctk.CTkLabel(header, text=mood, font=(DataTerminalTheme.FONT_FAMILY, 16))
             mood_label.pack(side="right")
 
             # Preview
@@ -902,7 +870,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text=preview,
                 font=(DataTerminalTheme.FONT_FAMILY, 11),
                 text_color=DataTerminalTheme.TEXT_SECONDARY,
-                anchor="w"
+                anchor="w",
             )
             preview_label.pack(fill="x", pady=(5, 0))
 
@@ -917,43 +885,37 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.activities_tab.grid_rowconfigure(1, weight=1)
 
         # Header with better spacing
-        header_frame = ctk.CTkFrame(
-            self.activities_tab,
-            fg_color="transparent",
-            height=80
-        )
-        header_frame.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
+        header_frame = ctk.CTkFrame(self.activities_tab, fg_color="transparent", height=60)
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(15, 8))
         header_frame.grid_propagate(False)
         header_frame.grid_columnconfigure(0, weight=1)
 
         title = ctk.CTkLabel(
             header_frame,
             text="🎯 AI Activity Suggestions",
-            font=(DataTerminalTheme.FONT_FAMILY, 26, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 20, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        title.grid(row=0, column=0, sticky="w", pady=20)
+        title.grid(row=0, column=0, sticky="w", pady=15)
 
         refresh_btn = ctk.CTkButton(
             header_frame,
             text="🔄 Get New Suggestions",
-            width=200,
-            height=40,
-            corner_radius=20,
+            width=160,
+            height=32,
+            corner_radius=16,
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.SUCCESS,
-            font=(DataTerminalTheme.FONT_FAMILY, 13, "bold"),
-            command=self._refresh_activity_suggestions
+            font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+            command=self._refresh_activity_suggestions,
         )
-        refresh_btn.grid(row=0, column=1, sticky="e", pady=20, padx=(20, 0))
+        refresh_btn.grid(row=0, column=1, sticky="e", pady=15, padx=(15, 0))
 
         # Activity cards container with better structure
         self.activities_container = ctk.CTkScrollableFrame(
-            self.activities_tab,
-            fg_color="transparent",
-            corner_radius=0
+            self.activities_tab, fg_color="transparent", corner_radius=0
         )
-        self.activities_container.grid(row=1, column=0, sticky="nsew", padx=30, pady=(0, 20))
+        self.activities_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 15))
 
         # Configure activities container grid for responsive layout
         self.activities_container.grid_columnconfigure(0, weight=1)
@@ -968,7 +930,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Get weather-based activity suggestions
         if self.activity_service and self.current_weather_data:
             try:
-                activities = self.activity_service.get_activity_suggestions(self.current_weather_data)
+                activities = self.activity_service.get_activity_suggestions(
+                    self.current_weather_data
+                )
             except Exception as e:
                 self.logger.error(f"Error getting activity suggestions: {e}")
                 activities = self._get_fallback_activities()
@@ -987,7 +951,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 "icon": "🏃",
                 "description": "Perfect weather for a refreshing morning run",
                 "time": "30-45 minutes",
-                "items": "Running shoes, water bottle"
+                "items": "Running shoes, water bottle",
             },
             {
                 "title": "Indoor Yoga Session",
@@ -995,7 +959,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 "icon": "🧘",
                 "description": "Relaxing yoga to start your day",
                 "time": "20-30 minutes",
-                "items": "Yoga mat, comfortable clothes"
+                "items": "Yoga mat, comfortable clothes",
             },
             {
                 "title": "Photography Walk",
@@ -1003,8 +967,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 "icon": "📸",
                 "description": "Great lighting conditions for photography",
                 "time": "1-2 hours",
-                "items": "Camera, comfortable shoes"
-            }
+                "items": "Camera, comfortable shoes",
+            },
         ]
 
     def _create_activity_cards(self, activities):
@@ -1025,7 +989,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 corner_radius=16,
                 border_width=1,
                 border_color=DataTerminalTheme.BORDER,
-                height=200
+                height=200,
             )
             card.grid(row=row, column=col, padx=15, pady=15, sticky="ew")
             card.grid_propagate(False)
@@ -1044,9 +1008,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Icon
             icon_label = ctk.CTkLabel(
-                header,
-                text=activity.get("icon", "🎯"),
-                font=(DataTerminalTheme.FONT_FAMILY, 28)
+                header, text=activity.get("icon", "🎯"), font=(DataTerminalTheme.FONT_FAMILY, 28)
             )
             icon_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
 
@@ -1056,7 +1018,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text=activity.get("title", "Activity"),
                 font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
                 text_color=DataTerminalTheme.TEXT,
-                anchor="w"
+                anchor="w",
             )
             title_label.grid(row=0, column=1, sticky="ew")
 
@@ -1069,7 +1031,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text_color=DataTerminalTheme.BACKGROUND,
                 font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
                 width=60,
-                height=20
+                height=20,
             )
             category_badge.grid(row=0, column=2, padx=(10, 0), sticky="e")
 
@@ -1081,7 +1043,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text_color=DataTerminalTheme.TEXT_SECONDARY,
                 anchor="nw",
                 justify="left",
-                wraplength=250
+                wraplength=250,
             )
             desc_label.grid(row=1, column=0, sticky="new", padx=15, pady=5)
 
@@ -1097,7 +1059,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text=f"⏱️ {activity.get('time', 'Variable')}",
                 font=(DataTerminalTheme.FONT_FAMILY, 11),
                 text_color=DataTerminalTheme.TEXT_SECONDARY,
-                anchor="w"
+                anchor="w",
             )
             time_label.grid(row=0, column=0, sticky="w", pady=2)
 
@@ -1106,7 +1068,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text=f"📦 {activity.get('items', 'None required')}",
                 font=(DataTerminalTheme.FONT_FAMILY, 11),
                 text_color=DataTerminalTheme.TEXT_SECONDARY,
-                anchor="w"
+                anchor="w",
             )
             items_label.grid(row=1, column=0, sticky="w", pady=2)
 
@@ -1130,11 +1092,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
     def _refresh_activity_suggestions(self):
         """Refresh activity suggestions when weather data changes."""
-        if hasattr(self, 'activities_container') and self.activities_container.winfo_exists():
+        if hasattr(self, "activities_container") and self.activities_container.winfo_exists():
             try:
                 # Get updated activity suggestions
                 if self.activity_service and self.current_weather_data:
-                    activities = self.activity_service.get_activity_suggestions(self.current_weather_data)
+                    activities = self.activity_service.get_activity_suggestions(
+                        self.current_weather_data
+                    )
                 else:
                     activities = self._get_fallback_activities()
 
@@ -1155,11 +1119,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Create scrollable container
         settings_scroll = ctk.CTkScrollableFrame(
-            self.settings_tab,
-            fg_color="transparent",
-            corner_radius=0
+            self.settings_tab, fg_color="transparent", corner_radius=0
         )
-        settings_scroll.grid(row=0, column=0, sticky="nsew", padx=25, pady=25)
+        settings_scroll.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
 
         # Configure scroll frame grid
         settings_scroll.grid_columnconfigure(0, weight=1)
@@ -1168,10 +1130,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         title = ctk.CTkLabel(
             settings_scroll,
             text="⚙️ Settings & Configuration",
-            font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 22, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 30))
+        title.grid(row=0, column=0, sticky="w", pady=(0, 15))
 
         # API Configuration Section
         self._create_api_settings(settings_scroll)
@@ -1191,34 +1153,34 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         api_frame = ctk.CTkFrame(
             parent,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        api_frame.grid(row=1, column=0, sticky="ew", pady=10)
+        api_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         api_frame.grid_columnconfigure(0, weight=1)
 
         # Section header
         header = ctk.CTkLabel(
             api_frame,
             text="🔑 API Configuration",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        header.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 15))
+        header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
 
         # API key entries
         apis = [
             ("OpenWeather API", "OPENWEATHER_API_KEY", "✅"),
             ("Google Gemini API", "GEMINI_API_KEY", "✅"),
-            ("Google Maps API", "GOOGLE_MAPS_API_KEY", "✅")
+            ("Google Maps API", "GOOGLE_MAPS_API_KEY", "✅"),
         ]
 
         self.api_entries = {}
 
         # Container for API entries
         entries_frame = ctk.CTkFrame(api_frame, fg_color="transparent")
-        entries_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        entries_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 8))
         entries_frame.grid_columnconfigure(1, weight=1)
 
         for i, (api_name, env_key, status) in enumerate(apis):
@@ -1226,43 +1188,41 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             label = ctk.CTkLabel(
                 entries_frame,
                 text=api_name,
-                font=(DataTerminalTheme.FONT_FAMILY, 14),
-                width=150,
-                anchor="w"
+                font=(DataTerminalTheme.FONT_FAMILY, 13),
+                width=140,
+                anchor="w",
             )
-            label.grid(row=i, column=0, sticky="w", pady=5)
+            label.grid(row=i, column=0, sticky="w", pady=3)
 
             # Entry
             entry = ctk.CTkEntry(
                 entries_frame,
                 placeholder_text="Enter API key...",
-                width=300,
-                height=35,
+                width=280,
+                height=32,
                 fg_color=DataTerminalTheme.BACKGROUND,
                 border_color=DataTerminalTheme.BORDER,
-                show="*"  # Hide API key
+                show="*",  # Hide API key
             )
-            entry.grid(row=i, column=1, sticky="ew", padx=(10, 5), pady=5)
+            entry.grid(row=i, column=1, sticky="ew", padx=(8, 4), pady=3)
 
             # Show/Hide button
             show_btn = ctk.CTkButton(
                 entries_frame,
                 text="👁️",
-                width=35,
-                height=35,
+                width=32,
+                height=32,
                 fg_color=DataTerminalTheme.BACKGROUND,
                 hover_color=DataTerminalTheme.HOVER,
-                command=lambda e=entry: self._toggle_api_visibility(e)
+                command=lambda e=entry: self._toggle_api_visibility(e),
             )
-            show_btn.grid(row=i, column=2, padx=5, pady=5)
+            show_btn.grid(row=i, column=2, padx=4, pady=3)
 
             # Status indicator
             status_label = ctk.CTkLabel(
-                entries_frame,
-                text=status,
-                font=(DataTerminalTheme.FONT_FAMILY, 16)
+                entries_frame, text=status, font=(DataTerminalTheme.FONT_FAMILY, 14)
             )
-            status_label.grid(row=i, column=3, padx=10, pady=5)
+            status_label.grid(row=i, column=3, padx=8, pady=3)
 
             self.api_entries[env_key] = (entry, status_label)
 
@@ -1270,178 +1230,180 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         save_btn = ctk.CTkButton(
             api_frame,
             text="💾 Save API Keys",
-            width=150,
-            height=35,
+            width=140,
+            height=32,
             fg_color=DataTerminalTheme.SUCCESS,
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            command=self._save_api_keys
+            font=(DataTerminalTheme.FONT_FAMILY, 13, "bold"),
+            command=self._save_api_keys,
         )
-        save_btn.grid(row=2, column=0, pady=20)
+        save_btn.grid(row=2, column=0, pady=(8, 15))
 
     def _create_appearance_settings(self, parent):
         """Create appearance settings section."""
         appearance_frame = ctk.CTkFrame(
             parent,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        appearance_frame.grid(row=2, column=0, sticky="ew", pady=10)
+        appearance_frame.grid(row=2, column=0, sticky="ew", pady=(0, 8))
         appearance_frame.grid_columnconfigure(1, weight=1)
 
         # Header
         header = ctk.CTkLabel(
             appearance_frame,
             text="🎨 Appearance",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        header.grid(row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(20, 15))
+        header.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(15, 10))
 
         # Theme selection
         theme_label = ctk.CTkLabel(
             appearance_frame,
             text="Theme:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            width=150,
-            anchor="w"
+            font=(DataTerminalTheme.FONT_FAMILY, 13),
+            width=140,
+            anchor="w",
         )
-        theme_label.grid(row=1, column=0, sticky="w", padx=20, pady=10)
+        theme_label.grid(row=1, column=0, sticky="w", padx=15, pady=6)
 
         self.theme_var = ctk.StringVar(value="Dark Terminal")
         theme_menu = ctk.CTkOptionMenu(
             appearance_frame,
             values=["Dark Terminal", "Light Mode", "Midnight Blue"],
             variable=self.theme_var,
-            width=200,
+            width=180,
+            height=30,
             fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_theme
+            command=self._change_theme,
         )
-        theme_menu.grid(row=1, column=1, sticky="w", padx=20, pady=10)
+        theme_menu.grid(row=1, column=1, sticky="w", padx=15, pady=6)
 
         # Temperature units
         units_label = ctk.CTkLabel(
             appearance_frame,
             text="Temperature Units:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            width=150,
-            anchor="w"
+            font=(DataTerminalTheme.FONT_FAMILY, 13),
+            width=140,
+            anchor="w",
         )
-        units_label.grid(row=2, column=0, sticky="w", padx=20, pady=10)
+        units_label.grid(row=2, column=0, sticky="w", padx=15, pady=6)
 
         self.units_var = ctk.StringVar(value="Celsius")
         units_menu = ctk.CTkOptionMenu(
             appearance_frame,
             values=["Celsius", "Fahrenheit", "Kelvin"],
             variable=self.units_var,
-            width=200,
+            width=180,
+            height=30,
             fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_units
+            command=self._change_units,
         )
-        units_menu.grid(row=2, column=1, sticky="w", padx=20, pady=10)
+        units_menu.grid(row=2, column=1, sticky="w", padx=15, pady=6)
 
         # Auto-refresh toggle
         refresh_label = ctk.CTkLabel(
             appearance_frame,
             text="Auto-refresh (5 min):",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            width=150,
-            anchor="w"
+            font=(DataTerminalTheme.FONT_FAMILY, 13),
+            width=140,
+            anchor="w",
         )
-        refresh_label.grid(row=3, column=0, sticky="w", padx=20, pady=(10, 20))
+        refresh_label.grid(row=3, column=0, sticky="w", padx=15, pady=(6, 15))
 
         self.auto_refresh_switch = ctk.CTkSwitch(
             appearance_frame,
             text="",
             button_color=DataTerminalTheme.PRIMARY,
             progress_color=DataTerminalTheme.SUCCESS,
-            command=self._toggle_auto_refresh
+            command=self._toggle_auto_refresh,
         )
-        self.auto_refresh_switch.grid(row=3, column=1, sticky="w", padx=20, pady=(10, 20))
+        self.auto_refresh_switch.grid(row=3, column=1, sticky="w", padx=15, pady=(6, 15))
 
     def _create_data_settings(self, parent):
         """Create data management section."""
         data_frame = ctk.CTkFrame(
             parent,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        data_frame.grid(row=3, column=0, sticky="ew", pady=10)
+        data_frame.grid(row=3, column=0, sticky="ew", pady=(0, 8))
         data_frame.grid_columnconfigure(0, weight=1)
 
         # Header
         header = ctk.CTkLabel(
             data_frame,
             text="💾 Data Management",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        header.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 15))
+        header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
 
         # Buttons frame
         buttons_frame = ctk.CTkFrame(data_frame, fg_color="transparent")
-        buttons_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        buttons_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 15))
         buttons_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         # Clear cache button
         clear_cache_btn = ctk.CTkButton(
             buttons_frame,
             text="🗑️ Clear Cache",
-            width=140,
-            height=35,
+            width=130,
+            height=32,
             fg_color=DataTerminalTheme.WARNING,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._clear_cache
+            font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+            command=self._clear_cache,
         )
-        clear_cache_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
+        clear_cache_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
 
         # Export data button
         export_btn = ctk.CTkButton(
             buttons_frame,
             text="📤 Export Data",
-            width=140,
-            height=35,
+            width=130,
+            height=32,
             fg_color=DataTerminalTheme.INFO,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._export_data
+            font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+            command=self._export_data,
         )
-        export_btn.grid(row=0, column=1, padx=5, sticky="w")
+        export_btn.grid(row=0, column=1, padx=4, sticky="w")
 
         # Import data button
         import_btn = ctk.CTkButton(
             buttons_frame,
             text="📥 Import Data",
-            width=140,
-            height=35,
+            width=130,
+            height=32,
             fg_color=DataTerminalTheme.SUCCESS,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._import_data
+            font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
+            command=self._import_data,
         )
-        import_btn.grid(row=0, column=2, padx=5, sticky="w")
+        import_btn.grid(row=0, column=2, padx=4, sticky="w")
 
     def _create_about_section(self, parent):
         """Create about section."""
         about_frame = ctk.CTkFrame(
             parent,
             fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=16,
+            corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
-        about_frame.grid(row=4, column=0, sticky="ew", pady=10)
+        about_frame.grid(row=4, column=0, sticky="ew", pady=(0, 8))
         about_frame.grid_columnconfigure(0, weight=1)
 
         # Header
         header = ctk.CTkLabel(
             about_frame,
             text="ℹ️ About",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.PRIMARY,
         )
-        header.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 15))
+        header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
 
         # App info
         info_text = """PROJECT CODEFRONT - Weather Dashboard v3.2.56
@@ -1464,40 +1426,40 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         info_label = ctk.CTkLabel(
             about_frame,
             text=info_text,
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
             text_color=DataTerminalTheme.TEXT_SECONDARY,
-            justify="left"
+            justify="left",
         )
-        info_label.grid(row=1, column=0, sticky="w", padx=20, pady=(0, 20))
+        info_label.grid(row=1, column=0, sticky="w", padx=15, pady=(0, 12))
 
         # Links
         links_frame = ctk.CTkFrame(about_frame, fg_color="transparent")
-        links_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
+        links_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 15))
         links_frame.grid_columnconfigure((0, 1), weight=1)
 
         github_btn = ctk.CTkButton(
             links_frame,
             text="📁 GitHub Repository",
-            width=150,
-            height=35,
+            width=140,
+            height=32,
             fg_color=DataTerminalTheme.BACKGROUND,
             border_width=1,
             border_color=DataTerminalTheme.PRIMARY,
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            command=self._open_github
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            command=self._open_github,
         )
-        github_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
+        github_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
 
         docs_btn = ctk.CTkButton(
             links_frame,
             text="📚 Documentation",
-            width=150,
-            height=35,
+            width=140,
+            height=32,
             fg_color=DataTerminalTheme.BACKGROUND,
             border_width=1,
             border_color=DataTerminalTheme.PRIMARY,
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            command=self._open_documentation
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            command=self._open_documentation,
         )
         docs_btn.grid(row=0, column=1, sticky="w")
 
@@ -1509,7 +1471,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _save_api_keys(self):
         """Save API keys to environment."""
         # Implementation to save keys
-        if hasattr(self, 'status_label'):
+        if hasattr(self, "status_label"):
             self.status_label.configure(text="✅ API keys saved successfully")
         else:
             print("✅ API keys saved successfully")
@@ -1518,23 +1480,19 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Change application theme."""
         try:
             # Map theme names to CustomTkinter appearance modes
-            theme_map = {
-                "Dark": "dark",
-                "Light": "light",
-                "System": "system"
-            }
+            theme_map = {"Dark": "dark", "Light": "light", "System": "system"}
 
             appearance_mode = theme_map.get(theme_name, "dark")
             ctk.set_appearance_mode(appearance_mode)
 
             # Update status
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"🎨 Theme changed to {theme_name}")
             else:
                 print(f"🎨 Theme changed to {theme_name}")
 
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"❌ Failed to change theme: {str(e)}")
             else:
                 print(f"❌ Failed to change theme: {e}")
@@ -1542,26 +1500,22 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _change_units(self, unit):
         """Change temperature units and update entire application."""
         # Map settings units to internal format
-        unit_map = {
-            "Celsius": "C",
-            "Fahrenheit": "F",
-            "Kelvin": "K"
-        }
+        unit_map = {"Celsius": "C", "Fahrenheit": "F", "Kelvin": "K"}
 
         new_unit = unit_map.get(unit, "C")
 
         # Only proceed if unit actually changed
-        if hasattr(self, 'temp_unit') and self.temp_unit == new_unit:
+        if hasattr(self, "temp_unit") and self.temp_unit == new_unit:
             return
 
         # Store old unit for conversion
-        old_unit = getattr(self, 'temp_unit', 'C')
+        old_unit = getattr(self, "temp_unit", "C")
 
         # Update internal temperature unit
         self.temp_unit = new_unit
 
         # Update toggle button text if it exists
-        if hasattr(self, 'temp_toggle_btn'):
+        if hasattr(self, "temp_toggle_btn"):
             symbol_map = {"C": "°C", "F": "°F", "K": "K"}
             self.temp_toggle_btn.configure(text=symbol_map.get(new_unit, "°C"))
 
@@ -1569,13 +1523,13 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self._convert_all_temperatures(old_unit, new_unit)
 
         # Update status
-        if hasattr(self, 'status_label'):
+        if hasattr(self, "status_label"):
             self.status_label.configure(text=f"🌡️ Units changed to {unit}")
         else:
             print(f"🌡️ Units changed to {unit}")
 
         # Refresh weather data with new units if weather service is available
-        if hasattr(self, 'weather_service') and self.weather_service:
+        if hasattr(self, "weather_service") and self.weather_service:
             self.after(100, self._refresh_weather_with_new_units)
 
     def _toggle_auto_refresh(self):
@@ -1583,7 +1537,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         enabled = self.auto_refresh_switch.get()
         self.auto_refresh_enabled = enabled
         status_text = "🔄 Auto-refresh enabled" if enabled else "⏸️ Auto-refresh disabled"
-        if hasattr(self, 'status_label'):
+        if hasattr(self, "status_label"):
             self.status_label.configure(text=status_text)
         else:
             print(status_text)
@@ -1602,7 +1556,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             # Extract numeric value
             import re
-            match = re.search(r'(-?\d+(?:\.\d+)?)', temp_str)
+
+            match = re.search(r"(-?\d+(?:\.\d+)?)", temp_str)
             if not match:
                 return temp_str
 
@@ -1610,7 +1565,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
             # Convert to Celsius first if needed
             if from_unit == "F":
-                celsius = (temp_value - 32) * 5/9
+                celsius = (temp_value - 32) * 5 / 9
             elif from_unit == "K":
                 celsius = temp_value - 273.15
             else:  # from_unit == "C"
@@ -1618,7 +1573,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
             # Convert from Celsius to target unit
             if to_unit == "F":
-                result = (celsius * 9/5) + 32
+                result = (celsius * 9 / 5) + 32
                 symbol = "°F"
             elif to_unit == "K":
                 result = celsius + 273.15
@@ -1638,41 +1593,42 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             return
 
         # Update main temperature display
-        if hasattr(self, 'temp_label'):
+        if hasattr(self, "temp_label"):
             current_text = self.temp_label.cget("text")
             converted = self._convert_temperature(current_text, from_unit, to_unit)
             self.temp_label.configure(text=converted)
 
         # Update feels like temperature in metrics
-        if hasattr(self, 'metric_labels') and 'feels_like' in self.metric_labels:
-            current_text = self.metric_labels['feels_like'].cget("text")
+        if hasattr(self, "metric_labels") and "feels_like" in self.metric_labels:
+            current_text = self.metric_labels["feels_like"].cget("text")
             converted = self._convert_temperature(current_text, from_unit, to_unit)
-            self.metric_labels['feels_like'].configure(text=converted)
+            self.metric_labels["feels_like"].configure(text=converted)
 
         # Update forecast temperatures if they exist
-        if hasattr(self, 'forecast_cards'):
+        if hasattr(self, "forecast_cards"):
             for card in self.forecast_cards:
-                if hasattr(card, 'temp_label'):
+                if hasattr(card, "temp_label"):
                     current_text = card.temp_label.cget("text")
                     converted = self._convert_temperature(current_text, from_unit, to_unit)
                     card.temp_label.configure(text=converted)
 
     def _refresh_weather_with_new_units(self):
         """Refresh weather data to get temperatures in new units."""
-        if hasattr(self, 'current_city') and self.current_city:
+        if hasattr(self, "current_city") and self.current_city:
             self._load_weather_data()
 
     def _open_github(self):
         """Open GitHub repository in browser."""
         import webbrowser
+
         try:
             webbrowser.open("https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter")
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text="🌐 GitHub repository opened in browser")
             else:
                 print("🌐 GitHub repository opened in browser")
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text="❌ Failed to open GitHub repository")
             else:
                 print(f"❌ Failed to open GitHub repository: {e}")
@@ -1680,14 +1636,17 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _open_documentation(self):
         """Open documentation in browser."""
         import webbrowser
+
         try:
-            webbrowser.open("https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter/blob/main/README.md")
-            if hasattr(self, 'status_label'):
+            webbrowser.open(
+                "https://github.com/StrayDogSyn/weather_dashboard_Final_Eric_Hunter/blob/main/README.md"
+            )
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text="📚 Documentation opened in browser")
             else:
                 print("📚 Documentation opened in browser")
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text="❌ Failed to open documentation")
             else:
                 print(f"❌ Failed to open documentation: {e}")
@@ -1696,16 +1655,15 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Clear application cache."""
         try:
             import os
-            import shutil
 
             # Clear cache directories
-            cache_dirs = ['cache', 'src/cache']
+            cache_dirs = ["cache", "src/cache"]
             files_cleared = 0
 
             for cache_dir in cache_dirs:
                 if os.path.exists(cache_dir):
                     for filename in os.listdir(cache_dir):
-                        if filename.endswith('.json') or filename.endswith('.cache'):
+                        if filename.endswith(".json") or filename.endswith(".cache"):
                             file_path = os.path.join(cache_dir, filename)
                             try:
                                 os.remove(file_path)
@@ -1714,16 +1672,18 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                                 pass
 
             # Clear weather service cache if available
-            if hasattr(self, 'weather_service') and hasattr(self.weather_service, 'clear_cache'):
+            if hasattr(self, "weather_service") and hasattr(self.weather_service, "clear_cache"):
                 self.weather_service.clear_cache()
 
-            if hasattr(self, 'status_label'):
-                self.status_label.configure(text=f"🗑️ Cache cleared successfully ({files_cleared} files)")
+            if hasattr(self, "status_label"):
+                self.status_label.configure(
+                    text=f"🗑️ Cache cleared successfully ({files_cleared} files)"
+                )
             else:
                 print(f"🗑️ Cache cleared successfully ({files_cleared} files)")
 
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"❌ Failed to clear cache: {str(e)}")
             else:
                 print(f"❌ Failed to clear cache: {e}")
@@ -1732,45 +1692,49 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Export application data."""
         try:
             import json
-            import os
             from datetime import datetime
             from tkinter import filedialog
 
             # Prepare export data
             export_data = {
-                'export_timestamp': datetime.now().isoformat(),
-                'app_version': '1.0.0',
-                'current_city': getattr(self, 'current_city', None),
-                'temp_unit': getattr(self, 'temp_unit', 'C'),
-                'settings': {
-                    'theme': 'Dark',  # Current theme
-                    'auto_refresh': getattr(self, 'auto_refresh_switch', None) and self.auto_refresh_switch.get() if hasattr(self, 'auto_refresh_switch') else False
-                }
+                "export_timestamp": datetime.now().isoformat(),
+                "app_version": "1.0.0",
+                "current_city": getattr(self, "current_city", None),
+                "temp_unit": getattr(self, "temp_unit", "C"),
+                "settings": {
+                    "theme": "Dark",  # Current theme
+                    "auto_refresh": (
+                        getattr(self, "auto_refresh_switch", None)
+                        and self.auto_refresh_switch.get()
+                        if hasattr(self, "auto_refresh_switch")
+                        else False
+                    ),
+                },
             }
 
             # Ask user for save location
             filename = filedialog.asksaveasfilename(
                 defaultextension=".json",
                 filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                title="Export Weather Dashboard Data"
+                title="Export Weather Dashboard Data",
             )
 
             if filename:
-                with open(filename, 'w') as f:
+                with open(filename, "w") as f:
                     json.dump(export_data, f, indent=2)
 
-                if hasattr(self, 'status_label'):
+                if hasattr(self, "status_label"):
                     self.status_label.configure(text="📊 Data exported successfully")
                 else:
                     print("📊 Data exported successfully")
             else:
-                if hasattr(self, 'status_label'):
+                if hasattr(self, "status_label"):
                     self.status_label.configure(text="📊 Export cancelled")
                 else:
                     print("📊 Export cancelled")
 
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"❌ Failed to export data: {str(e)}")
             else:
                 print(f"❌ Failed to export data: {e}")
@@ -1779,70 +1743,84 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Import application data."""
         try:
             import json
-            from tkinter import filedialog, messagebox
+            from tkinter import filedialog
 
             # Ask user for file to import
             filename = filedialog.askopenfilename(
                 filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                title="Import Weather Dashboard Data"
+                title="Import Weather Dashboard Data",
             )
 
             if filename:
-                with open(filename, 'r') as f:
+                with open(filename, "r") as f:
                     import_data = json.load(f)
 
                 # Apply imported settings
-                if 'current_city' in import_data and import_data['current_city']:
-                    self.current_city = import_data['current_city']
+                if "current_city" in import_data and import_data["current_city"]:
+                    self.current_city = import_data["current_city"]
                     # Trigger weather update for new city
                     self.after(100, self._load_weather_data)
 
-                if 'temp_unit' in import_data:
-                    old_unit = getattr(self, 'temp_unit', 'C')
-                    self.temp_unit = import_data['temp_unit']
-                    if hasattr(self, 'temp_toggle_btn'):
+                if "temp_unit" in import_data:
+                    old_unit = getattr(self, "temp_unit", "C")
+                    self.temp_unit = import_data["temp_unit"]
+                    if hasattr(self, "temp_toggle_btn"):
                         symbol_map = {"C": "°C", "F": "°F", "K": "K"}
                         self.temp_toggle_btn.configure(text=symbol_map.get(self.temp_unit, "°C"))
                     self._convert_all_temperatures(old_unit, self.temp_unit)
 
-                if hasattr(self, 'status_label'):
+                if hasattr(self, "status_label"):
                     self.status_label.configure(text="📥 Data imported successfully")
                 else:
                     print("📥 Data imported successfully")
             else:
-                if hasattr(self, 'status_label'):
+                if hasattr(self, "status_label"):
                     self.status_label.configure(text="📥 Import cancelled")
                 else:
                     print("📥 Import cancelled")
 
         except Exception as e:
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"❌ Failed to import data: {str(e)}")
             else:
                 print(f"❌ Failed to import data: {e}")
 
     def _create_status_bar(self):
-        """Create status bar."""
-        self.status_frame = ctk.CTkFrame(self, height=30, corner_radius=0)
+        """Create enhanced status bar."""
+        self.status_frame = ctk.CTkFrame(
+            self, height=40, fg_color=DataTerminalTheme.CARD_BG, corner_radius=0
+        )
         self.status_frame.grid(row=2, column=0, sticky="ew")
         self.status_frame.grid_propagate(False)
 
+        # Status label
         self.status_label = ctk.CTkLabel(
             self.status_frame,
             text="Ready",
-            font=("Arial", 12)
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.status_label.pack(side="left", padx=10, pady=5)
+        self.status_label.pack(side="left", padx=20)
 
-        # Time label
+        # Connection indicator
+        self.connection_indicator = ctk.CTkLabel(
+            self.status_frame,
+            text="🟢 Online",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=DataTerminalTheme.SUCCESS,
+        )
+        self.connection_indicator.pack(side="right", padx=20)
+
+        # Time display
         self.time_label = ctk.CTkLabel(
             self.status_frame,
-            text=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            font=("Arial", 12)
+            text="",
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.time_label.pack(side="right", padx=10, pady=5)
+        self.time_label.pack(side="right", padx=20)
 
-        # Update time every second
+        # Start time update
         self._update_time()
 
     def _update_time(self):
@@ -1865,10 +1843,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self._show_loading_state()
 
         # Start loading in thread
-        threading.Thread(
-            target=self._fetch_weather_with_retry,
-            daemon=True
-        ).start()
+        threading.Thread(target=self._fetch_weather_with_retry, daemon=True).start()
 
     def _show_loading_state(self):
         """Show loading indicators."""
@@ -1877,13 +1852,13 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self.condition_label.configure(text="Fetching weather data...")
 
         # Show loading spinner if available
-        if hasattr(self, 'loading_spinner'):
+        if hasattr(self, "loading_spinner"):
             self.loading_spinner.start()
 
     def _hide_loading_state(self):
         """Hide loading indicators."""
         # Hide loading spinner if available
-        if hasattr(self, 'loading_spinner'):
+        if hasattr(self, "loading_spinner"):
             self.loading_spinner.stop()
 
     def _fetch_weather_with_retry(self, max_retries=3):
@@ -1914,14 +1889,12 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self.city_label.configure(text="Error")
         self.temp_label.configure(text="--°C")
         self.condition_label.configure(
-            text=f"❌ {error_message}",
-            text_color=DataTerminalTheme.ERROR
+            text=f"❌ {error_message}", text_color=DataTerminalTheme.ERROR
         )
 
-        if hasattr(self, 'status_label'):
+        if hasattr(self, "status_label"):
             self.status_label.configure(
-                text=f"❌ Error: {error_message}",
-                text_color=DataTerminalTheme.ERROR
+                text=f"❌ Error: {error_message}", text_color=DataTerminalTheme.ERROR
             )
 
     def _change_theme(self, theme):
@@ -1937,6 +1910,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f"{width}x{height}+{x}+{y}")
+
 
 if __name__ == "__main__":
     app = ProfessionalWeatherDashboard()

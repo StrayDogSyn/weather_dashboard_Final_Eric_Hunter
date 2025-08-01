@@ -12,20 +12,20 @@ import customtkinter as ctk
 
 class ChartWidgetsMixin:
     """Mixin for chart widget creation and layout management."""
-    
+
     def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
         """Safely schedule a callback with proper error handling."""
         try:
-            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+            if not hasattr(self, "winfo_exists") or not self.winfo_exists():
                 return None
-            
+
             def safe_callback():
                 try:
-                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                    if hasattr(self, "winfo_exists") and self.winfo_exists() and func:
                         func(*args)
                 except Exception as e:
                     logging.error(f"Error in scheduled callback: {e}")
-            
+
             return self.after(ms, safe_callback)
         except Exception as e:
             logging.error(f"Error scheduling callback: {e}")
@@ -75,7 +75,7 @@ class ChartWidgetsMixin:
                 self.timeframe_frame,
                 text=display_text,
                 command=lambda tf=value: self._handle_timeframe_click(tf),
-                **button_config
+                **button_config,
             )
             button.grid(row=0, column=i, padx=3)
             self.timeframe_buttons[value] = button
@@ -240,7 +240,11 @@ class ChartWidgetsMixin:
         # Hide tooltip after brief delay
         def hide_tooltip():
             try:
-                if hasattr(self, 'tooltip_frame') and self.tooltip_frame and self.tooltip_frame.winfo_exists():
+                if (
+                    hasattr(self, "tooltip_frame")
+                    and self.tooltip_frame
+                    and self.tooltip_frame.winfo_exists()
+                ):
                     self.tooltip_frame.place_forget()
             except Exception as e:
                 logging.error(f"Error hiding tooltip: {e}")
@@ -272,7 +276,7 @@ class ChartWidgetsMixin:
 
         def change_timeframe_callback():
             try:
-                if hasattr(self, 'change_timeframe') and callable(self.change_timeframe):
+                if hasattr(self, "change_timeframe") and callable(self.change_timeframe):
                     self.change_timeframe(timeframe)
             except Exception as e:
                 logging.error(f"Error changing timeframe: {e}")
@@ -309,7 +313,7 @@ class ChartWidgetsMixin:
                     notification_frame.destroy()
             except Exception as e:
                 logging.error(f"Error destroying notification: {e}")
-        
+
         self.safe_after(3000, safe_destroy)
 
     def get_widget_dimensions(self) -> Dict[str, Any]:

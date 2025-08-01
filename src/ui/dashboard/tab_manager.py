@@ -6,7 +6,6 @@ Contains all tab creation and management methods for the dashboard.
 import customtkinter as ctk
 
 from ...services.gemini_service import GeminiService
-
 from ..components.activity_suggestions import ActivitySuggesterComponent
 from ..components.enhanced_journal_ui import EnhancedJournalUI
 from ..components.journal_calendar import JournalCalendarComponent

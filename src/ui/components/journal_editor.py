@@ -15,7 +15,6 @@ from typing import Any, Callable, Dict, Optional
 
 from ...models.journal_entry import JournalEntry
 from ...services.journal_service import JournalService
-
 from ..theme import WeatherTheme
 
 
@@ -46,20 +45,20 @@ class JournalEditor(tk.Frame):
         self._setup_ui()
         self._setup_auto_save()
         self._setup_markdown_highlighting()
-        
+
     def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
         """Safely schedule a callback with proper error handling."""
         try:
-            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+            if not hasattr(self, "winfo_exists") or not self.winfo_exists():
                 return None
-            
+
             def safe_callback():
                 try:
-                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                    if hasattr(self, "winfo_exists") and self.winfo_exists() and func:
                         func(*args)
                 except Exception as e:
                     self.logger.error(f"Error in scheduled callback: {e}")
-            
+
             return self.after(ms, safe_callback)
         except Exception as e:
             self.logger.error(f"Error scheduling callback: {e}")
@@ -624,7 +623,11 @@ class JournalEditor(tk.Frame):
 
                     def update_weather_service_unavailable():
                         try:
-                            if hasattr(self, 'weather_label') and self.weather_label and self.weather_label.winfo_exists():
+                            if (
+                                hasattr(self, "weather_label")
+                                and self.weather_label
+                                and self.weather_label.winfo_exists()
+                            ):
                                 self.weather_label.configure(text="Weather service unavailable")
                         except Exception as e:
                             self.logger.error(f"Error updating weather service unavailable: {e}")
@@ -634,7 +637,11 @@ class JournalEditor(tk.Frame):
 
                 def update_weather_error():
                     try:
-                        if hasattr(self, 'weather_label') and self.weather_label and self.weather_label.winfo_exists():
+                        if (
+                            hasattr(self, "weather_label")
+                            and self.weather_label
+                            and self.weather_label.winfo_exists()
+                        ):
                             self.weather_label.configure(text="Weather error")
                     except Exception as e:
                         self.logger.error(f"Error updating weather error: {e}")

@@ -260,7 +260,9 @@ class AutoRefreshComponent(ctk.CTkFrame):
                     minutes = total_seconds // 60
                     seconds = total_seconds % 60
 
-                    self.next_refresh_label.configure(text=f"Next update: {minutes:02d}:{seconds:02d}")
+                    self.next_refresh_label.configure(
+                        text=f"Next update: {minutes:02d}:{seconds:02d}"
+                    )
 
                     # Update progress bar
                     elapsed = self.refresh_interval - time_until_refresh.total_seconds()
@@ -268,11 +270,15 @@ class AutoRefreshComponent(ctk.CTkFrame):
                     self.refresh_progress.set(progress)
 
             # Schedule next update only if widget still exists and not destroyed
-            if hasattr(self, 'winfo_exists') and self.winfo_exists() and not getattr(self, '_is_destroyed', False):
-                if not hasattr(self, '_countdown_callback_id'):
+            if (
+                hasattr(self, "winfo_exists")
+                and self.winfo_exists()
+                and not getattr(self, "_is_destroyed", False)
+            ):
+                if not hasattr(self, "_countdown_callback_id"):
                     self._countdown_callback_id = None
                 self._countdown_callback_id = self.after(1000, self.update_countdown)
-        except Exception as e:
+        except Exception:
             # Silently handle errors during shutdown
             pass
 

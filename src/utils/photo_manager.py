@@ -215,7 +215,7 @@ class PhotoManager:
             relative_path = str(Path(self.PHOTOS_DIR) / new_filename)
             if "photos" not in self.metadata:
                 self.metadata["photos"] = {}
-                
+
             try:
                 file_size = photo_path.stat().st_size if photo_path.exists() else 0
                 with Image.open(photo_path) as img:
@@ -224,7 +224,7 @@ class PhotoManager:
                 self.logger.warning(f"Error getting file stats: {e}")
                 file_size = 0
                 dimensions = [0, 0]
-                
+
             self.metadata["photos"][relative_path] = {
                 "original_name": source_path.name if source_path else "",
                 "entry_id": entry_id,
@@ -385,7 +385,7 @@ class PhotoManager:
         for path, info in self.metadata.get("photos", {}).items():
             if not isinstance(info, dict):
                 continue
-                
+
             file_size = info.get("file_size", 0)
             if isinstance(file_size, (int, float)):
                 stats["total_size_bytes"] += file_size
@@ -430,7 +430,7 @@ class PhotoManager:
             for path, info in self.metadata.get("photos", {}).items():
                 if not isinstance(info, dict) or not path:
                     continue
-                    
+
                 entry_id = info.get("entry_id")
                 if entry_id in entry_ids:
                     try:

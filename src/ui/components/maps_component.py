@@ -20,7 +20,6 @@ from ...services.maps_service import (
     GoogleMapsService,
     PlaceResult,
 )
-
 from ..theme import DataTerminalTheme
 
 
@@ -37,20 +36,20 @@ class MapsComponent(ctk.CTkFrame):
         self.maps_service = GoogleMapsService(config_service)
         self.on_location_selected = on_location_selected
         self.logger = logging.getLogger("weather_dashboard.maps_component")
-        
+
     def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
         """Safely schedule a callback with proper error handling."""
         try:
-            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+            if not hasattr(self, "winfo_exists") or not self.winfo_exists():
                 return None
-            
+
             def safe_callback():
                 try:
-                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                    if hasattr(self, "winfo_exists") and self.winfo_exists() and func:
                         func(*args)
                 except Exception as e:
                     self.logger.error(f"Error in scheduled callback: {e}")
-            
+
             return self.after(ms, safe_callback)
         except Exception as e:
             self.logger.error(f"Error scheduling callback: {e}")
@@ -316,7 +315,11 @@ class MapsComponent(ctk.CTkFrame):
 
             def reset_search_button():
                 try:
-                    if hasattr(self, 'search_button') and self.search_button and self.search_button.winfo_exists():
+                    if (
+                        hasattr(self, "search_button")
+                        and self.search_button
+                        and self.search_button.winfo_exists()
+                    ):
                         self.search_button.configure(text="Search", state="normal")
                 except Exception as e:
                     self.logger.error(f"Error resetting search button: {e}")

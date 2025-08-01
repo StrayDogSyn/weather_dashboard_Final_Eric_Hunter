@@ -10,19 +10,19 @@
           "longitude": -0.1257,
           "timezone": null
         },
-        "timestamp": "2025-08-01 18:24:02.675706",
+        "timestamp": "2025-08-01 19:16:14.554263",
         "condition": "WeatherCondition.CLOUDS",
         "description": "Broken Clouds",
-        "temperature": 15.9,
-        "feels_like": 15.6,
-        "humidity": 79,
+        "temperature": 15.4,
+        "feels_like": 15.0,
+        "humidity": 76,
         "pressure": 1017,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 2.1,
+        "wind_speed": 2.6,
         "wind_direction": 330,
         "wind_gust": null,
-        "cloudiness": 62,
+        "cloudiness": 70,
         "sunrise": null,
         "sunset": null,
         "alerts": [],
@@ -41,30 +41,30 @@
           ],
           "base": "stations",
           "main": {
-            "temp": 15.91,
-            "feels_like": 15.62,
+            "temp": 15.43,
+            "feels_like": 15.01,
             "temp_min": 14.23,
-            "temp_max": 16.86,
+            "temp_max": 16.1,
             "pressure": 1017,
-            "humidity": 79,
+            "humidity": 76,
             "sea_level": 1017,
-            "grnd_level": 1013
+            "grnd_level": 1014
           },
           "visibility": 10000,
           "wind": {
-            "speed": 2.06,
+            "speed": 2.57,
             "deg": 330
           },
           "clouds": {
-            "all": 62
+            "all": 70
           },
-          "dt": 1754086400,
+          "dt": 1754089446,
           "sys": {
             "type": 2,
             "id": 2075535,
             "country": "GB",
-            "sunrise": 1754022257,
-            "sunset": 1754077754
+            "sunrise": 1754108748,
+            "sunset": 1754164056
           },
           "timezone": 3600,
           "id": 2643743,
@@ -73,26 +73,26 @@
         },
         "air_quality": null,
         "astronomical": {
-          "sunrise": "2025-08-01 00:24:17",
-          "sunset": "2025-08-01 15:49:15",
+          "sunrise": "2025-08-02 00:25:49",
+          "sunset": "2025-08-02 15:47:37",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.7705023195257298,
-          "day_length": "15:24:58"
+          "moon_phase": 0.48383982913721113,
+          "day_length": "15:21:48"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-01T00:24:17",
-        "sunset": "2025-08-01T15:49:15",
+        "sunrise": "2025-08-02 00:25:49",
+        "sunset": "2025-08-02 15:47:37",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.7705023195257298,
-        "day_length": 55498.0
+        "moon_phase": 0.48383982913721113,
+        "day_length": "15:21:48"
       },
       "alerts": []
     },
-    "timestamp": "2025-08-01T18:24:04.743767"
+    "timestamp": "2025-08-01T19:16:16.538694"
   },
   "forecast_london": {
     "data": {
@@ -1568,5 +1568,100 @@
       }
     },
     "timestamp": "2025-08-01 14:51:39.884605"
+  },
+  "enhanced_austin": {
+    "data": {
+      "weather": {
+        "location": {
+          "name": "Austin",
+          "country": "US",
+          "state": null,
+          "latitude": 30.2672,
+          "longitude": -97.7431,
+          "timezone": null
+        },
+        "timestamp": "2025-08-01 19:25:16.626247",
+        "condition": "WeatherCondition.CLOUDS",
+        "description": "Broken Clouds",
+        "temperature": 36.6,
+        "feels_like": 41.2,
+        "humidity": 42,
+        "pressure": 1017,
+        "visibility": 10,
+        "uv_index": null,
+        "wind_speed": 4.6,
+        "wind_direction": 90,
+        "wind_gust": null,
+        "cloudiness": 75,
+        "sunrise": null,
+        "sunset": null,
+        "alerts": [],
+        "raw_data": {
+          "coord": {
+            "lon": -97.7431,
+            "lat": 30.2672
+          },
+          "weather": [
+            {
+              "id": 803,
+              "main": "Clouds",
+              "description": "broken clouds",
+              "icon": "04d"
+            }
+          ],
+          "base": "stations",
+          "main": {
+            "temp": 36.63,
+            "feels_like": 41.22,
+            "temp_min": 35.27,
+            "temp_max": 37.68,
+            "pressure": 1017,
+            "humidity": 42,
+            "sea_level": 1017,
+            "grnd_level": 991
+          },
+          "visibility": 10000,
+          "wind": {
+            "speed": 4.63,
+            "deg": 90
+          },
+          "clouds": {
+            "all": 75
+          },
+          "dt": 1754090587,
+          "sys": {
+            "type": 2,
+            "id": 2003218,
+            "country": "US",
+            "sunrise": 1754048978,
+            "sunset": 1754097888
+          },
+          "timezone": -18000,
+          "id": 4671654,
+          "name": "Austin",
+          "cod": 200
+        },
+        "air_quality": null,
+        "astronomical": {
+          "sunrise": "2025-08-01 07:49:38",
+          "sunset": "2025-08-01 21:24:48",
+          "moonrise": null,
+          "moonset": null,
+          "moon_phase": 0.694866062888538,
+          "day_length": "13:35:10"
+        }
+      },
+      "air_quality": null,
+      "astronomical": {
+        "sunrise": "2025-08-01T07:49:38",
+        "sunset": "2025-08-01T21:24:48",
+        "moonrise": null,
+        "moonset": null,
+        "moon_phase": 0.694866062888538,
+        "day_length": 48910.0
+      },
+      "alerts": []
+    },
+    "timestamp": "2025-08-01T19:25:18.592898"
   }
 }

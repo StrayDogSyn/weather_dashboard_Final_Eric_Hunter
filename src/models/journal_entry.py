@@ -105,7 +105,7 @@ class JournalEntry:
         """
         if not isinstance(data, dict):
             raise ValueError("Data must be a dictionary")
-            
+
         # Parse datetime fields with error handling
         try:
             date_created = (
@@ -115,20 +115,20 @@ class JournalEntry:
             )
         except (ValueError, TypeError):
             date_created = datetime.now()
-            
+
         try:
             created_at = (
-                datetime.fromisoformat(str(data["created_at"])) 
-                if data.get("created_at") 
+                datetime.fromisoformat(str(data["created_at"]))
+                if data.get("created_at")
                 else datetime.now()
             )
         except (ValueError, TypeError):
             created_at = datetime.now()
-            
+
         try:
             updated_at = (
-                datetime.fromisoformat(str(data["updated_at"])) 
-                if data.get("updated_at") 
+                datetime.fromisoformat(str(data["updated_at"]))
+                if data.get("updated_at")
                 else datetime.now()
             )
         except (ValueError, TypeError):
@@ -144,7 +144,7 @@ class JournalEntry:
                     weather_data = data["weather_data"]
             except (json.JSONDecodeError, TypeError):
                 weather_data = None
-                
+
         tags = []
         if data.get("tags"):
             try:
@@ -155,7 +155,7 @@ class JournalEntry:
                     tags = [str(tag) for tag in data["tags"] if tag is not None]
             except (json.JSONDecodeError, TypeError):
                 tags = []
-                
+
         photos = []
         if data.get("photos"):
             try:
@@ -166,7 +166,7 @@ class JournalEntry:
                     photos = [str(photo) for photo in data["photos"] if photo is not None]
             except (json.JSONDecodeError, TypeError):
                 photos = []
-        
+
         # Validate mood_rating
         mood_rating = data.get("mood_rating")
         if mood_rating is not None:
@@ -187,7 +187,9 @@ class JournalEntry:
             location=str(data["location"]) if data.get("location") is not None else None,
             category=str(data["category"]) if data.get("category") is not None else None,
             photos=photos,
-            template_used=str(data["template_used"]) if data.get("template_used") is not None else None,
+            template_used=(
+                str(data["template_used"]) if data.get("template_used") is not None else None
+            ),
             created_at=created_at,
             updated_at=updated_at,
         )

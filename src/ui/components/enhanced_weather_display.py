@@ -531,9 +531,9 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             # Check if aqi_data is None
             if aqi_data is None:
                 return
-                
+
             # Handle both dictionary and AirQualityData object
-            if hasattr(aqi_data, 'aqi'):
+            if hasattr(aqi_data, "aqi"):
                 # AirQualityData object
                 aqi = aqi_data.aqi
             elif isinstance(aqi_data, dict):
@@ -555,7 +555,7 @@ class EnhancedWeatherDisplay(ctk.CTkFrame):
             self.aqi_progress.configure(progress_color=color)
 
             # Health recommendation
-            if hasattr(aqi_data, 'get_health_recommendation'):
+            if hasattr(aqi_data, "get_health_recommendation"):
                 recommendation = aqi_data.get_health_recommendation()
             else:
                 recommendation = self._get_aqi_recommendation(aqi)

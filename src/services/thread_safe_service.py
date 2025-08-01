@@ -25,7 +25,7 @@ class ThreadSafeUIUpdater:
         try:
             # Clear any existing callback ID
             self._process_callback_id = None
-            
+
             # Process all queued updates
             while not self.update_queue.empty():
                 try:
@@ -38,13 +38,17 @@ class ThreadSafeUIUpdater:
                     self.logger.warning(f"UI update error: {e}")
 
             # Schedule next processing cycle only if still running
-            if self._running and hasattr(self.root, 'winfo_exists') and self.root.winfo_exists():
-                self._process_callback_id = self.root.after(50, self._process_updates)  # Process every 50ms
+            if self._running and hasattr(self.root, "winfo_exists") and self.root.winfo_exists():
+                self._process_callback_id = self.root.after(
+                    50, self._process_updates
+                )  # Process every 50ms
 
         except Exception as e:
             self.logger.error(f"Update processing error: {e}")
-            if self._running and hasattr(self.root, 'winfo_exists') and self.root.winfo_exists():
-                self._process_callback_id = self.root.after(100, self._process_updates)  # Retry with longer delay
+            if self._running and hasattr(self.root, "winfo_exists") and self.root.winfo_exists():
+                self._process_callback_id = self.root.after(
+                    100, self._process_updates
+                )  # Retry with longer delay
 
     def schedule_update(self, update_func: Callable):
         """Schedule a UI update to run on the main thread."""
@@ -68,9 +72,9 @@ class ThreadSafeUIUpdater:
     def stop(self):
         """Stop the update processor."""
         self._running = False
-        
+
         # Cancel any pending callback
-        if self._process_callback_id and hasattr(self.root, 'after_cancel'):
+        if self._process_callback_id and hasattr(self.root, "after_cancel"):
             try:
                 self.root.after_cancel(self._process_callback_id)
                 self._process_callback_id = None

@@ -230,20 +230,20 @@ class LocationManagerUI(ctk.CTkFrame):
 
         # Refresh display
         self.refresh_display()
-        
+
     def safe_after(self, ms: int, func: callable, *args) -> Optional[str]:
         """Safely schedule a callback with proper error handling."""
         try:
-            if not hasattr(self, 'winfo_exists') or not self.winfo_exists():
+            if not hasattr(self, "winfo_exists") or not self.winfo_exists():
                 return None
-            
+
             def safe_callback():
                 try:
-                    if hasattr(self, 'winfo_exists') and self.winfo_exists() and func:
+                    if hasattr(self, "winfo_exists") and self.winfo_exists() and func:
                         func(*args)
                 except Exception as e:
                     self.logger.error(f"Error in scheduled callback: {e}")
-            
+
             return self.after(ms, safe_callback)
         except Exception as e:
             self.logger.error(f"Error scheduling callback: {e}")
@@ -438,14 +438,18 @@ class LocationManagerUI(ctk.CTkFrame):
         # Reset status after 5 seconds
         def reset_status():
             try:
-                if hasattr(self, 'gps_status') and self.gps_status and self.gps_status.winfo_exists():
+                if (
+                    hasattr(self, "gps_status")
+                    and self.gps_status
+                    and self.gps_status.winfo_exists()
+                ):
                     self.gps_status.configure(
                         text="Click to detect your current location",
                         text_color=DataTerminalTheme.TEXT_SECONDARY,
                     )
             except Exception as e:
                 self.logger.error(f"Error resetting GPS status: {e}")
-        
+
         self.safe_after(5000, reset_status)
 
     def refresh_display(self):

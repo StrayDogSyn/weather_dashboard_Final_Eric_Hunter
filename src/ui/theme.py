@@ -10,13 +10,14 @@ import customtkinter as ctk
 
 class DataTerminalTheme:
     """Basic theme configuration."""
+
     PRIMARY = "#00ff88"
     BACKGROUND = "#1a1a1a"
     CARD_BG = "#2a2a2a"
     TEXT = "#ffffff"
     TEXT_SECONDARY = "#888888"
     BORDER = "#333333"
-    
+
     # Additional colors
     SUCCESS = "#00cc66"
     ACCENT = "#444444"
@@ -26,13 +27,13 @@ class DataTerminalTheme:
     INFO = "#0088ff"
     CHART_GRID = "#333333"
     CHART_PRIMARY = "#00ff88"
-    
+
     FONT_FAMILY = "Arial"
     FONT_SIZE_SMALL = 12
     FONT_SIZE_MEDIUM = 14
     FONT_SIZE_LARGE = 18
     FONT_SIZE_TINY = 10
-    
+
     # Padding
     PADDING_TINY = 5
     PADDING_SMALL = 10

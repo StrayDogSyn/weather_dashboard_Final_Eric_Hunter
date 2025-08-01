@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from ..models.weather_models import Location, WeatherCondition, WeatherData
-
 from .config_service import ConfigService
 
 

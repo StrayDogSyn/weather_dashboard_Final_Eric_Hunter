@@ -292,16 +292,25 @@ class ProfessionalWeatherDashboard(
         try:
             # Find the weather display container
             weather_container = None
-            for attr_name in ["enhanced_weather_display", "weather_frame", "main_weather_frame", "weather_display"]:
+            for attr_name in [
+                "enhanced_weather_display",
+                "weather_frame",
+                "main_weather_frame",
+                "weather_display",
+            ]:
                 if hasattr(self, attr_name) and getattr(self, attr_name) is not None:
                     weather_container = getattr(self, attr_name)
                     # For enhanced_weather_display, get the main_weather_frame
-                    if attr_name == "enhanced_weather_display" and hasattr(weather_container, "main_weather_frame"):
+                    if attr_name == "enhanced_weather_display" and hasattr(
+                        weather_container, "main_weather_frame"
+                    ):
                         weather_container = weather_container.main_weather_frame
                     break
 
             if not weather_container:
-                self.logger.debug("No weather container found - this is normal during initialization")
+                self.logger.debug(
+                    "No weather container found - this is normal during initialization"
+                )
                 return
 
             # Create missing labels
@@ -534,7 +543,7 @@ class ProfessionalWeatherDashboard(
         try:
             # Set closing flag to prevent new callbacks
             self._is_closing = True
-            
+
             # Cancel auto-refresh timer
             if hasattr(self, "auto_refresh_timer_id") and self.auto_refresh_timer_id:
                 self.after_cancel(self.auto_refresh_timer_id)
@@ -567,7 +576,7 @@ class ProfessionalWeatherDashboard(
                     self.logger.info(f"Cancelled {cancelled_count} pending callbacks")
 
             # Stop thread safe updater
-            if hasattr(self, 'ui_updater') and self.ui_updater:
+            if hasattr(self, "ui_updater") and self.ui_updater:
                 self.ui_updater.stop()
 
             # Call the new cleanup method
@@ -585,22 +594,22 @@ class ProfessionalWeatherDashboard(
         finally:
             # Always destroy the window
             self.destroy()
-            
+
     def _cancel_widget_callbacks(self, widget):
         """Recursively cancel callbacks in widget hierarchy."""
         try:
             # Cancel countdown callback if it exists
-            if hasattr(widget, '_countdown_callback_id') and widget._countdown_callback_id:
+            if hasattr(widget, "_countdown_callback_id") and widget._countdown_callback_id:
                 try:
                     self.after_cancel(widget._countdown_callback_id)
                     widget._countdown_callback_id = None
                 except Exception:
                     pass
-            
+
             # Set destroyed flag
-            if hasattr(widget, '_is_destroyed'):
+            if hasattr(widget, "_is_destroyed"):
                 widget._is_destroyed = True
-            
+
             # Recursively check children
             for child in widget.winfo_children():
                 self._cancel_widget_callbacks(child)

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..config.app_config import AppConfig, UIConfig, WeatherConfig
-
 from ..core.exceptions import ConfigurationError
 from ..core.interfaces import IConfigurationService
 

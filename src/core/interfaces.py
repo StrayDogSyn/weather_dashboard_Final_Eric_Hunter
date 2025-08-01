@@ -1,361 +1,415 @@
-"""Service Interfaces
+"""Core interfaces for the Weather Dashboard application.
 
-Defines abstract base classes and interfaces for all services
-to ensure proper separation of concerns and testability.
+Defines contracts for services, repositories, and UI components.
 """
 
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
-
-class IDisposable(ABC):
-    """Interface for disposable resources."""
-
-    @abstractmethod
-    def dispose(self) -> None:
-        """Dispose of resources."""
+from ..models.weather_models import WeatherData
+from ..models.journal_models import JournalEntry
 
 
 class IConfigurationService(ABC):
-    """Interface for configuration management service."""
+    """Configuration service interface."""
 
     @abstractmethod
     def get_api_key(self, service_name: str) -> Optional[str]:
-        """Get API key for a specific service.
-
-        Args:
-            service_name: Name of the service (e.g., 'openweather', 'gemini')
-
-        Returns:
-            API key or None if not found
-        """
+        """Get API key for a specific service."""
+        pass
 
     @abstractmethod
     def get_setting(self, key: str, default: Any = None) -> Any:
-        """Get a configuration setting.
-
-        Args:
-            key: Configuration key
-            default: Default value if key not found
-
-        Returns:
-            Configuration value or default
-        """
-
-    @abstractmethod
-    def get_database_config(self) -> Dict[str, Any]:
-        """Get database configuration.
-
-        Returns:
-            Database configuration dictionary
-        """
-
-    @abstractmethod
-    def get_cache_config(self) -> Dict[str, Any]:
-        """Get cache configuration.
-
-        Returns:
-            Cache configuration dictionary
-        """
+        """Get a configuration setting."""
+        pass
 
     @abstractmethod
     def validate_configuration(self) -> bool:
-        """Validate the current configuration.
-
-        Returns:
-            True if configuration is valid, False otherwise
-        """
-
-    @abstractmethod
-    def get_data_directory(self) -> Path:
-        """Get the data directory path.
-
-        Returns:
-            Path to data directory
-        """
-
-
-class ILoggingService(ABC):
-    """Interface for logging service."""
-
-    @abstractmethod
-    def log_info(self, message: str, **kwargs) -> None:
-        """Log an info message.
-
-        Args:
-            message: Log message
-            **kwargs: Additional context data
-        """
-
-    @abstractmethod
-    def log_warning(self, message: str, **kwargs) -> None:
-        """Log a warning message.
-
-        Args:
-            message: Log message
-            **kwargs: Additional context data
-        """
-
-    @abstractmethod
-    def log_error(self, message: str, exception: Optional[Exception] = None, **kwargs) -> None:
-        """Log an error message.
-
-        Args:
-            message: Log message
-            exception: Optional exception object
-            **kwargs: Additional context data
-        """
-
-    @abstractmethod
-    def log_debug(self, message: str, **kwargs) -> None:
-        """Log a debug message.
-
-        Args:
-            message: Log message
-            **kwargs: Additional context data
-        """
-
-    @abstractmethod
-    def create_logger(self, name: str) -> Any:
-        """Create a logger instance.
-
-        Args:
-            name: Logger name
-
-        Returns:
-            Logger instance
-        """
+        """Validate the current configuration."""
+        pass
 
 
 class IWeatherService(ABC):
-    """Interface for weather data service."""
+    """Weather service interface."""
 
     @abstractmethod
-    async def get_current_weather(self, location: str, units: str = "metric") -> Dict[str, Any]:
-        """Get current weather data for a location.
-
-        Args:
-            location: Location name or coordinates
-            units: Temperature units (metric, imperial, kelvin)
-
-        Returns:
-            Current weather data dictionary
-        """
+    def get_current_weather(self, location: str) -> WeatherData:
+        """Get current weather for a location."""
+        pass
 
     @abstractmethod
-    async def get_weather_forecast(
-        self, location: str, days: int = 5, units: str = "metric"
-    ) -> Dict[str, Any]:
-        """Get weather forecast for a location.
-
-        Args:
-            location: Location name or coordinates
-            days: Number of forecast days
-            units: Temperature units (metric, imperial, kelvin)
-
-        Returns:
-            Weather forecast data dictionary
-        """
+    def get_forecast(self, location: str) -> List[WeatherData]:
+        """Get weather forecast for a location."""
+        pass
 
     @abstractmethod
-    async def get_air_quality(self, lat: float, lon: float) -> Dict[str, Any]:
-        """Get air quality data for coordinates.
+    def search_locations(self, query: str) -> List[Dict[str, Any]]:
+        """Search for locations."""
+        pass
 
-        Args:
-            lat: Latitude
-            lon: Longitude
 
-        Returns:
-            Air quality data dictionary
-        """
+class IJournalService(ABC):
+    """Journal service interface."""
 
     @abstractmethod
-    async def search_locations(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
-        """Search for locations by name.
-
-        Args:
-            query: Search query
-            limit: Maximum number of results
-
-        Returns:
-            List of location dictionaries
-        """
+    def create_entry(self, entry: JournalEntry) -> JournalEntry:
+        """Create a new journal entry."""
+        pass
 
     @abstractmethod
-    def is_available(self) -> bool:
-        """Check if the weather service is available.
-
-        Returns:
-            True if service is available, False otherwise
-        """
-
-
-class IDataRepository(ABC):
-    """Interface for data repository operations."""
+    def get_entries(self, filters: Optional[Dict[str, Any]] = None) -> List[JournalEntry]:
+        """Get journal entries with optional filters."""
+        pass
 
     @abstractmethod
-    async def save(self, entity: Any, entity_id: Optional[str] = None) -> str:
-        """Save an entity to the repository.
-
-        Args:
-            entity: Entity to save
-            entity_id: Optional entity ID
-
-        Returns:
-            Entity ID
-        """
+    def update_entry(self, entry_id: str, updates: Dict[str, Any]) -> Optional[JournalEntry]:
+        """Update a journal entry."""
+        pass
 
     @abstractmethod
-    async def get_by_id(self, entity_id: str) -> Optional[Any]:
-        """Get an entity by ID.
+    def delete_entry(self, entry_id: str) -> bool:
+        """Delete a journal entry."""
+        pass
 
-        Args:
-            entity_id: Entity ID
 
-        Returns:
-            Entity or None if not found
-        """
+class IActivityService(ABC):
+    """Activity service interface."""
 
     @abstractmethod
-    async def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Any]:
-        """Get all entities matching filters.
-
-        Args:
-            filters: Optional filter criteria
-
-        Returns:
-            List of entities
-        """
+    def get_activity_suggestions(self, weather_data: WeatherData) -> List[Dict[str, Any]]:
+        """Get activity suggestions based on weather."""
+        pass
 
     @abstractmethod
-    async def update(self, entity_id: str, entity: Any) -> bool:
-        """Update an entity.
+    def get_fallback_activities(self) -> List[Dict[str, Any]]:
+        """Get fallback activities when weather data is unavailable."""
+        pass
 
-        Args:
-            entity_id: Entity ID
-            entity: Updated entity
 
-        Returns:
-            True if updated successfully, False otherwise
-        """
+class IWeatherRepository(ABC):
+    """Weather data repository interface."""
 
     @abstractmethod
-    async def delete(self, entity_id: str) -> bool:
-        """Delete an entity.
-
-        Args:
-            entity_id: Entity ID
-
-        Returns:
-            True if deleted successfully, False otherwise
-        """
+    async def get_current_weather(self, location: str) -> WeatherData:
+        """Get current weather data."""
+        pass
 
     @abstractmethod
-    async def exists(self, entity_id: str) -> bool:
-        """Check if an entity exists.
-
-        Args:
-            entity_id: Entity ID
-
-        Returns:
-            True if entity exists, False otherwise
-        """
+    async def save_weather_data(self, location: str, data: WeatherData) -> None:
+        """Save weather data to cache."""
+        pass
 
     @abstractmethod
-    async def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
-        """Count entities matching filters.
-
-        Args:
-            filters: Optional filter criteria
-
-        Returns:
-            Number of matching entities
-        """
+    async def get_cached_weather(self, location: str) -> Optional[WeatherData]:
+        """Get cached weather data."""
+        pass
 
 
-class ICacheService(ABC):
-    """Interface for caching service."""
+class IJournalRepository(ABC):
+    """Journal data repository interface."""
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[Any]:
-        """Get a value from cache.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            Cached value or None if not found
-        """
+    async def save_entry(self, entry: JournalEntry) -> JournalEntry:
+        """Save a journal entry."""
+        pass
 
     @abstractmethod
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set a value in cache.
-
-        Args:
-            key: Cache key
-            value: Value to cache
-            ttl: Time to live in seconds
-        """
+    async def get_entries(self, filters: Optional[Dict[str, Any]] = None) -> List[JournalEntry]:
+        """Get journal entries."""
+        pass
 
     @abstractmethod
-    async def delete(self, key: str) -> bool:
-        """Delete a value from cache.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            True if deleted, False if key not found
-        """
+    async def update_entry(self, entry_id: str, updates: Dict[str, Any]) -> Optional[JournalEntry]:
+        """Update a journal entry."""
+        pass
 
     @abstractmethod
-    async def clear(self) -> None:
-        """Clear all cached values."""
+    async def delete_entry(self, entry_id: str) -> bool:
+        """Delete a journal entry."""
+        pass
+
+
+class IUIComponent(ABC):
+    """Base interface for UI components."""
 
     @abstractmethod
-    async def exists(self, key: str) -> bool:
-        """Check if a key exists in cache.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            True if key exists, False otherwise
-        """
-
-
-class INotificationService(ABC):
-    """Interface for notification service."""
+    def create(self) -> Any:
+        """Create the UI component."""
+        pass
 
     @abstractmethod
-    async def send_notification(self, title: str, message: str, level: str = "info") -> None:
-        """Send a notification.
-
-        Args:
-            title: Notification title
-            message: Notification message
-            level: Notification level (info, warning, error)
-        """
+    def update(self, data: Any) -> None:
+        """Update the component with new data."""
+        pass
 
     @abstractmethod
-    def subscribe(self, callback: callable) -> str:
-        """Subscribe to notifications.
+    def destroy(self) -> None:
+        """Destroy the component."""
+        pass
 
-        Args:
-            callback: Callback function to handle notifications
 
-        Returns:
-            Subscription ID
-        """
+class IWeatherDisplay(IUIComponent):
+    """Weather display component interface."""
 
     @abstractmethod
-    def unsubscribe(self, subscription_id: str) -> bool:
-        """Unsubscribe from notifications.
+    def show_loading(self) -> None:
+        """Show loading state."""
+        pass
 
-        Args:
-            subscription_id: Subscription ID
+    @abstractmethod
+    def show_error(self, error: str) -> None:
+        """Show error state."""
+        pass
 
-        Returns:
-            True if unsubscribed successfully, False otherwise
-        """
+    @abstractmethod
+    def show_weather(self, weather_data: WeatherData) -> None:
+        """Show weather data."""
+        pass
+
+
+class IJournalDisplay(IUIComponent):
+    """Journal display component interface."""
+
+    @abstractmethod
+    def show_entries(self, entries: List[JournalEntry]) -> None:
+        """Show journal entries."""
+        pass
+
+    @abstractmethod
+    def show_entry_editor(self, entry: Optional[JournalEntry] = None) -> None:
+        """Show entry editor."""
+        pass
+
+
+class IActivityDisplay(IUIComponent):
+    """Activity display component interface."""
+
+    @abstractmethod
+    def show_activities(self, activities: List[Dict[str, Any]]) -> None:
+        """Show activity suggestions."""
+        pass
+
+    @abstractmethod
+    def refresh_activities(self, weather_data: WeatherData) -> None:
+        """Refresh activities based on weather."""
+        pass
+
+
+class IEventBus(ABC):
+    """Event bus interface for loose coupling between components."""
+
+    @abstractmethod
+    def subscribe(self, event_type: str, handler: callable) -> None:
+        """Subscribe to an event type."""
+        pass
+
+    @abstractmethod
+    def unsubscribe(self, event_type: str, handler: callable) -> None:
+        """Unsubscribe from an event type."""
+        pass
+
+    @abstractmethod
+    def publish(self, event_type: str, data: Any = None) -> None:
+        """Publish an event."""
+        pass
+
+
+class ILogger(ABC):
+    """Logger interface."""
+
+    @abstractmethod
+    def info(self, message: str) -> None:
+        """Log info message."""
+        pass
+
+    @abstractmethod
+    def error(self, message: str, exc_info: Optional[Exception] = None) -> None:
+        """Log error message."""
+        pass
+
+    @abstractmethod
+    def warning(self, message: str) -> None:
+        """Log warning message."""
+        pass
+
+    @abstractmethod
+    def debug(self, message: str) -> None:
+        """Log debug message."""
+        pass
+
+
+class ICache(ABC):
+    """Cache interface."""
+
+    @abstractmethod
+    def get(self, key: str) -> Optional[Any]:
+        """Get value from cache."""
+        pass
+
+    @abstractmethod
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+        """Set value in cache."""
+        pass
+
+    @abstractmethod
+    def delete(self, key: str) -> None:
+        """Delete value from cache."""
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        """Clear all cache."""
+        pass
+
+    @abstractmethod
+    def exists(self, key: str) -> bool:
+        """Check if key exists in cache."""
+        pass
+
+
+class IThemeManager(ABC):
+    """Theme management interface."""
+
+    @abstractmethod
+    def get_current_theme(self) -> str:
+        """Get current theme name."""
+        pass
+
+    @abstractmethod
+    def set_theme(self, theme_name: str) -> None:
+        """Set theme."""
+        pass
+
+    @abstractmethod
+    def get_theme_colors(self) -> Dict[str, str]:
+        """Get current theme colors."""
+        pass
+
+    @abstractmethod
+    def get_available_themes(self) -> List[str]:
+        """Get available themes."""
+        pass
+
+
+class IKeyboardShortcutManager(ABC):
+    """Keyboard shortcut management interface."""
+
+    @abstractmethod
+    def register_shortcut(self, key: str, callback: callable) -> None:
+        """Register a keyboard shortcut."""
+        pass
+
+    @abstractmethod
+    def unregister_shortcut(self, key: str) -> None:
+        """Unregister a keyboard shortcut."""
+        pass
+
+    @abstractmethod
+    def handle_keypress(self, event: Any) -> bool:
+        """Handle keypress event."""
+        pass
+
+
+class IAutoRefreshManager(ABC):
+    """Auto-refresh management interface."""
+
+    @abstractmethod
+    def start_auto_refresh(self, interval: int, callback: callable) -> None:
+        """Start auto-refresh with given interval."""
+        pass
+
+    @abstractmethod
+    def stop_auto_refresh(self) -> None:
+        """Stop auto-refresh."""
+        pass
+
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        """Check if auto-refresh is enabled."""
+        pass
+
+    @abstractmethod
+    def set_interval(self, interval: int) -> None:
+        """Set refresh interval."""
+        pass
+
+
+class IErrorHandler(ABC):
+    """Error handling interface."""
+
+    @abstractmethod
+    def handle_error(self, error: Exception, context: str) -> None:
+        """Handle an error."""
+        pass
+
+    @abstractmethod
+    def show_user_friendly_error(self, error: Exception) -> str:
+        """Convert technical error to user-friendly message."""
+        pass
+
+    @abstractmethod
+    def log_error(self, error: Exception, context: str) -> None:
+        """Log error for debugging."""
+        pass
+
+
+class IDataValidator(ABC):
+    """Data validation interface."""
+
+    @abstractmethod
+    def validate_weather_data(self, data: Dict[str, Any]) -> bool:
+        """Validate weather data."""
+        pass
+
+    @abstractmethod
+    def validate_journal_entry(self, entry: Dict[str, Any]) -> bool:
+        """Validate journal entry."""
+        pass
+
+    @abstractmethod
+    def validate_location(self, location: str) -> bool:
+        """Validate location string."""
+        pass
+
+
+class IPerformanceMonitor(ABC):
+    """Performance monitoring interface."""
+
+    @abstractmethod
+    def start_timer(self, operation: str) -> None:
+        """Start timing an operation."""
+        pass
+
+    @abstractmethod
+    def end_timer(self, operation: str) -> float:
+        """End timing an operation and return duration."""
+        pass
+
+    @abstractmethod
+    def get_performance_stats(self) -> Dict[str, float]:
+        """Get performance statistics."""
+        pass
+
+
+class IAccessibilityManager(ABC):
+    """Accessibility management interface."""
+
+    @abstractmethod
+    def enable_high_contrast(self) -> None:
+        """Enable high contrast mode."""
+        pass
+
+    @abstractmethod
+    def enable_screen_reader(self) -> None:
+        """Enable screen reader support."""
+        pass
+
+    @abstractmethod
+    def set_font_size(self, size: int) -> None:
+        """Set font size for accessibility."""
+        pass
+
+    @abstractmethod
+    def is_accessibility_enabled(self) -> bool:
+        """Check if accessibility features are enabled."""
+        pass
