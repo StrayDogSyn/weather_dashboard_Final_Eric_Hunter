@@ -1,46 +1,17 @@
 import sys
 import logging
-import atexit
-import weakref
 from pathlib import Path
 
-# Add the project root to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+# Add src to path
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
 
-# Now import with correct paths
-from src.ui.professional_weather_dashboard import ProfessionalWeatherDashboard
-from src.services.config_service import ConfigService
-from src.core.container import ServiceContainer
-from src.ui.safe_widgets import SafeWidget
+from ui.professional_weather_dashboard import ProfessionalWeatherDashboard
 from dotenv import load_dotenv
 
-# Track all after callbacks for cleanup
-_after_ids = weakref.WeakSet()
-
-def cleanup_callbacks():
-    """Clean up all pending after callbacks before exit."""
-    # Clean up SafeWidget callbacks
-    SafeWidget.cleanup_all_widgets()
-    
-    # Clean up tracked widgets
-    for widget in list(_after_ids):
-        try:
-            if widget.winfo_exists():
-                # Cancel all pending after callbacks
-                for after_id in widget.tk.call('after', 'info'):
-                    try:
-                        widget.after_cancel(after_id)
-                    except:
-                        pass
-        except:
-            pass
-
 def main():
-    """Main application entry with proper cleanup."""
-    load_dotenv()
-    
-    # Initialize logging
+    """Main entry point."""
+    # Setup logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(levelname)s [%(asctime)s] %(name)s: %(message)s',
@@ -48,47 +19,21 @@ def main():
     )
     
     logger = logging.getLogger(__name__)
-    logger.info("📝 Logging initialized - Level: INFO")
-    logger.info("Starting Weather Dashboard with enhanced cleanup...")
+    logger.info("Starting Weather Dashboard...")
     
-    # Register cleanup
-    atexit.register(cleanup_callbacks)
-    
-    # Initialize services
-    container = ServiceContainer()
-    container.register_singleton(ConfigService, ConfigService)
+    # Load environment
+    load_dotenv()
     
     try:
-        # Get config service from container
-        config_service = container.resolve(ConfigService)
-        
-        # Create application
-        app = ProfessionalWeatherDashboard(config_service=config_service)
-        
-        # Add to cleanup tracking
-        _after_ids.add(app)
-        
-        # Set proper cleanup on window close
-        app.protocol("WM_DELETE_WINDOW", lambda: [cleanup_callbacks(), app.quit()])
-        
-        # Center and start
-        app.center_window()
-        logger.info("✅ Weather Dashboard ready!")
-        
-        # Start application
+        # Create and run app
+        app = ProfessionalWeatherDashboard()
+        logger.info("Weather Dashboard UI initialized")
         app.mainloop()
-        
-    except KeyboardInterrupt:
-        logger.info("Application interrupted by user")
-        cleanup_callbacks()
     except Exception as e:
         logger.error(f"Application error: {e}")
-        import traceback
-        traceback.print_exc()
-        cleanup_callbacks()
+        raise
     finally:
-        cleanup_callbacks()
-        logging.info("Application shutdown complete")
+        logger.info("Application shutdown")
 
 if __name__ == "__main__":
     main()

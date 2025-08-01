@@ -9,46 +9,35 @@ import customtkinter as ctk
 
 
 class DataTerminalTheme:
-    """Data Terminal color scheme and styling configuration."""
-
-    # Core Colors
-    BACKGROUND = "#121212"  # Dark background
-    PRIMARY = "#00FFAB"  # Neon green
-    ACCENT = "#2C2C2C"  # Dark gray
-    TEXT = "#EAEAEA"  # Light gray
-    TEXT_SECONDARY = "#B0B0B0"  # Medium gray
-
-    # Status Colors
-    SUCCESS = "#00FF88"  # Bright green
-    WARNING = "#FFB800"  # Orange
-    ERROR = "#FF4444"  # Red
-    INFO = "#00AAFF"  # Blue
-
-    # UI Element Colors
-    CARD_BG = "#1E1E1E"  # Card background
-    SURFACE_COLOR = "#1E1E1E"  # Surface color (same as card background)
-    BORDER = "#333333"  # Border color
-    HOVER = "#2A2A2A"  # Hover state
-    SELECTED = "#003D2B"  # Selected state (darker green)
-
-    # Chart Colors
-    CHART_PRIMARY = PRIMARY
-    CHART_SECONDARY = "#00CC88"
+    """Basic theme configuration."""
+    PRIMARY = "#00ff88"
+    BACKGROUND = "#1a1a1a"
+    CARD_BG = "#2a2a2a"
+    TEXT = "#ffffff"
+    TEXT_SECONDARY = "#888888"
+    BORDER = "#333333"
+    
+    # Additional colors
+    SUCCESS = "#00cc66"
+    ACCENT = "#444444"
+    HOVER = "#555555"
+    ERROR = "#ff4444"
+    WARNING = "#ffaa00"
+    INFO = "#0088ff"
     CHART_GRID = "#333333"
-    CHART_TEXT = TEXT
-
-    # Typography
-    FONT_FAMILY = "JetBrains Mono"  # Professional developer font
-    FONT_SIZE_LARGE = 24
-    FONT_SIZE_MEDIUM = 16
+    CHART_PRIMARY = "#00ff88"
+    
+    FONT_FAMILY = "Arial"
     FONT_SIZE_SMALL = 12
+    FONT_SIZE_MEDIUM = 14
+    FONT_SIZE_LARGE = 18
     FONT_SIZE_TINY = 10
-
-    # Spacing
-    PADDING_LARGE = 20
-    PADDING_MEDIUM = 15
-    PADDING_SMALL = 10
+    
+    # Padding
     PADDING_TINY = 5
+    PADDING_SMALL = 10
+    PADDING_MEDIUM = 15
+    PADDING_LARGE = 20
 
     # Border Radius
     RADIUS_LARGE = 12
