@@ -10,19 +10,19 @@
           "longitude": -0.1257,
           "timezone": null
         },
-        "timestamp": "2025-08-02 00:31:35.011985",
+        "timestamp": "2025-08-02 00:47:01.633089",
         "condition": "WeatherCondition.CLOUDS",
         "description": "Broken Clouds",
-        "temperature": 12.5,
-        "feels_like": 11.9,
-        "humidity": 81,
-        "pressure": 1017,
+        "temperature": 12.7,
+        "feels_like": 12.1,
+        "humidity": 80,
+        "pressure": 1018,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 3.1,
+        "wind_speed": 2.6,
         "wind_direction": 290,
         "wind_gust": null,
-        "cloudiness": 54,
+        "cloudiness": 63,
         "sunrise": null,
         "sunset": null,
         "alerts": [],
@@ -36,29 +36,29 @@
               "id": 803,
               "main": "Clouds",
               "description": "broken clouds",
-              "icon": "04n"
+              "icon": "04d"
             }
           ],
           "base": "stations",
           "main": {
-            "temp": 12.47,
-            "feels_like": 11.89,
-            "temp_min": 10.06,
+            "temp": 12.68,
+            "feels_like": 12.09,
+            "temp_min": 10.83,
             "temp_max": 13.86,
-            "pressure": 1017,
-            "humidity": 81,
-            "sea_level": 1017,
+            "pressure": 1018,
+            "humidity": 80,
+            "sea_level": 1018,
             "grnd_level": 1014
           },
           "visibility": 10000,
           "wind": {
-            "speed": 3.09,
+            "speed": 2.57,
             "deg": 290
           },
           "clouds": {
-            "all": 54
+            "all": 63
           },
-          "dt": 1754108700,
+          "dt": 1754109558,
           "sys": {
             "type": 2,
             "id": 2075535,
@@ -77,22 +77,22 @@
           "sunset": "2025-08-02 15:47:37",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.10829839108912187,
+          "moon_phase": 0.6425457447462259,
           "day_length": "15:21:48"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-02 00:25:49",
-        "sunset": "2025-08-02 15:47:37",
+        "sunrise": "2025-08-02T00:25:49",
+        "sunset": "2025-08-02T15:47:37",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.10829839108912187,
-        "day_length": "15:21:48"
+        "moon_phase": 0.6425457447462259,
+        "day_length": 55308.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-02T00:31:36.958789",
+    "timestamp": "2025-08-02T00:47:03.556376",
     "ttl": 600
   },
   "forecast_london": {

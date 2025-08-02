@@ -205,6 +205,9 @@ class MLComparisonPanel(ctk.CTkFrame):
         self._setup_ui()
         self._apply_theme()
         
+        # Register for theme updates
+        self.theme_manager.add_observer(self.update_theme)
+        
         # Load team data
         if self.github_service:
             threading.Thread(target=self._load_team_data, daemon=True).start()
@@ -434,7 +437,9 @@ class MLComparisonPanel(ctk.CTkFrame):
     def _apply_theme(self):
         """Apply the current theme."""
         # Theme will be applied automatically by CustomTkinter
-        pass
+        # Refresh current visualization with new theme
+        if hasattr(self, 'current_chart_type') and self.current_chart_type and len(self.weather_profiles) >= 2:
+            self._show_visualization(self.current_chart_type)
     
     def _load_team_data(self):
         """Load team data in background."""
@@ -528,16 +533,19 @@ class MLComparisonPanel(ctk.CTkFrame):
         self._clear_visualization()
         
         try:
+            # Get current theme
+            current_theme = self.theme_manager.get_current_theme() if self.theme_manager else None
+            
             # Create the appropriate chart
             if chart_type == "similarity":
-                fig = self.ml_service.create_similarity_heatmap(self.weather_profiles, figsize=(10, 8))
+                fig = self.ml_service.create_similarity_heatmap(self.weather_profiles, figsize=(10, 8), theme=current_theme)
                 self.viz_title.configure(text="🔥 Weather Similarity Heatmap")
             elif chart_type == "clusters":
-                fig = self.ml_service.create_cluster_visualization(self.weather_profiles, figsize=(12, 8))
+                fig = self.ml_service.create_cluster_visualization(self.weather_profiles, figsize=(12, 8), theme=current_theme)
                 self.viz_title.configure(text="🎯 Weather Clusters Analysis")
             elif chart_type == "radar":
                 city_names = [profile.city_name for profile in self.weather_profiles]
-                fig = self.ml_service.create_radar_chart(self.weather_profiles, city_names, figsize=(10, 10))
+                fig = self.ml_service.create_radar_chart(self.weather_profiles, city_names, figsize=(10, 10), theme=current_theme)
                 self.viz_title.configure(text="📊 Weather Profile Radar Chart")
             else:
                 return
@@ -897,6 +905,9 @@ class MLComparisonPanel(ctk.CTkFrame):
     
     def destroy(self):
         """Clean up resources."""
+        # Unregister from theme updates
+        self.theme_manager.remove_observer(self.update_theme)
+        
         if self.chart_canvas:
             self.chart_canvas.get_tk_widget().destroy()
         super().destroy()

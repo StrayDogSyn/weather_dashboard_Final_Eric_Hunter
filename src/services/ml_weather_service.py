@@ -373,15 +373,20 @@ class MLWeatherService:
             logger.error(f"Error generating city recommendation: {e}")
             return None
     
-    def create_similarity_heatmap(self, weather_profiles: List[WeatherProfile], figsize=(10, 8)) -> plt.Figure:
-        """Create a similarity heatmap visualization."""
+    def create_similarity_heatmap(self, weather_profiles: List[WeatherProfile], figsize=(10, 8), theme=None) -> plt.Figure:
+        """Create a similarity heatmap visualization with theme support."""
         try:
             df = self.prepare_weather_data(weather_profiles)
             similarity_matrix = self.calculate_similarity_matrix(weather_profiles)
             
+            # Apply theme settings
+            self._apply_chart_theme(theme)
+            
             if df.empty or similarity_matrix.size == 0:
                 fig, ax = plt.subplots(figsize=figsize)
-                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes)
+                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes,
+                       color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+                self._style_figure(fig, ax, theme)
                 return fig
             
             # Create heatmap
@@ -389,21 +394,36 @@ class MLWeatherService:
             
             city_names = df['city_name'].tolist()
             
+            # Create custom colormap based on theme
+            if theme:
+                primary_color = theme.get('primary', '#00FF41')
+                secondary_color = theme.get('secondary', '#008F11')
+                # Create a custom colormap using theme colors
+                from matplotlib.colors import LinearSegmentedColormap
+                colors = ['#000000', secondary_color, primary_color]
+                n_bins = 100
+                cmap = LinearSegmentedColormap.from_list('theme_cmap', colors, N=n_bins)
+            else:
+                cmap = 'RdYlBu_r'
+            
             # Create heatmap with seaborn
             sns.heatmap(
                 similarity_matrix,
                 annot=True,
                 fmt='.2f',
-                cmap='RdYlBu_r',
+                cmap=cmap,
                 xticklabels=city_names,
                 yticklabels=city_names,
                 ax=ax,
-                cbar_kws={'label': 'Similarity Score'}
+                cbar_kws={'label': 'Similarity Score'},
+                annot_kws={'color': theme.get('text', '#E0E0E0') if theme else '#E0E0E0'}
             )
             
-            ax.set_title('City Weather Similarity Heatmap', fontsize=16, fontweight='bold')
-            ax.set_xlabel('Cities', fontsize=12)
-            ax.set_ylabel('Cities', fontsize=12)
+            self._style_figure(fig, ax, theme)
+            ax.set_title('🔥 City Weather Similarity Heatmap', fontsize=16, fontweight='bold',
+                        color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax.set_xlabel('Cities', fontsize=12, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax.set_ylabel('Cities', fontsize=12, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             
             plt.xticks(rotation=45, ha='right')
             plt.yticks(rotation=0)
@@ -415,16 +435,23 @@ class MLWeatherService:
         except Exception as e:
             logger.error(f"Error creating similarity heatmap: {e}")
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes)
+            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes,
+                   color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            self._style_figure(fig, ax, theme)
             return fig
     
-    def create_cluster_visualization(self, weather_profiles: List[WeatherProfile], figsize=(12, 8)) -> plt.Figure:
-        """Create cluster visualization with PCA."""
+    def create_cluster_visualization(self, weather_profiles: List[WeatherProfile], figsize=(12, 8), theme=None) -> plt.Figure:
+        """Create cluster visualization with PCA and theme support."""
         try:
+            # Apply theme settings
+            self._apply_chart_theme(theme)
+            
             df = self.prepare_weather_data(weather_profiles)
             if df.empty:
                 fig, ax = plt.subplots(figsize=figsize)
-                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes)
+                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes,
+                       color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+                self._style_figure(fig, ax, theme)
                 return fig
             
             # Perform clustering
@@ -442,19 +469,30 @@ class MLWeatherService:
             # Create visualization
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
             
-            # Cluster scatter plot
-            colors = plt.cm.Set3(np.linspace(0, 1, len(clusters)))
+            # Generate theme-based colors for clusters
+            if theme:
+                primary = theme.get('primary', '#00FF41')
+                secondary = theme.get('secondary', '#008F11')
+                accent = theme.get('accent', '#FF6B35')
+                chart_colors = theme.get('chart_colors', [primary, secondary, accent, '#FFD700', '#FF69B4', '#00CED1'])
+                colors = chart_colors[:len(clusters)] if len(clusters) <= len(chart_colors) else plt.cm.Set3(np.linspace(0, 1, len(clusters)))
+            else:
+                colors = plt.cm.Set3(np.linspace(0, 1, len(clusters)))
             
+            # Cluster scatter plot
             for i, cluster in enumerate(clusters):
                 cluster_indices = df[df['city_name'].isin(cluster.cities)].index
                 if len(cluster_indices) > 0:
+                    color = colors[i] if isinstance(colors, list) else colors[i]
                     ax1.scatter(
                         features_2d[cluster_indices, 0],
                         features_2d[cluster_indices, 1],
-                        c=[colors[i]],
+                        c=[color],
                         label=f"{cluster.emoji} {cluster.cluster_name}",
                         s=100,
-                        alpha=0.7
+                        alpha=0.8,
+                        edgecolors=theme.get('text', '#E0E0E0') if theme else '#E0E0E0',
+                        linewidth=1
                     )
                     
                     # Add city labels
@@ -465,30 +503,48 @@ class MLWeatherService:
                             xytext=(5, 5),
                             textcoords='offset points',
                             fontsize=8,
-                            alpha=0.8
+                            alpha=0.9,
+                            color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0',
+                            weight='bold'
                         )
             
-            ax1.set_title('Weather Clusters (PCA Visualization)', fontsize=14, fontweight='bold')
-            ax1.set_xlabel(f'PC1 ({pca_2d.explained_variance_ratio_[0]:.1%} variance)')
-            ax1.set_ylabel(f'PC2 ({pca_2d.explained_variance_ratio_[1]:.1%} variance)')
-            ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-            ax1.grid(True, alpha=0.3)
+            self._style_figure(fig, ax1, theme)
+            ax1.set_title('🌍 Weather Clusters (PCA Visualization)', fontsize=14, fontweight='bold',
+                         color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax1.set_xlabel(f'PC1 ({pca_2d.explained_variance_ratio_[0]:.1%} variance)',
+                          color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax1.set_ylabel(f'PC2 ({pca_2d.explained_variance_ratio_[1]:.1%} variance)',
+                          color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left',
+                      facecolor=theme.get('card_bg', '#1E1E1E') if theme else '#1E1E1E',
+                      edgecolor=theme.get('primary', '#00FF41') if theme else '#00FF41',
+                      labelcolor=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax1.grid(True, alpha=0.3, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             
             # Cluster characteristics bar chart
             cluster_names = [f"{c.emoji} {c.cluster_name}" for c in clusters]
             avg_temps = [c.characteristics.get('avg_temperature', 0) for c in clusters]
             
-            bars = ax2.bar(range(len(cluster_names)), avg_temps, color=colors[:len(clusters)])
-            ax2.set_title('Average Temperature by Cluster', fontsize=14, fontweight='bold')
-            ax2.set_xlabel('Weather Clusters')
-            ax2.set_ylabel('Average Temperature (°C)')
+            # Use theme colors for bars
+            bar_colors = colors[:len(clusters)] if isinstance(colors, list) else [colors[i] for i in range(len(clusters))]
+            bars = ax2.bar(range(len(cluster_names)), avg_temps, color=bar_colors, alpha=0.8,
+                          edgecolor=theme.get('text', '#E0E0E0') if theme else '#E0E0E0', linewidth=1)
+            
+            self._style_figure(fig, ax2, theme)
+            ax2.set_title('📊 Average Temperature by Cluster', fontsize=14, fontweight='bold',
+                         color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax2.set_xlabel('Weather Clusters', color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax2.set_ylabel('Average Temperature (°C)', color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             ax2.set_xticks(range(len(cluster_names)))
-            ax2.set_xticklabels(cluster_names, rotation=45, ha='right')
+            ax2.set_xticklabels(cluster_names, rotation=45, ha='right',
+                               color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            ax2.grid(True, alpha=0.3, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             
             # Add value labels on bars
             for bar, temp in zip(bars, avg_temps):
                 ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                        f'{temp:.1f}°C', ha='center', va='bottom', fontsize=10)
+                        f'{temp:.1f}°C', ha='center', va='bottom', fontsize=10,
+                        color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0', weight='bold')
             
             plt.tight_layout()
             
@@ -498,16 +554,23 @@ class MLWeatherService:
         except Exception as e:
             logger.error(f"Error creating cluster visualization: {e}")
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes)
+            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes,
+                   color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            self._style_figure(fig, ax, theme)
             return fig
     
-    def create_radar_chart(self, weather_profiles: List[WeatherProfile], selected_cities: List[str] = None, figsize=(10, 10)) -> plt.Figure:
-        """Create radar chart for weather comparison."""
+    def create_radar_chart(self, weather_profiles: List[WeatherProfile], selected_cities: List[str] = None, figsize=(10, 10), theme=None) -> plt.Figure:
+        """Create radar chart for weather comparison with theme support."""
         try:
+            # Apply theme settings
+            self._apply_chart_theme(theme)
+            
             df = self.prepare_weather_data(weather_profiles)
             if df.empty:
                 fig, ax = plt.subplots(figsize=figsize)
-                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes)
+                ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes,
+                       color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+                self._style_figure(fig, ax, theme)
                 return fig
             
             # Filter for selected cities if provided
@@ -516,11 +579,13 @@ class MLWeatherService:
             
             if df.empty:
                 fig, ax = plt.subplots(figsize=figsize)
-                ax.text(0.5, 0.5, 'No cities selected', ha='center', va='center', transform=ax.transAxes)
+                ax.text(0.5, 0.5, 'No cities selected', ha='center', va='center', transform=ax.transAxes,
+                       color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+                self._style_figure(fig, ax, theme)
                 return fig
             
             # Prepare radar chart data
-            categories = ['Temperature', 'Humidity', 'Wind Speed', 'Pressure', 'UV Index']
+            categories = ['🌡️ Temperature', '💧 Humidity', '💨 Wind Speed', '🌊 Pressure', '☀️ UV Index']
             
             # Normalize data to 0-100 scale for radar chart
             normalized_data = df.copy()
@@ -537,8 +602,15 @@ class MLWeatherService:
             angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
             angles += angles[:1]  # Complete the circle
             
-            # Colors for different cities
-            colors = plt.cm.Set3(np.linspace(0, 1, len(df)))
+            # Generate theme-based colors for cities
+            if theme:
+                primary = theme.get('primary', '#00FF41')
+                secondary = theme.get('secondary', '#008F11')
+                accent = theme.get('accent', '#FF6B35')
+                chart_colors = theme.get('chart_colors', [primary, secondary, accent, '#FFD700', '#FF69B4', '#00CED1'])
+                colors = chart_colors[:len(df)] if len(df) <= len(chart_colors) else plt.cm.Set3(np.linspace(0, 1, len(df)))
+            else:
+                colors = plt.cm.Set3(np.linspace(0, 1, len(df)))
             
             # Plot each city
             for i, (_, city_data) in enumerate(df.iterrows()):
@@ -551,19 +623,28 @@ class MLWeatherService:
                 ]
                 values += values[:1]  # Complete the circle
                 
-                ax.plot(angles, values, 'o-', linewidth=2, label=city_data['city_name'], color=colors[i])
-                ax.fill(angles, values, alpha=0.25, color=colors[i])
+                color = colors[i] if isinstance(colors, list) else colors[i]
+                ax.plot(angles, values, 'o-', linewidth=3, label=city_data['city_name'], color=color, markersize=8)
+                ax.fill(angles, values, alpha=0.15, color=color)
+            
+            # Apply theme styling to polar chart
+            self._style_polar_chart(ax, theme)
             
             # Customize the chart
             ax.set_xticks(angles[:-1])
-            ax.set_xticklabels(categories)
+            ax.set_xticklabels(categories, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0', fontsize=11)
             ax.set_ylim(0, 100)
             ax.set_yticks([20, 40, 60, 80, 100])
-            ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'])
-            ax.grid(True)
+            ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], 
+                              color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0', fontsize=9)
+            ax.grid(True, alpha=0.3, color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             
-            plt.title('Weather Profile Comparison\n(Radar Chart)', size=16, fontweight='bold', pad=20)
-            plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0))
+            plt.title('🎯 Weather Profile Comparison\n(Radar Chart)', size=16, fontweight='bold', pad=20,
+                     color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0),
+                      facecolor=theme.get('card_bg', '#1E1E1E') if theme else '#1E1E1E',
+                      edgecolor=theme.get('primary', '#00FF41') if theme else '#00FF41',
+                      labelcolor=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
             
             logger.info("Created radar chart")
             return fig
@@ -571,5 +652,56 @@ class MLWeatherService:
         except Exception as e:
             logger.error(f"Error creating radar chart: {e}")
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes)
+            ax.text(0.5, 0.5, f'Error: {str(e)}', ha='center', va='center', transform=ax.transAxes,
+                   color=theme.get('text', '#E0E0E0') if theme else '#E0E0E0')
+            self._style_figure(fig, ax, theme)
             return fig
+    
+    def _apply_chart_theme(self, theme):
+        """Apply theme settings to matplotlib."""
+        if theme:
+            plt.rcParams.update({
+                'figure.facecolor': theme.get('bg', '#000000'),
+                'axes.facecolor': theme.get('card_bg', '#1E1E1E'),
+                'axes.edgecolor': theme.get('primary', '#00FF41'),
+                'axes.labelcolor': theme.get('text', '#E0E0E0'),
+                'xtick.color': theme.get('text', '#E0E0E0'),
+                'ytick.color': theme.get('text', '#E0E0E0'),
+                'text.color': theme.get('text', '#E0E0E0'),
+                'axes.spines.left': True,
+                'axes.spines.bottom': True,
+                'axes.spines.top': False,
+                'axes.spines.right': False,
+                'axes.linewidth': 1.5
+            })
+    
+    def _style_figure(self, fig, ax, theme):
+        """Apply theme styling to a figure and axes."""
+        if theme:
+            fig.patch.set_facecolor(theme.get('bg', '#000000'))
+            ax.set_facecolor(theme.get('card_bg', '#1E1E1E'))
+            
+            # Style spines
+            for spine in ax.spines.values():
+                spine.set_color(theme.get('primary', '#00FF41'))
+                spine.set_linewidth(1.5)
+            
+            # Hide top and right spines
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            
+            # Style ticks
+            ax.tick_params(colors=theme.get('text', '#E0E0E0'), which='both')
+    
+    def _style_polar_chart(self, ax, theme):
+        """Apply theme styling to a polar chart."""
+        if theme:
+            ax.set_facecolor(theme.get('card_bg', '#1E1E1E'))
+            ax.figure.patch.set_facecolor(theme.get('bg', '#000000'))
+            
+            # Style radial grid lines
+            ax.tick_params(colors=theme.get('text', '#E0E0E0'))
+            
+            # Style the polar plot border
+            ax.spines['polar'].set_color(theme.get('primary', '#00FF41'))
+            ax.spines['polar'].set_linewidth(2)
