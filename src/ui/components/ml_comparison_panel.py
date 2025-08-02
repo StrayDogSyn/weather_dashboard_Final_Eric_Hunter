@@ -473,7 +473,11 @@ class MLComparisonPanel(ctk.CTkFrame):
             is_team_member = city_name in self.team_cities_data
             member_name = None
             if is_team_member and self.team_cities_data[city_name]:
-                member_name = self.team_cities_data[city_name][0].get('name', 'Unknown')
+                first_member = self.team_cities_data[city_name][0]
+                if isinstance(first_member, dict):
+                    member_name = first_member.get('name', 'Unknown')
+                else:
+                    member_name = 'Unknown'
             
             # Create weather profile
             profile = WeatherProfile(
