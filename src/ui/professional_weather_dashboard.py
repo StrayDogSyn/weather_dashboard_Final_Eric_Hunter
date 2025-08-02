@@ -19,6 +19,7 @@ from src.ui.components import (
     ErrorManager, StatusMessageManager, VisualPolishManager,
     GlassMorphism, ShadowSystem, KeyboardShortcuts
 )
+from src.ui.components.error_handler import ErrorHandler
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
@@ -78,6 +79,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.error_manager = ErrorManager(self)
         self.status_manager = StatusMessageManager(self)
         self.visual_polish_manager = VisualPolishManager(self)
+        
+        # Initialize comprehensive error handling system
+        self.error_handler = ErrorHandler(self)
         
         # Initialize theme manager and register as observer
         DataTerminalTheme.add_observer(self._on_theme_changed)
@@ -161,6 +165,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.bind("<Control-s>", lambda e: self.tabview.set("Settings"))
         self.bind("<F5>", lambda e: self._load_weather_data())
         self.bind("<Escape>", lambda e: self.search_entry.delete(0, "end"))
+        self.bind("<question>", lambda e: self.error_handler.show_keyboard_shortcuts())
+        self.bind("<Key-question>", lambda e: self.error_handler.show_keyboard_shortcuts())
 
     def _initialize_enhanced_settings(self):
         """Initialize enhanced settings with default values."""
@@ -1430,21 +1436,60 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.micro_interactions.add_click_effect(self.search_button)
 
     def _search_weather(self):
-        """Handle weather search functionality."""
+        """Handle weather search functionality with input validation."""
         search_term = self.search_entry.get().strip()
-        if search_term:
-            # Update current city
-            self.current_city = search_term
-            self.location_label.configure(text=f"📍 Current: {self.current_city}")
+        
+        # Clear any existing validation errors
+        self.error_handler.clear_validation_error(self.search_entry)
+        
+        # Validate input
+        if not search_term:
+            self.error_handler.show_validation_error(
+                self.search_entry,
+                "City name is required",
+                "Enter a valid city name (e.g., 'New York' or 'London, UK')"
+            )
+            return
+        
+        if len(search_term) < 2:
+            self.error_handler.show_validation_error(
+                self.search_entry,
+                "City name too short",
+                "Please enter at least 2 characters"
+            )
+            return
+        
+        if len(search_term) > 100:
+            self.error_handler.show_validation_error(
+                self.search_entry,
+                "City name too long",
+                "Please enter a shorter city name"
+            )
+            return
+        
+        # Check for invalid characters
+        import re
+        if not re.match(r'^[a-zA-Z\s,.-]+$', search_term):
+            self.error_handler.show_validation_error(
+                self.search_entry,
+                "Invalid characters in city name",
+                "Use only letters, spaces, commas, periods, and hyphens"
+            )
+            return
+        
+        # Valid input - proceed with search
+        # Update current city
+        self.current_city = search_term
+        self.location_label.configure(text=f"📍 Current: {self.current_city}")
 
-            # Update weather display
-            self.city_label.configure(text=self.current_city)
+        # Update weather display
+        self.city_label.configure(text=self.current_city)
 
-            # Clear search entry
-            self.search_entry.delete(0, "end")
+        # Clear search entry
+        self.search_entry.delete(0, "end")
 
-            # Trigger weather data update
-            self._safe_fetch_weather_data()
+        # Trigger weather data update
+        self._safe_fetch_weather_data()
 
     def _get_weather_icon(self, condition):
         """Get weather icon based on condition."""
@@ -3685,6 +3730,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, 'status_manager'):
             self.status_manager.cleanup()
         
+        # Cleanup error handler
+        if hasattr(self, 'error_handler'):
+            self.error_handler.cleanup()
+        
         # Cleanup performance optimization services
         if hasattr(self, 'api_optimizer'):
             self.api_optimizer.shutdown()
@@ -3872,13 +3921,16 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _show_loading_state(self):
         """Show loading indicators with visual polish."""
+        # Use new error handler's loading system
+        self.current_loading_state = self.error_handler.show_loading(
+            "Fetching weather data...",
+            show_progress=True
+        )
+        
         # Start shimmer effects on weather cards
         if hasattr(self, 'weather_metrics_frame'):
             self.shimmer_effect = ShimmerEffect(self.weather_metrics_frame)
             self.shimmer_effect.start_shimmer()
-        
-        # Show dynamic loading messages
-        self.status_manager.show_loading_message()
         
         # Apply loading skeleton to forecast cards
         if hasattr(self, 'forecast_frame'):
@@ -3897,6 +3949,11 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _hide_loading_state(self):
         """Hide loading indicators and clean up visual effects."""
+        # Hide new error handler's loading state
+        if hasattr(self, 'current_loading_state'):
+            self.error_handler.hide_loading(self.current_loading_state)
+            delattr(self, 'current_loading_state')
+        
         # Stop shimmer effects
         if hasattr(self, 'shimmer_effect'):
             self.shimmer_effect.stop_shimmer()
@@ -3906,9 +3963,6 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, 'forecast_skeleton'):
             self.forecast_skeleton.hide()
             delattr(self, 'forecast_skeleton')
-        
-        # Clear status messages
-        self.status_manager.clear_messages()
         
         # Hide loading spinner if available
         if hasattr(self, "loading_spinner"):
@@ -4075,14 +4129,16 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self._hide_loading_state()
             self._update_weather_display(weather_data)
             self.logger.info("Weather display updated successfully")
+            # Show success toast
+            self.error_handler.show_toast("Weather data updated successfully", "success")
         except Exception as e:
             self.logger.error(f"Failed to update weather display: {e}")
-            self._show_error_state("Failed to display weather data")
+            self.error_handler.handle_error(e, "Failed to display weather data")
 
     def _handle_weather_error(self, error):
         """Handle weather data loading errors."""
         self.logger.error(f"Weather loading failed: {error}")
-        self._show_error_state(str(error))
+        self.error_handler.handle_error(error, "Weather data loading failed")
 
     def _get_offline_weather_data(self):
         """Get offline fallback weather data."""
@@ -4270,10 +4326,11 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Show error state in UI with enhanced styling."""
         self._hide_loading_state()
         
-        # Show styled error card
-        self.error_manager.show_error(
-            title="Weather Data Error",
-            message=error_message
+        # Use new error handler for comprehensive error display
+        self.error_handler.show_api_error(
+            error_message,
+            retry_callback=lambda: self._load_weather_data(),
+            show_offline_indicator=True
         )
         
         # Update labels with animation
@@ -4283,9 +4340,6 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self.condition_label.configure(
             text=f"❌ {error_message}", text_color=DataTerminalTheme.ERROR
         )
-        
-        # Show contextual help
-        self.status_manager.show_error_help()
 
         if hasattr(self, "status_label"):
             self.status_label.configure(
@@ -4294,23 +4348,39 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _show_rate_limit_message(self):
         """Show user-friendly rate limit message."""
-        self._show_error_state("Rate limit exceeded. Using cached data. Please wait before trying again.")
+        self.error_handler.show_toast(
+            "Rate limit exceeded. Using cached data. Please wait before trying again.",
+            "warning"
+        )
         
     def _show_config_error_message(self):
         """Show configuration error message."""
-        self._show_error_state("API configuration error. Please check your API key settings.")
+        self.error_handler.show_toast(
+            "API configuration error. Please check your API key settings.",
+            "error"
+        )
         
     def _show_network_error_message(self):
         """Show network error message."""
-        self._show_error_state("Network connection issue. Using cached data.")
+        self.error_handler.show_offline_indicator()
+        self.error_handler.show_toast(
+            "Network connection issue. Using cached data.",
+            "warning"
+        )
         
     def _show_service_error_message(self):
         """Show service unavailable message."""
-        self._show_error_state("Weather service temporarily unavailable. Using cached data.")
+        self.error_handler.show_toast(
+            "Weather service temporarily unavailable. Using cached data.",
+            "warning"
+        )
         
     def _show_weather_service_error_message(self, error_details):
         """Show generic weather service error message."""
-        self._show_error_state(f"Weather service error: {error_details}. Using cached data.")
+        self.error_handler.show_toast(
+            f"Weather service error: {error_details}. Using cached data.",
+            "error"
+        )
 
     def _create_maps_tab(self):
         """Create Maps tab with location visualization."""
