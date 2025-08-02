@@ -17,12 +17,14 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from ..models.weather_models import (
+from ..models.weather import (
     ForecastData,
-    Location,
-    LocationResult,
     WeatherCondition,
     WeatherData,
+)
+from ..models.location import (
+    Location,
+    LocationResult,
 )
 from .config_service import ConfigService
 

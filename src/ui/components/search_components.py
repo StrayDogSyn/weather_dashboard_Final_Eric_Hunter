@@ -16,7 +16,7 @@ from typing import Callable, Dict, List, Optional
 
 import customtkinter as ctk
 
-from ...models.weather_models import LocationResult
+from ...models.location import LocationResult
 from ...services.geocoding_service import GeocodingService
 
 
