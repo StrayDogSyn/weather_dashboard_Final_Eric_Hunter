@@ -1014,7 +1014,28 @@ class CityComparisonPanel(ctk.CTkFrame):
                             "feels_like": 0
                         }
                 except Exception as weather_error:
-                    logger.error(f"Failed to fetch weather data for {city_name}: {weather_error}")
+                    # Import custom exceptions for proper handling
+                    try:
+                        from src.services.enhanced_weather_service import (
+                            WeatherServiceError, RateLimitError, APIKeyError, 
+                            NetworkError, ServiceUnavailableError
+                        )
+                        
+                        if isinstance(weather_error, RateLimitError):
+                            logger.warning(f"Rate limit exceeded for {city_name}: {weather_error}")
+                        elif isinstance(weather_error, APIKeyError):
+                            logger.error(f"API key error for {city_name}: {weather_error}")
+                        elif isinstance(weather_error, NetworkError):
+                            logger.warning(f"Network error for {city_name}: {weather_error}")
+                        elif isinstance(weather_error, ServiceUnavailableError):
+                            logger.warning(f"Service unavailable for {city_name}: {weather_error}")
+                        elif isinstance(weather_error, WeatherServiceError):
+                            logger.error(f"Weather service error for {city_name}: {weather_error}")
+                        else:
+                            logger.error(f"Unexpected error fetching weather data for {city_name}: {weather_error}")
+                    except ImportError:
+                        logger.error(f"Failed to fetch weather data for {city_name}: {weather_error}")
+                    
                     # Fall back to mock data
                     city_data["weather_data"] = {
                         "temperature": 22,

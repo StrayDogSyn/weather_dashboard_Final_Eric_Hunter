@@ -189,41 +189,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         search_container = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         search_container.pack(side="right", padx=40, pady=20)
 
-        # Search controls
-        search_controls = ctk.CTkFrame(search_container, fg_color="transparent")
-        search_controls.pack()
-
-        self.search_entry = ctk.CTkEntry(
-            search_controls,
-            placeholder_text="🔍 Enter city name...",
-            width=300,
-            height=40,
-            corner_radius=20,
-            border_color=DataTerminalTheme.BORDER,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            text_color=DataTerminalTheme.TEXT,
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-        )
-        self.search_entry.pack(side="left", padx=(0, 10))
-        self.search_entry.bind("<Return>", lambda e: self._search_weather())
-
-        self.search_button = ctk.CTkButton(
-            search_controls,
-            text="SEARCH",
-            width=100,
-            height=40,
-            corner_radius=20,
-            fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.SUCCESS,
-            text_color=DataTerminalTheme.BACKGROUND,
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            command=self._enhanced_search_weather,
-        )
-        self.search_button.pack(side="left")
-        
-        # Add micro-interactions to search button
-        self.micro_interactions.add_hover_effect(self.search_button)
-        self.micro_interactions.add_click_effect(self.search_button)
+        # Enhanced Search Bar
+        try:
+            from src.ui.components.search_components import EnhancedSearchBar
+            self.search_bar = EnhancedSearchBar(
+                search_container,
+                self.weather_service,
+                on_location_selected=self._on_location_selected
+            )
+            self.search_bar.pack()
+        except ImportError as e:
+            self.logger.error(f"Failed to import EnhancedSearchBar: {e}")
+            # Fallback to basic search
+            self._create_basic_search(search_container)
 
         # Current location indicator
         self.location_label = ctk.CTkLabel(
@@ -770,6 +748,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     temp = base_temp + daily_variation + random_variation
                     hourly_temps.append(temp)
 
+                # Ensure chart uses correct temperature unit
+                if hasattr(self.temp_chart, 'set_temperature_unit') and hasattr(self, 'temp_unit'):
+                    self.temp_chart.set_temperature_unit(self.temp_unit)
+                
                 # Update chart if it has an update method
                 if hasattr(self.temp_chart, "update_data"):
                     self.temp_chart.update_data(hourly_temps)
@@ -806,6 +788,76 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             # Show warning pulse for empty search
             self.micro_interactions.add_warning_pulse(self.search_entry)
     
+    def _on_location_selected(self, location_result):
+        """Handle location selection from enhanced search bar."""
+        try:
+            self.logger.info(f"Location selected: {location_result.display_name}")
+            
+            # Update current city
+            self.current_city = location_result.display_name
+            self.location_label.configure(text=f"📍 Current: {self.current_city}")
+            
+            # Update weather display
+            if hasattr(self, 'city_label'):
+                self.city_label.configure(text=self.current_city)
+            
+            # Store location coordinates for future use
+            self.current_location = {
+                'name': location_result.name,
+                'display_name': location_result.display_name,
+                'latitude': location_result.latitude,
+                'longitude': location_result.longitude,
+                'country': location_result.country,
+                'state': location_result.state
+            }
+            
+            # Trigger weather data update
+            self._safe_fetch_weather_data()
+            
+            # Trigger forecast update - this will be handled by _safe_fetch_weather_data
+            # which calls _update_forecast_display with proper forecast data
+                
+        except Exception as e:
+            self.logger.error(f"Error handling location selection: {e}")
+            self._show_error_state(f"Failed to update location: {str(e)}")
+
+    def _create_basic_search(self, parent):
+        """Create basic search as fallback."""
+        search_controls = ctk.CTkFrame(parent, fg_color="transparent")
+        search_controls.pack()
+
+        self.search_entry = ctk.CTkEntry(
+            search_controls,
+            placeholder_text="🔍 Enter city name...",
+            width=300,
+            height=40,
+            corner_radius=20,
+            border_color=DataTerminalTheme.BORDER,
+            fg_color=DataTerminalTheme.BACKGROUND,
+            text_color=DataTerminalTheme.TEXT,
+            font=(DataTerminalTheme.FONT_FAMILY, 14),
+        )
+        self.search_entry.pack(side="left", padx=(0, 10))
+        self.search_entry.bind("<Return>", lambda e: self._search_weather())
+
+        self.search_button = ctk.CTkButton(
+            search_controls,
+            text="SEARCH",
+            width=100,
+            height=40,
+            corner_radius=20,
+            fg_color=DataTerminalTheme.PRIMARY,
+            hover_color=DataTerminalTheme.SUCCESS,
+            text_color=DataTerminalTheme.BACKGROUND,
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            command=self._enhanced_search_weather,
+        )
+        self.search_button.pack(side="left")
+        
+        # Add micro-interactions to search button
+        self.micro_interactions.add_hover_effect(self.search_button)
+        self.micro_interactions.add_click_effect(self.search_button)
+
     def _search_weather(self):
         """Handle weather search functionality."""
         search_term = self.search_entry.get().strip()
@@ -820,9 +872,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             # Clear search entry
             self.search_entry.delete(0, "end")
 
-            # Here you would typically call weather API
-            # For now, just update the display with placeholder data
-            self._update_weather_display()
+            # Trigger weather data update
+            self._safe_fetch_weather_data()
 
     def _get_weather_icon(self, condition):
         """Get weather icon based on condition."""
@@ -1782,6 +1833,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             symbol_map = {"C": "°C", "F": "°F", "K": "K"}
             self.temp_toggle_btn.configure(text=symbol_map.get(new_unit, "°C"))
 
+        # Update temperature chart unit
+        if hasattr(self, 'temp_chart') and hasattr(self.temp_chart, 'set_temperature_unit'):
+            self.temp_chart.set_temperature_unit(new_unit)
+
         # Convert and update all temperature displays
         self._convert_all_temperatures(old_unit, new_unit)
 
@@ -2360,14 +2415,13 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             return self._get_offline_weather_data()
 
         try:
-            # Set a strict timeout for the API call
-            pass
-
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Weather API call timed out")
-
-            # For Windows compatibility, use threading timeout instead of
-            # signal
+            # Import custom exceptions for proper handling
+            from src.services.enhanced_weather_service import (
+                WeatherServiceError, RateLimitError, APIKeyError, 
+                NetworkError, ServiceUnavailableError
+            )
+            
+            # For Windows compatibility, use threading timeout instead of signal
             import threading
 
             result = [None]
@@ -2387,8 +2441,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             if fetch_thread.is_alive():
                 # Timeout occurred
                 self.logger.warning(
-                    f"Weather API timeout for {
-                        self.current_city}, using cached/offline data"
+                    f"Weather API timeout for {self.current_city}, using cached/offline data"
                 )
                 return self._get_cached_or_offline_weather_data()
 
@@ -2397,16 +2450,45 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
             if result[0]:
                 self.logger.info(
-                    f"✅ Weather data loaded successfully for {
-                        self.current_city}"
+                    f"✅ Weather data loaded successfully for {self.current_city}"
                 )
                 return result[0]
             else:
-                raise Exception("No weather data returned")
+                raise WeatherServiceError("No weather data returned")
 
+        except RateLimitError as e:
+            self.logger.warning(f"Rate limit exceeded: {e}")
+            # Show user-friendly message and use cached data
+            self._show_rate_limit_message()
+            return self._get_cached_or_offline_weather_data()
+            
+        except APIKeyError as e:
+            self.logger.error(f"API key error: {e}")
+            # Show configuration error message
+            self._show_config_error_message()
+            return self._get_offline_weather_data()
+            
+        except NetworkError as e:
+            self.logger.warning(f"Network error: {e}")
+            # Show network error and use cached data
+            self._show_network_error_message()
+            return self._get_cached_or_offline_weather_data()
+            
+        except ServiceUnavailableError as e:
+            self.logger.warning(f"Service unavailable: {e}")
+            # Show service error and use cached data
+            self._show_service_error_message()
+            return self._get_cached_or_offline_weather_data()
+            
+        except WeatherServiceError as e:
+            self.logger.error(f"Weather service error: {e}")
+            # Generic weather service error
+            self._show_weather_service_error_message(str(e))
+            return self._get_cached_or_offline_weather_data()
+            
         except Exception as e:
-            self.logger.error(f"Weather fetch failed: {e}")
-            # Try to get cached or offline data
+            self.logger.error(f"Unexpected error: {e}")
+            # Fallback for any other errors
             return self._get_cached_or_offline_weather_data()
 
     def _get_cached_or_offline_weather_data(self):
@@ -2610,8 +2692,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         # Show styled error card
         self.error_manager.show_error(
             title="Weather Data Error",
-            message=error_message,
-            error_type="network" if "network" in error_message.lower() else "api"
+            message=error_message
         )
         
         # Update labels with animation
@@ -2629,6 +2710,26 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.status_label.configure(
                 text=f"❌ Error: {error_message}", text_color=DataTerminalTheme.ERROR
             )
+
+    def _show_rate_limit_message(self):
+        """Show user-friendly rate limit message."""
+        self._show_error_state("Rate limit exceeded. Using cached data. Please wait before trying again.")
+        
+    def _show_config_error_message(self):
+        """Show configuration error message."""
+        self._show_error_state("API configuration error. Please check your API key settings.")
+        
+    def _show_network_error_message(self):
+        """Show network error message."""
+        self._show_error_state("Network connection issue. Using cached data.")
+        
+    def _show_service_error_message(self):
+        """Show service unavailable message."""
+        self._show_error_state("Weather service temporarily unavailable. Using cached data.")
+        
+    def _show_weather_service_error_message(self, error_details):
+        """Show generic weather service error message."""
+        self._show_error_state(f"Weather service error: {error_details}. Using cached data.")
 
     def _create_maps_tab(self):
         """Create Maps tab with location visualization."""

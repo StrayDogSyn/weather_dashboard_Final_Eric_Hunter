@@ -500,8 +500,34 @@ class MLComparisonPanel(ctk.CTkFrame):
             logger.info(f"Added city: {city_name}")
             
         except Exception as e:
-            logger.error(f"Error adding city {city_name}: {e}")
-            messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
+            # Import custom exceptions for proper handling
+            try:
+                from src.services.enhanced_weather_service import (
+                    WeatherServiceError, RateLimitError, APIKeyError, 
+                    NetworkError, ServiceUnavailableError
+                )
+                
+                if isinstance(e, RateLimitError):
+                    logger.warning(f"Rate limit exceeded for {city_name}: {e}")
+                    messagebox.showwarning("Rate Limit", f"Rate limit exceeded for {city_name}. Please try again later.")
+                elif isinstance(e, APIKeyError):
+                    logger.error(f"API key error for {city_name}: {e}")
+                    messagebox.showerror("Configuration Error", "Weather API key is invalid. Please check your configuration.")
+                elif isinstance(e, NetworkError):
+                    logger.warning(f"Network error for {city_name}: {e}")
+                    messagebox.showwarning("Network Error", f"Network error for {city_name}. Please check your connection and try again.")
+                elif isinstance(e, ServiceUnavailableError):
+                    logger.warning(f"Service unavailable for {city_name}: {e}")
+                    messagebox.showwarning("Service Unavailable", f"Weather service is temporarily unavailable for {city_name}. Please try again later.")
+                elif isinstance(e, WeatherServiceError):
+                    logger.error(f"Weather service error for {city_name}: {e}")
+                    messagebox.showerror("Weather Service Error", f"Weather service error for {city_name}: {str(e)}")
+                else:
+                    logger.error(f"Unexpected error adding city {city_name}: {e}")
+                    messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
+            except ImportError:
+                logger.error(f"Error adding city {city_name}: {e}")
+                messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
     
     def _clear_cities(self):
         """Clear all cities from analysis."""
