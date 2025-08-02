@@ -5,12 +5,15 @@ Handles weather data, air quality, astronomical data, and advanced search.
 
 import json
 import logging
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from ..models.weather_models import ForecastData, Location, WeatherCondition, WeatherData
 from .config_service import ConfigService
@@ -229,10 +232,27 @@ class EnhancedWeatherService:
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_file = Path.cwd() / "cache" / "enhanced_weather_cache.json"
         self._load_cache()
-
+        
+        # Offline mode flag
+        self._offline_mode = False
+        self._last_successful_request = time.time()
+        
         # Rate limiting
         self._last_request_time = 0
-        self._min_request_interval = 1.0  # Minimum seconds between requests
+        self._min_request_interval = 1.0  # 1 second between requests
+        
+        # Connection pooling and retry strategy
+        self._session = self._create_session_with_retries()
+        
+        # Enhanced caching with TTL
+        self._cache_ttl = {
+            'current_weather': 600,  # 10 minutes
+            'forecast': 3600,        # 1 hour
+            'air_quality': 1800,     # 30 minutes
+            'geocoding': 86400 * 7   # 7 days
+        }
+        
+        self.logger.info("🌐 Enhanced Weather Service initialized with connection pooling")
 
         # API endpoints
         self.base_url = self.config.weather.base_url
@@ -281,9 +301,89 @@ class EnhancedWeatherService:
             time.sleep(sleep_time)
 
         self._last_request_time = datetime.now().timestamp()
+    
+    def _create_session_with_retries(self) -> requests.Session:
+        """Create HTTP session with connection pooling and retry strategy."""
+        session = requests.Session()
+        
+        # Retry strategy with exponential backoff
+        retry_strategy = Retry(
+            total=3,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            backoff_factor=1,  # 1, 2, 4 seconds
+            raise_on_status=False
+        )
+        
+        # HTTP adapter with connection pooling
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=20,
+            pool_block=False
+        )
+        
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        
+        # Set default timeout
+        session.timeout = 5.0
+        
+        return session
+    
+    def _is_cache_valid_with_ttl(self, cache_key: str, cache_type: str) -> bool:
+        """Check if cached data is still valid based on TTL."""
+        if cache_key not in self._cache:
+            return False
+            
+        cached_data = self._cache[cache_key]
+        if 'timestamp' not in cached_data:
+            return False
+            
+        cache_age = time.time() - time.mktime(datetime.fromisoformat(cached_data['timestamp']).timetuple())
+        ttl = self._cache_ttl.get(cache_type, 600)  # Default 10 minutes
+        
+        return cache_age < ttl
+    
+    def _get_offline_fallback(self, data_type: str, location: str = "Unknown") -> Dict[str, Any]:
+        """Get offline fallback data when API is unavailable."""
+        self.logger.warning(f"🔌 Using offline fallback for {data_type}")
+        
+        fallbacks = {
+            'weather': {
+                'location': location,
+                'temperature': 20.0,
+                'condition': 'Offline Mode',
+                'description': 'Weather data unavailable - check connection',
+                'humidity': 50,
+                'pressure': 1013.25,
+                'wind_speed': 0.0,
+                'timestamp': time.time(),
+                'offline': True
+            },
+            'forecast': {
+                'location': location,
+                'days': [],
+                'message': 'Forecast unavailable in offline mode',
+                'offline': True
+            }
+        }
+        
+        return fallbacks.get(data_type, {'error': 'No offline data available'})
+    
+    def _check_offline_mode(self) -> None:
+        """Check if service should enter offline mode based on failed requests."""
+        time_since_success = time.time() - self._last_successful_request
+        if time_since_success > 30:  # 30 seconds without successful request
+            self._offline_mode = True
+            self.logger.warning("🔌 Entering offline mode due to connection issues")
 
     def _make_request(self, endpoint: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Make API request with enhanced error handling and rate limiting."""
+        """Make API request with enhanced error handling, connection pooling, and rate limiting."""
+        if self._offline_mode:
+            self.logger.warning("🔌 Service in offline mode, using fallback data")
+            return self._get_offline_fallback('weather', params.get('q', 'Unknown'))
+            
         try:
             # Rate limiting
             self._rate_limit()
@@ -295,14 +395,27 @@ class EnhancedWeatherService:
 
             self.logger.debug(f"🌐 Making enhanced API request: {endpoint}")
 
-            response = requests.get(url, params=params, timeout=self.config.weather.timeout)
+            # Use session with connection pooling and retries
+            response = self._session.get(url, params=params, timeout=5.0)
 
-            response.raise_for_status()
-            return response.json()
+            if response.status_code == 200:
+                self._last_successful_request = time.time()
+                self._offline_mode = False  # Reset offline mode on success
+                return response.json()
+            else:
+                response.raise_for_status()
 
         except requests.exceptions.Timeout:
             self.logger.error("⏰ Enhanced API request timed out")
+            self._check_offline_mode()
             raise Exception("Weather service timeout - please try again")
+            
+        except requests.exceptions.ConnectionError:
+            self.logger.error("🌐 Connection error - checking offline mode")
+            self._check_offline_mode()
+            if self._offline_mode:
+                return self._get_offline_fallback('weather', params.get('q', 'Unknown'))
+            raise Exception("No internet connection - please check your network")
 
         except requests.exceptions.HTTPError as e:
             if response.status_code == 401:
@@ -668,8 +781,8 @@ class EnhancedWeatherService:
         """Get air quality data for coordinates."""
         cache_key = f"air_quality_{lat}_{lon}"
 
-        # Check cache first
-        if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+        # Check cache first with TTL validation
+        if self._is_cache_valid_with_ttl(cache_key, 'air_quality'):
             self.logger.debug(f"📋 Using cached air quality data")
             return AirQualityData.from_dict(self._cache[cache_key]["data"])
 
@@ -698,10 +811,11 @@ class EnhancedWeatherService:
                 timestamp=datetime.now(),
             )
 
-            # Cache the result
+            # Cache the result with TTL (30 minutes)
             self._cache[cache_key] = {
                 "data": air_quality.to_dict(),
                 "timestamp": datetime.now().isoformat(),
+                "ttl": self._cache_ttl['air_quality']
             }
             self._save_cache()
 
@@ -773,8 +887,8 @@ class EnhancedWeatherService:
 
         cache_key = f"enhanced_{location.lower()}"
 
-        # Check cache first
-        if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+        # Check cache first with TTL validation
+        if self._is_cache_valid_with_ttl(cache_key, 'current_weather'):
             self.logger.debug(f"📋 Using cached enhanced weather data for {location}")
             cached_data = self._cache[cache_key]["data"]
 
@@ -867,7 +981,12 @@ class EnhancedWeatherService:
             ),
         }
 
-        self._cache[cache_key] = {"data": cache_data, "timestamp": datetime.now().isoformat()}
+        # Cache with TTL for current weather (10 minutes)
+        self._cache[cache_key] = {
+            "data": cache_data, 
+            "timestamp": datetime.now().isoformat(),
+            "ttl": self._cache_ttl['current_weather']
+        }
         self._save_cache()
 
         self.logger.info(f"✅ Enhanced weather data retrieved for {location}")
@@ -1000,9 +1119,9 @@ class EnhancedWeatherService:
             Dictionary containing forecast data in OpenWeatherMap format
         """
         try:
-            # Check cache first
+            # Check cache first with TTL validation
             cache_key = f"forecast_{location.lower()}"
-            if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+            if self._is_cache_valid_with_ttl(cache_key, 'forecast'):
                 self.logger.debug(f"📋 Using cached forecast data for {location}")
                 return self._cache[cache_key]["data"]
 
@@ -1012,8 +1131,12 @@ class EnhancedWeatherService:
             forecast_data = self._make_request("forecast", {"q": location})
 
             if forecast_data:
-                # Cache the forecast data
-                self._cache[cache_key] = {"data": forecast_data, "timestamp": datetime.now()}
+                # Cache the forecast data with TTL (1 hour)
+                self._cache[cache_key] = {
+                    "data": forecast_data, 
+                    "timestamp": datetime.now().isoformat(),
+                    "ttl": self._cache_ttl['forecast']
+                }
                 self._save_cache()
 
                 self.logger.debug(f"✅ Forecast data retrieved for {location}")
@@ -1030,8 +1153,8 @@ class EnhancedWeatherService:
         """Get 5-day forecast data."""
         cache_key = f"forecast_{location.lower()}"
         
-        # Check cache
-        if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+        # Check cache with TTL validation
+        if self._is_cache_valid_with_ttl(cache_key, 'forecast'):
             self.logger.debug(f"📋 Using cached forecast for {location}")
             return ForecastData.from_openweather_forecast(self._cache[cache_key]['data'])
         
@@ -1042,10 +1165,11 @@ class EnhancedWeatherService:
             if not data:
                 raise Exception("No forecast data received")
             
-            # Cache the result
+            # Cache the result with TTL (1 hour)
             self._cache[cache_key] = {
                 'data': data,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'ttl': self._cache_ttl['forecast']
             }
             self._save_cache()
             

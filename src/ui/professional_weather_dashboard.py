@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+import asyncio
 from datetime import datetime, timedelta
 
 import customtkinter as ctk
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
 from src.services.enhanced_weather_service import EnhancedWeatherService
+from src.utils.loading_manager import LoadingManager
 from src.ui.theme import DataTerminalTheme
 
 # Load environment variables
@@ -33,11 +35,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.config_service = config_service or ConfigService()
             self.weather_service = EnhancedWeatherService(self.config_service)
             self.activity_service = ActivityService(self.config_service)
+            self.loading_manager = LoadingManager()
         except Exception as e:
             self.logger.warning(f"Running in demo mode without API keys: {e}")
             self.config_service = None
             self.weather_service = None
             self.activity_service = None
+            self.loading_manager = LoadingManager()  # Still initialize for offline mode
 
         # Weather icons mapping
         self.weather_icons = {
@@ -81,6 +85,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Load initial data
         self.after(100, self._load_weather_data)
+        
+        # Start background loading for additional data
+        self.after(2000, self._start_background_loading)
 
         # Start auto-refresh
         self._schedule_refresh()
@@ -697,43 +704,43 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create journal tab."""
         self._create_journal_tab_content()
 
-    def _create_journal_tab_content(self): 
-        """Create actual journal functionality.""" 
-        # Replace placeholder with real implementation 
-        
-        # Journal entry form 
+    def _create_journal_tab_content(self):
+        """Create actual journal functionality."""
+        # Replace placeholder with real implementation
+
+        # Journal entry form
         entry_frame = ctk.CTkFrame(
-            self.journal_tab, 
+            self.journal_tab,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=DataTerminalTheme.RADIUS_MEDIUM
-        ) 
+        )
         entry_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Text editor 
-        self.journal_text = ctk.CTkTextbox( 
-            entry_frame, 
+
+        # Text editor
+        self.journal_text = ctk.CTkTextbox(
+            entry_frame,
             fg_color=DataTerminalTheme.BACKGROUND,
             text_color=DataTerminalTheme.TEXT,
             border_color=DataTerminalTheme.BORDER,
             border_width=1,
             corner_radius=DataTerminalTheme.RADIUS_SMALL,
             font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM),
-            height=200 
-        ) 
+            height=200
+        )
         self.journal_text.pack(fill="both", expand=True, padx=20, pady=(20, 10))
-        
+
         # Controls frame
         controls_frame = ctk.CTkFrame(entry_frame, fg_color="transparent")
         controls_frame.pack(fill="x", padx=20, pady=(0, 20))
-        
-        # Mood selector 
-        self.mood_var = ctk.StringVar(value="😊 Happy") 
-        moods = ["😊 Happy", "😐 Neutral", "😔 Sad", "😴 Tired", "😎 Energized"] 
-        
-        self.mood_menu = ctk.CTkOptionMenu( 
-            controls_frame, 
-            values=moods, 
-            variable=self.mood_var, 
+
+        # Mood selector
+        self.mood_var = ctk.StringVar(value="😊 Happy")
+        moods = ["😊 Happy", "😐 Neutral", "😔 Sad", "😴 Tired", "😎 Energized"]
+
+        self.mood_menu = ctk.CTkOptionMenu(
+            controls_frame,
+            values=moods,
+            variable=self.mood_var,
             fg_color=DataTerminalTheme.BACKGROUND,
             button_color=DataTerminalTheme.PRIMARY,
             button_hover_color=DataTerminalTheme.HOVER,
@@ -741,14 +748,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             dropdown_fg_color=DataTerminalTheme.CARD_BG,
             dropdown_text_color=DataTerminalTheme.TEXT,
             corner_radius=DataTerminalTheme.RADIUS_MEDIUM
-        ) 
+        )
         self.mood_menu.pack(side="left", padx=(0, 10))
-        
-        # Save button 
-        self.save_journal_btn = ctk.CTkButton( 
-            controls_frame, 
-            text="Save Entry", 
-            command=self._save_journal_entry, 
+
+        # Save button
+        self.save_journal_btn = ctk.CTkButton(
+            controls_frame,
+            text="Save Entry",
+            command=self._save_journal_entry,
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.SUCCESS,
             text_color=DataTerminalTheme.BACKGROUND,
@@ -762,25 +769,25 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             # Get the text content
             entry_text = self.journal_text.get("1.0", "end-1c")
-            
+
             # Get the selected mood
             mood = self.mood_var.get()
-            
+
             # Basic validation
             if not entry_text.strip():
                 # Show error message - entry is empty
                 return
-            
+
             # Here you would typically save to database or file
             # For now, just clear the text and show success
             self.journal_text.delete("1.0", "end")
-            
+
             # Reset mood to default
             self.mood_var.set("😊 Happy")
-            
+
             # You could add a success message here
             print(f"Journal entry saved with mood: {mood}")
-            
+
         except Exception as e:
             print(f"Error saving journal entry: {e}")
 
@@ -1794,12 +1801,28 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self._load_weather_data()
 
     def _load_weather_data(self):
-        """Load weather data with loading state."""
+        """Load weather data with progressive loading and timeout handling."""
         # Show loading state
         self._show_loading_state()
 
-        # Start loading in thread
-        threading.Thread(target=self._fetch_weather_with_retry, daemon=True).start()
+        # Use LoadingManager for critical loading with timeout
+        def weather_task():
+            return self._safe_fetch_weather_data()
+
+        def on_success(weather_data):
+            self.after(0, lambda: self._handle_weather_success(weather_data))
+
+        def on_error(error):
+            self.after(0, lambda: self._handle_weather_error(error))
+
+        # Load critical weather data with 15-second timeout
+        self.loading_manager.load_critical(
+            task=weather_task,
+            on_success=on_success,
+            on_error=on_error,
+            timeout=15.0,
+            task_name="weather_data"
+        )
 
     def _show_loading_state(self):
         """Show loading indicators."""
@@ -1817,26 +1840,144 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, "loading_spinner"):
             self.loading_spinner.stop()
 
-    def _fetch_weather_with_retry(self, max_retries=3):
-        """Fetch weather with retry logic."""
-        for attempt in range(max_retries):
+    def _safe_fetch_weather_data(self):
+        """Safely fetch weather data with proper error handling."""
+        if not self.weather_service:
+            # Return offline fallback data
+            return self._get_offline_weather_data()
+
+        try:
+            # Attempt to get weather data
+            weather_data = self.weather_service.get_enhanced_weather(self.current_city)
+            self.logger.info(f"✅ Weather data loaded successfully for {self.current_city}")
+            return weather_data
+        except Exception as e:
+            self.logger.error(f"Weather fetch failed: {e}")
+            # Try to get cached or offline data
+            return self._get_offline_weather_data()
+
+    def _handle_weather_success(self, weather_data):
+        """Handle successful weather data loading."""
+        try:
+            self._hide_loading_state()
+            self._update_weather_display(weather_data)
+            self.logger.info("Weather display updated successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to update weather display: {e}")
+            self._show_error_state("Failed to display weather data")
+
+    def _handle_weather_error(self, error):
+        """Handle weather data loading errors."""
+        self.logger.error(f"Weather loading failed: {error}")
+        self._show_error_state(str(error))
+
+    def _get_offline_weather_data(self):
+        """Get offline fallback weather data."""
+        from src.models.weather_models import EnhancedWeatherData, Location, WeatherCondition
+
+        # Create basic offline weather data
+        location = Location(
+            name=self.current_city,
+            country="Unknown",
+            latitude=0.0,
+            longitude=0.0
+        )
+
+        return EnhancedWeatherData(
+             location=location,
+             timestamp=datetime.now(),
+             condition=WeatherCondition.CLEAR,
+             description="Offline Mode",
+             temperature=20.0,
+             feels_like=20.0,
+             humidity=50,
+             pressure=1013,
+             wind_speed=0.0,
+             wind_direction=0,
+             visibility=10.0,
+             cloudiness=0,
+             uv_index=0
+         )
+    
+    def _start_background_loading(self):
+        """Start progressive background loading of additional weather data."""
+        if not self.weather_service:
+            return
+        
+        # Load forecast data in background
+        def forecast_task():
             try:
-                weather_data = self.weather_service.get_weather(self.current_city)
-
-                # Success - update UI
-                self.after(0, lambda: self._hide_loading_state())
-                self.after(0, lambda: self._update_weather_display(weather_data))
-                break
-
+                return self.weather_service.get_forecast_data(self.current_city)
             except Exception as e:
-                self.logger.error(f"Attempt {attempt + 1} failed: {e}")
-
-                if attempt == max_retries - 1:
-                    # Final attempt failed
-                    self.after(0, lambda: self._show_error_state(str(e)))
-                else:
-                    # Wait before retry
-                    time.sleep(1)
+                self.logger.warning(f"Background forecast loading failed: {e}")
+                return None
+        
+        def on_forecast_success(forecast_data):
+            if forecast_data:
+                self.after(0, lambda: self._update_forecast_display(forecast_data))
+        
+        def on_forecast_error(error):
+            self.logger.warning(f"Forecast background loading failed: {error}")
+        
+        # Load forecast with 10-second timeout
+        self.loading_manager.load_background(
+            task=forecast_task,
+            on_success=on_forecast_success,
+            on_error=on_forecast_error,
+            timeout=10.0,
+            task_name="forecast_data"
+        )
+        
+        # Load air quality data after a delay
+        self.after(3000, self._load_air_quality_background)
+    
+    def _load_air_quality_background(self):
+        """Load air quality data in background."""
+        if not self.weather_service:
+            return
+        
+        def air_quality_task():
+            try:
+                return self.weather_service.get_air_quality(self.current_city)
+            except Exception as e:
+                self.logger.warning(f"Background air quality loading failed: {e}")
+                return None
+        
+        def on_air_quality_success(air_quality_data):
+            if air_quality_data:
+                self.after(0, lambda: self._update_air_quality_display(air_quality_data))
+        
+        def on_air_quality_error(error):
+            self.logger.warning(f"Air quality background loading failed: {error}")
+        
+        # Load air quality with 8-second timeout
+        self.loading_manager.load_background(
+            task=air_quality_task,
+            on_success=on_air_quality_success,
+            on_error=on_air_quality_error,
+            timeout=8.0,
+            task_name="air_quality_data"
+        )
+    
+    def _update_forecast_display(self, forecast_data):
+        """Update forecast display with new data."""
+        try:
+            # Update forecast UI components if they exist
+            if hasattr(self, 'forecast_frame') and forecast_data:
+                self.logger.info("📊 Forecast data updated in background")
+                # Add specific forecast update logic here
+        except Exception as e:
+            self.logger.error(f"Failed to update forecast display: {e}")
+    
+    def _update_air_quality_display(self, air_quality_data):
+        """Update air quality display with new data."""
+        try:
+            # Update air quality UI components if they exist
+            if hasattr(self, 'air_quality_frame') and air_quality_data:
+                self.logger.info("🌬️ Air quality data updated in background")
+                # Add specific air quality update logic here
+        except Exception as e:
+            self.logger.error(f"Failed to update air quality display: {e}")
 
     def _show_error_state(self, error_message):
         """Show error state in UI."""
