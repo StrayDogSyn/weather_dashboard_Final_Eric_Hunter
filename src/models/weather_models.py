@@ -113,6 +113,29 @@ class Location:
 
 
 @dataclass
+class LocationResult:
+    """Enhanced location result for search and geocoding."""
+    
+    name: str
+    display_name: str
+    latitude: float
+    longitude: float
+    country: str = ""
+    country_code: str = ""
+    state: Optional[str] = None
+    raw_address: str = ""
+    
+    def __str__(self) -> str:
+        """String representation of location result."""
+        return self.display_name
+    
+    @property
+    def coordinates(self) -> tuple[float, float]:
+        """Get coordinates as (lat, lon) tuple."""
+        return (self.latitude, self.longitude)
+
+
+@dataclass
 class WeatherAlert:
     """Weather alert/warning information."""
 

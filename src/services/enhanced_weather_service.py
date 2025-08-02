@@ -310,7 +310,7 @@ class EnhancedWeatherService:
         retry_strategy = Retry(
             total=3,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
             backoff_factor=1,  # 1, 2, 4 seconds
             raise_on_status=False
         )
@@ -537,6 +537,136 @@ class EnhancedWeatherService:
 
         except Exception as e:
             self.logger.warning(f"Enhanced location search failed: {e}")
+            return []
+    
+    def search_locations_advanced(self, query: str) -> List['LocationResult']:
+        """Advanced location search with support for multiple formats."""
+        from ..models.weather_models import LocationResult
+        
+        query = query.strip()
+        if not query:
+            return []
+        
+        # Check if zip code
+        if self.is_zip_code(query):
+            return self.geocode_zip(query)
+        
+        # Check if coordinates
+        if self.is_coordinates(query):
+            return self.reverse_geocode(query)
+        
+        # Standard city search with fuzzy matching
+        return self.search_cities_fuzzy(query)
+    
+    def is_zip_code(self, query: str) -> bool:
+        """Check if query is a zip/postal code."""
+        import re
+        
+        zip_patterns = {
+            'US': re.compile(r'^\d{5}(-\d{4})?$'),  # 12345 or 12345-6789
+            'UK': re.compile(r'^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$', re.IGNORECASE),  # SW1A 1AA
+            'CA': re.compile(r'^[A-Z]\d[A-Z]\s?\d[A-Z]\d$', re.IGNORECASE)  # K1A 0A6
+        }
+        
+        for pattern in zip_patterns.values():
+            if pattern.match(query):
+                return True
+        return False
+    
+    def is_coordinates(self, query: str) -> bool:
+        """Check if query is coordinates (lat,lon)."""
+        import re
+        coordinate_pattern = re.compile(r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$')
+        return bool(coordinate_pattern.match(query))
+    
+    def geocode_zip(self, zip_code: str) -> List['LocationResult']:
+        """Geocode a zip/postal code."""
+        from ..models.weather_models import LocationResult
+        
+        try:
+            # Convert existing LocationSearchResult to LocationResult
+            search_results = self._search_by_zipcode(zip_code, 3)
+            location_results = []
+            
+            for result in search_results:
+                location_result = LocationResult(
+                    name=result.name,
+                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    latitude=result.lat or 0.0,
+                    longitude=result.lon or 0.0,
+                    country=result.country,
+                    country_code=result.country[:2].upper() if result.country else '',
+                    state=result.state,
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                )
+                location_results.append(location_result)
+            
+            return location_results
+            
+        except Exception as e:
+            self.logger.error(f"Geocoding error for zip '{zip_code}': {e}")
+            return []
+    
+    def reverse_geocode(self, coordinates: str) -> List['LocationResult']:
+        """Reverse geocode coordinates."""
+        from ..models.weather_models import LocationResult
+        import re
+        
+        try:
+            coordinate_pattern = re.compile(r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$')
+            match = coordinate_pattern.match(coordinates)
+            if not match:
+                return []
+            
+            # Convert existing coordinate search to LocationResult
+            search_results = self._search_by_coordinates(coordinates)
+            location_results = []
+            
+            for result in search_results:
+                location_result = LocationResult(
+                    name=result.name,
+                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    latitude=result.lat or 0.0,
+                    longitude=result.lon or 0.0,
+                    country=result.country,
+                    country_code=result.country[:2].upper() if result.country else '',
+                    state=result.state,
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                )
+                location_results.append(location_result)
+            
+            return location_results
+            
+        except Exception as e:
+            self.logger.error(f"Reverse geocoding error for '{coordinates}': {e}")
+            return []
+    
+    def search_cities_fuzzy(self, query: str) -> List['LocationResult']:
+        """Search cities with fuzzy matching."""
+        from ..models.weather_models import LocationResult
+        
+        try:
+            # Convert existing geocoding search to LocationResult
+            search_results = self._search_by_geocoding(query, 8)
+            location_results = []
+            
+            for result in search_results:
+                location_result = LocationResult(
+                    name=result.name,
+                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    latitude=result.lat or 0.0,
+                    longitude=result.lon or 0.0,
+                    country=result.country,
+                    country_code=result.country[:2].upper() if result.country else '',
+                    state=result.state,
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                )
+                location_results.append(location_result)
+            
+            return location_results
+            
+        except Exception as e:
+            self.logger.error(f"City search error for '{query}': {e}")
             return []
 
     def _detect_query_type(self, query: str) -> str:
