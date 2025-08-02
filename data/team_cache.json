@@ -1,0 +1,233 @@
+{
+  "cities": [
+    {
+      "member_name": "Sample Member",
+      "city_name": "New York",
+      "country": "US",
+      "last_updated": "2025-07-16T14:30:22.123456",
+      "weather_data": {
+        "temperature": 22.5,
+        "humidity": 45.0,
+        "wind_speed": 3.2,
+        "description": "clear sky",
+        "main": "Clear",
+        "pressure": 1013.0,
+        "feels_like": 24.1,
+        "visibility": 10.0,
+        "wind_direction": 180.0
+      },
+      "avatar_url": null,
+      "github_username": "sample_member"
+    },
+    {
+      "member_name": "Capstone_tobi",
+      "city_name": "Chicago",
+      "country": "",
+      "last_updated": "",
+      "weather_data": {
+        "temperature": 0.0,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "Few clouds",
+        "main": "Few",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "capstone_tobi"
+    },
+    {
+      "member_name": "Capstone_tobi",
+      "city_name": "Denver",
+      "country": "",
+      "last_updated": "",
+      "weather_data": {
+        "temperature": 0.0,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "Thunderstorm",
+        "main": "Thunderstorm",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "capstone_tobi"
+    },
+    {
+      "member_name": "Elizabeth",
+      "city_name": "",
+      "country": "",
+      "last_updated": "",
+      "weather_data": {
+        "temperature": 28.77,
+        "humidity": 77.0,
+        "wind_speed": 0.0,
+        "description": "broken clouds",
+        "main": "Broken",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "elizabeth"
+    },
+    {
+      "member_name": "Eric",
+      "city_name": "Providence",
+      "country": "US",
+      "last_updated": "2025-06-16T14:45:22.123456",
+      "weather_data": {
+        "temperature": 22.1,
+        "humidity": 72.0,
+        "wind_speed": 3.2,
+        "description": "few clouds",
+        "main": "Few",
+        "pressure": 1016.0,
+        "feels_like": 24.5,
+        "visibility": 10.0,
+        "wind_direction": 180.0
+      },
+      "avatar_url": null,
+      "github_username": "eric"
+    },
+    {
+      "member_name": "Eric",
+      "city_name": "Austin",
+      "country": "US",
+      "last_updated": "2025-06-16T14:45:45.234567",
+      "weather_data": {
+        "temperature": 35.2,
+        "humidity": 42.0,
+        "wind_speed": 2.1,
+        "description": "clear sky",
+        "main": "Clear",
+        "pressure": 1010.0,
+        "feels_like": 39.8,
+        "visibility": 10.0,
+        "wind_direction": 180.0
+      },
+      "avatar_url": null,
+      "github_username": "eric"
+    },
+    {
+      "member_name": "Eric",
+      "city_name": "Rawlins",
+      "country": "US",
+      "last_updated": "2025-06-16T14:46:12.345678",
+      "weather_data": {
+        "temperature": 15.2,
+        "humidity": 28.0,
+        "wind_speed": 7.8,
+        "description": "light snow",
+        "main": "Light",
+        "pressure": 1022.0,
+        "feels_like": 12.8,
+        "visibility": 7.5,
+        "wind_direction": 315.0
+      },
+      "avatar_url": null,
+      "github_username": "eric"
+    },
+    {
+      "member_name": "Eric",
+      "city_name": "Ontario",
+      "country": "US",
+      "last_updated": "2025-06-16T14:46:35.456789",
+      "weather_data": {
+        "temperature": 32.4,
+        "humidity": 38.0,
+        "wind_speed": 3.1,
+        "description": "clear sky",
+        "main": "Clear",
+        "pressure": 1007.0,
+        "feels_like": 36.1,
+        "visibility": 10.0,
+        "wind_direction": 240.0
+      },
+      "avatar_url": null,
+      "github_username": "eric"
+    },
+    {
+      "member_name": "Shomari",
+      "city_name": "New York",
+      "country": "",
+      "last_updated": "2025-07-08 22:58:02",
+      "weather_data": {
+        "temperature": 24.43,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "clear sky",
+        "main": "Clear",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "shomari"
+    },
+    {
+      "member_name": "Shomari",
+      "city_name": "Miami",
+      "country": "",
+      "last_updated": "2025-07-08 23:01:36",
+      "weather_data": {
+        "temperature": 28.38,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "scattered clouds",
+        "main": "Scattered",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "shomari"
+    },
+    {
+      "member_name": "Shomari",
+      "city_name": "New Jersey",
+      "country": "",
+      "last_updated": "2025-07-08 23:01:47",
+      "weather_data": {
+        "temperature": 22.28,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "clear sky",
+        "main": "Clear",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "shomari"
+    },
+    {
+      "member_name": "Unknown",
+      "city_name": "",
+      "country": "",
+      "last_updated": "",
+      "weather_data": {
+        "temperature": 0.0,
+        "humidity": 0.0,
+        "wind_speed": 0.0,
+        "description": "",
+        "main": "",
+        "pressure": 0.0,
+        "feels_like": 0.0,
+        "visibility": 0.0,
+        "wind_direction": 0.0
+      },
+      "avatar_url": null,
+      "github_username": "unknown"
+    }
+  ],
+  "timestamp": "2025-08-01T23:48:52.811911"
+}

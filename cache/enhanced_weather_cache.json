@@ -10,19 +10,19 @@
           "longitude": -0.1257,
           "timezone": null
         },
-        "timestamp": "2025-08-01 23:25:18.997320",
+        "timestamp": "2025-08-01 23:48:01.670269",
         "condition": "WeatherCondition.CLOUDS",
-        "description": "Scattered Clouds",
-        "temperature": 12.6,
-        "feels_like": 12.0,
-        "humidity": 81,
-        "pressure": 1017,
+        "description": "Broken Clouds",
+        "temperature": 12.2,
+        "feels_like": 11.6,
+        "humidity": 82,
+        "pressure": 1018,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 3.1,
-        "wind_direction": 290,
+        "wind_speed": 0.9,
+        "wind_direction": 302,
         "wind_gust": null,
-        "cloudiness": 39,
+        "cloudiness": 54,
         "sunrise": null,
         "sunset": null,
         "alerts": [],
@@ -33,32 +33,33 @@
           },
           "weather": [
             {
-              "id": 802,
+              "id": 803,
               "main": "Clouds",
-              "description": "scattered clouds",
-              "icon": "03n"
+              "description": "broken clouds",
+              "icon": "04n"
             }
           ],
           "base": "stations",
           "main": {
-            "temp": 12.58,
-            "feels_like": 12.01,
-            "temp_min": 10.61,
-            "temp_max": 13.86,
-            "pressure": 1017,
-            "humidity": 81,
-            "sea_level": 1017,
+            "temp": 12.16,
+            "feels_like": 11.57,
+            "temp_min": 10.51,
+            "temp_max": 13.33,
+            "pressure": 1018,
+            "humidity": 82,
+            "sea_level": 1018,
             "grnd_level": 1014
           },
           "visibility": 10000,
           "wind": {
-            "speed": 3.09,
-            "deg": 290
+            "speed": 0.89,
+            "deg": 302,
+            "gust": 1.34
           },
           "clouds": {
-            "all": 39
+            "all": 54
           },
-          "dt": 1754104804,
+          "dt": 1754105785,
           "sys": {
             "type": 2,
             "id": 2075535,
@@ -73,26 +74,26 @@
         },
         "air_quality": null,
         "astronomical": {
-          "sunrise": "2025-08-02 00:25:49",
-          "sunset": "2025-08-02 15:47:37",
+          "sunrise": "2025-08-02 00:25:48",
+          "sunset": "2025-08-02 15:47:36",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.8974220150934966,
+          "moon_phase": 0.3378632331998732,
           "day_length": "15:21:48"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-02T00:25:49",
-        "sunset": "2025-08-02T15:47:37",
+        "sunrise": "2025-08-02T00:25:48",
+        "sunset": "2025-08-02T15:47:36",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.8974220150934966,
+        "moon_phase": 0.3378632331998732,
         "day_length": 55308.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-01T23:25:20.917566",
+    "timestamp": "2025-08-01T23:48:03.665717",
     "ttl": 600
   },
   "forecast_london": {
@@ -102,53 +103,17 @@
       "cnt": 40,
       "list": [
         {
-          "dt": 1754103600,
-          "main": {
-            "temp": 12.67,
-            "feels_like": 12.08,
-            "temp_min": 12.67,
-            "temp_max": 13.66,
-            "pressure": 1018,
-            "sea_level": 1018,
-            "grnd_level": 1014,
-            "humidity": 80,
-            "temp_kf": -0.99
-          },
-          "weather": [
-            {
-              "id": 802,
-              "main": "Clouds",
-              "description": "scattered clouds",
-              "icon": "03n"
-            }
-          ],
-          "clouds": {
-            "all": 39
-          },
-          "wind": {
-            "speed": 2.74,
-            "deg": 312,
-            "gust": 8.09
-          },
-          "visibility": 10000,
-          "pop": 0,
-          "sys": {
-            "pod": "n"
-          },
-          "dt_txt": "2025-08-02 03:00:00"
-        },
-        {
           "dt": 1754114400,
           "main": {
-            "temp": 13.46,
-            "feels_like": 12.79,
-            "temp_min": 13.46,
-            "temp_max": 15.05,
-            "pressure": 1018,
-            "sea_level": 1018,
+            "temp": 13.05,
+            "feels_like": 12.39,
+            "temp_min": 13.05,
+            "temp_max": 14.7,
+            "pressure": 1017,
+            "sea_level": 1017,
             "grnd_level": 1014,
-            "humidity": 74,
-            "temp_kf": -1.59
+            "humidity": 76,
+            "temp_kf": -1.65
           },
           "weather": [
             {
@@ -176,15 +141,15 @@
         {
           "dt": 1754125200,
           "main": {
-            "temp": 16.2,
-            "feels_like": 15.44,
-            "temp_min": 16.2,
+            "temp": 16.05,
+            "feels_like": 15.28,
+            "temp_min": 16.05,
             "temp_max": 17.96,
-            "pressure": 1019,
-            "sea_level": 1019,
+            "pressure": 1018,
+            "sea_level": 1018,
             "grnd_level": 1015,
             "humidity": 60,
-            "temp_kf": -1.76
+            "temp_kf": -1.91
           },
           "weather": [
             {
@@ -1555,6 +1520,42 @@
             "pod": "n"
           },
           "dt_txt": "2025-08-07 00:00:00"
+        },
+        {
+          "dt": 1754535600,
+          "main": {
+            "temp": 18.31,
+            "feels_like": 17.45,
+            "temp_min": 18.31,
+            "temp_max": 18.31,
+            "pressure": 1016,
+            "sea_level": 1016,
+            "grnd_level": 1012,
+            "humidity": 48,
+            "temp_kf": 0
+          },
+          "weather": [
+            {
+              "id": 804,
+              "main": "Clouds",
+              "description": "overcast clouds",
+              "icon": "04n"
+            }
+          ],
+          "clouds": {
+            "all": 100
+          },
+          "wind": {
+            "speed": 1.98,
+            "deg": 188,
+            "gust": 6.74
+          },
+          "visibility": 10000,
+          "pop": 0,
+          "sys": {
+            "pod": "n"
+          },
+          "dt_txt": "2025-08-07 03:00:00"
         }
       ],
       "city": {
@@ -1571,7 +1572,7 @@
         "sunset": 1754164056
       }
     },
-    "timestamp": "2025-08-01T22:34:06.889567",
+    "timestamp": "2025-08-01T23:48:06.194596",
     "ttl": 3600
   },
   "enhanced_austin": {
