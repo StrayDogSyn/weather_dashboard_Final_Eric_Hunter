@@ -19,6 +19,7 @@ from ...services.ml_weather_service import MLWeatherService, WeatherProfile, Sim
 from ...services.enhanced_weather_service import EnhancedWeatherService
 from ...services.github_team_service import GitHubTeamService
 from ..theme_manager import ThemeManager
+from .error_handler import ErrorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +192,7 @@ class MLComparisonPanel(ctk.CTkFrame):
         self.github_service = github_service
         self.ml_service = MLWeatherService()
         self.theme_manager = ThemeManager()
+        self.error_handler = ErrorHandler(self)
         
         # Data storage
         self.weather_profiles: List[WeatherProfile] = []
@@ -454,19 +456,48 @@ class MLComparisonPanel(ctk.CTkFrame):
     def _add_city(self):
         """Add a city to the analysis."""
         city_name = self.city_entry.get().strip()
+        
+        # Validate input using error handler
         if not city_name:
+            self.error_handler.show_validation_error(
+                self.city_entry,
+                "Please enter a city name"
+            )
+            return
+            
+        if len(city_name) < 2:
+            self.error_handler.show_validation_error(
+                self.city_entry,
+                "City name must be at least 2 characters long"
+            )
+            return
+            
+        if len(city_name) > 50:
+            self.error_handler.show_validation_error(
+                self.city_entry,
+                "City name is too long (max 50 characters)"
+            )
             return
         
         # Check if city already added
         if any(profile.city_name.lower() == city_name.lower() for profile in self.weather_profiles):
-            messagebox.showwarning("Duplicate City", f"{city_name} is already in the analysis.")
+            self.error_handler.show_toast(
+                f"{city_name} is already in the analysis",
+                "warning"
+            )
             return
+            
+        # Clear any previous validation errors
+        self.error_handler.clear_validation_error(self.city_entry)
         
         # Fetch weather data
         try:
             weather_data = self.weather_service.get_current_weather(city_name)
             if not weather_data:
-                messagebox.showerror("Error", f"Could not fetch weather data for {city_name}")
+                self.error_handler.show_api_error(
+                    f"Could not fetch weather data for {city_name}",
+                    "Please check the city name and try again"
+                )
                 return
             
             # Check if it's a team member city
@@ -500,34 +531,13 @@ class MLComparisonPanel(ctk.CTkFrame):
             logger.info(f"Added city: {city_name}")
             
         except Exception as e:
-            # Import custom exceptions for proper handling
-            try:
-                from src.services.enhanced_weather_service import (
-                    WeatherServiceError, RateLimitError, APIKeyError, 
-                    NetworkError, ServiceUnavailableError
-                )
-                
-                if isinstance(e, RateLimitError):
-                    logger.warning(f"Rate limit exceeded for {city_name}: {e}")
-                    messagebox.showwarning("Rate Limit", f"Rate limit exceeded for {city_name}. Please try again later.")
-                elif isinstance(e, APIKeyError):
-                    logger.error(f"API key error for {city_name}: {e}")
-                    messagebox.showerror("Configuration Error", "Weather API key is invalid. Please check your configuration.")
-                elif isinstance(e, NetworkError):
-                    logger.warning(f"Network error for {city_name}: {e}")
-                    messagebox.showwarning("Network Error", f"Network error for {city_name}. Please check your connection and try again.")
-                elif isinstance(e, ServiceUnavailableError):
-                    logger.warning(f"Service unavailable for {city_name}: {e}")
-                    messagebox.showwarning("Service Unavailable", f"Weather service is temporarily unavailable for {city_name}. Please try again later.")
-                elif isinstance(e, WeatherServiceError):
-                    logger.error(f"Weather service error for {city_name}: {e}")
-                    messagebox.showerror("Weather Service Error", f"Weather service error for {city_name}: {str(e)}")
-                else:
-                    logger.error(f"Unexpected error adding city {city_name}: {e}")
-                    messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
-            except ImportError:
-                logger.error(f"Error adding city {city_name}: {e}")
-                messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
+            # Handle weather service errors using the error handler
+            self.error_handler.handle_error(
+                e,
+                context=f"adding city {city_name} to ML analysis",
+                show_user_message=True,
+                fallback_action=lambda: None
+            )
     
     def _clear_cities(self):
         """Clear all cities from analysis."""
@@ -784,11 +794,18 @@ class MLComparisonPanel(ctk.CTkFrame):
                 self._update_insights(insights)
                 
             else:
-                messagebox.showerror("Error", "Could not generate recommendations. Please try again.")
+                self.error_handler.show_api_error(
+                    "Could not generate recommendations",
+                    "Please try again with different preferences"
+                )
                 
         except Exception as e:
-            logger.error(f"Error handling preferences: {e}")
-            messagebox.showerror("Error", f"Error generating recommendations: {str(e)}")
+            self.error_handler.handle_error(
+                e,
+                context="generating ML recommendations",
+                show_user_message=True,
+                fallback_action=lambda: None
+            )
     
     def _show_detailed_analysis(self):
         """Show detailed analysis in a new window."""
@@ -1009,6 +1026,10 @@ class MLComparisonPanel(ctk.CTkFrame):
         """Clean up resources."""
         # Unregister from theme updates
         self.theme_manager.remove_observer(self.update_theme)
+        
+        # Clean up error handler
+        if hasattr(self, 'error_handler'):
+            self.error_handler.cleanup()
         
         if self.chart_canvas:
             self.chart_canvas.get_tk_widget().destroy()

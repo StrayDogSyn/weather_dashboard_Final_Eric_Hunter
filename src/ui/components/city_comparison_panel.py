@@ -14,6 +14,7 @@ from tkinter import filedialog, messagebox
 from ..theme_manager import ThemeManager
 from ...services.github_team_service import GitHubTeamService, TeamCityData
 from ...services.enhanced_weather_service import EnhancedWeatherService
+from .error_handler import ErrorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         self.weather_service = weather_service
         self.github_service = github_service or GitHubTeamService()
         self.theme_manager = ThemeManager()
+        self.error_handler = ErrorHandler(parent)
 
         self.selected_cities = []  # List of city names
         self.comparison_columns = []  # List of CityComparisonColumn widgets
@@ -752,11 +754,12 @@ class CityComparisonPanel(ctk.CTkFrame):
         # Reset button state
         self.sync_btn.configure(text="🔄 Sync Team Data", state="normal")
 
-        # Show error dialog
-        try:
-            messagebox.showerror("Sync Error", f"Failed to sync team data:\n{error_message}")
-        except Exception:
-            pass  # Ignore if messagebox fails
+        # Show error using new error handler
+        self.error_handler.show_api_error(
+            "Team Sync Error",
+            f"Failed to sync team data: {error_message}",
+            "sync_error"
+        )
 
     def _show_share_dialog(self):
         """Show enhanced dialog for sharing current city data."""
@@ -1957,19 +1960,46 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Add a city directly from the quick entry field."""
         city_name = self.quick_city_entry.get().strip()
 
+        # Validate input using error handler
         if not city_name:
-            logger.warning("Please enter a city name")
+            self.error_handler.show_validation_error(
+                self.quick_city_entry,
+                "Please enter a city name"
+            )
+            return
+        
+        if len(city_name) < 2:
+            self.error_handler.show_validation_error(
+                self.quick_city_entry,
+                "City name must be at least 2 characters long"
+            )
+            return
+            
+        if len(city_name) > 50:
+            self.error_handler.show_validation_error(
+                self.quick_city_entry,
+                "City name is too long (max 50 characters)"
+            )
             return
 
         if len(self.comparison_columns) >= 4:
-            logger.warning("Maximum 4 cities can be compared at once")
+            self.error_handler.show_toast(
+                "Maximum 4 cities can be compared at once",
+                "warning"
+            )
             return
 
         # Check if city is already being compared
         existing_cities = [col.city_data.get("city_name", "") for col in self.comparison_columns]
         if city_name in existing_cities:
-            logger.warning(f"City {city_name} is already being compared")
+            self.error_handler.show_toast(
+                f"City {city_name} is already being compared",
+                "warning"
+            )
             return
+            
+        # Clear any previous validation errors
+        self.error_handler.clear_validation_error(self.quick_city_entry)
 
         # Clear the entry field
         self.quick_city_entry.delete(0, "end")
@@ -2078,27 +2108,13 @@ class CityComparisonPanel(ctk.CTkFrame):
                             "feels_like": 0
                         }
                 except Exception as weather_error:
-                    # Import custom exceptions for proper handling
-                    try:
-                        from src.services.enhanced_weather_service import (
-                            WeatherServiceError, RateLimitError, APIKeyError,
-                            NetworkError, ServiceUnavailableError
-                        )
-
-                        if isinstance(weather_error, RateLimitError):
-                            logger.warning(f"Rate limit exceeded for {city_name}: {weather_error}")
-                        elif isinstance(weather_error, APIKeyError):
-                            logger.error(f"API key error for {city_name}: {weather_error}")
-                        elif isinstance(weather_error, NetworkError):
-                            logger.warning(f"Network error for {city_name}: {weather_error}")
-                        elif isinstance(weather_error, ServiceUnavailableError):
-                            logger.warning(f"Service unavailable for {city_name}: {weather_error}")
-                        elif isinstance(weather_error, WeatherServiceError):
-                            logger.error(f"Weather service error for {city_name}: {weather_error}")
-                        else:
-                            logger.error(f"Unexpected error fetching weather data for {city_name}: {weather_error}")
-                    except ImportError:
-                        logger.error(f"Failed to fetch weather data for {city_name}: {weather_error}")
+                    # Handle weather service errors using new error handler
+                    self.error_handler.handle_error(
+                        weather_error,
+                        context=f"fetching weather data for {city_name}",
+                        show_user_message=True,
+                        fallback_action=lambda: None
+                    )
 
                     # Fall back to mock data
                     city_data["weather_data"] = {
@@ -2251,4 +2267,9 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Clean up when destroying the panel."""
         # Unregister from theme updates
         self.theme_manager.remove_observer(self.update_theme)
+        
+        # Clean up error handler
+        if hasattr(self, 'error_handler'):
+            self.error_handler.cleanup()
+            
         super().destroy()
