@@ -83,6 +83,10 @@ class GitHubTeamService:
             logger.error(f"Unexpected error fetching team data: {e}")
             return self._get_cached_team_data()
 
+    def get_team_cities(self) -> List[TeamCityData]:
+        """Get team cities data (alias for fetch_team_cities)."""
+        return self.fetch_team_cities()
+
     def get_team_activity_feed(self) -> List[Dict[str, Any]]:
         """Get recent team activity feed."""
         team_cities = self.fetch_team_cities()

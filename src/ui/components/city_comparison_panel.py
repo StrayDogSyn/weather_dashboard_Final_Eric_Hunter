@@ -1,6 +1,7 @@
 """City Comparison Panel for team collaboration and multi-city weather comparison."""
 
 import customtkinter as ctk
+import tkinter as tk
 from typing import List, Dict, Any, Callable, Optional
 from datetime import datetime
 import logging
@@ -614,6 +615,13 @@ class CityComparisonPanel(ctk.CTkFrame):
             logger.warning("No cities to analyze. Please compare some cities first.")
             return
         
+        # Check if the widget still exists before creating toplevel
+        try:
+            if not self.winfo_exists():
+                return
+        except Exception:
+            return
+        
         # Collect weather data from all compared cities
         temperatures = []
         humidities = []
@@ -735,17 +743,21 @@ class CityComparisonPanel(ctk.CTkFrame):
             insights.append(f"   • Most comfortable weather: {best_weather_city}")
         
         # Create insights dialog
-        insights_window = ctk.CTkToplevel(self)
-        insights_window.title("Weather Comparison Insights")
-        insights_window.geometry("500x400")
-        insights_window.transient(self)
-        insights_window.grab_set()
-        
-        # Center the window
-        insights_window.update_idletasks()
-        x = (insights_window.winfo_screenwidth() // 2) - (500 // 2)
-        y = (insights_window.winfo_screenheight() // 2) - (400 // 2)
-        insights_window.geometry(f"500x400+{x}+{y}")
+        try:
+            insights_window = ctk.CTkToplevel(self)
+            insights_window.title("Weather Comparison Insights")
+            insights_window.geometry("500x400")
+            insights_window.transient(self)
+            insights_window.grab_set()
+            
+            # Center the window
+            insights_window.update_idletasks()
+            x = (insights_window.winfo_screenwidth() // 2) - (500 // 2)
+            y = (insights_window.winfo_screenheight() // 2) - (400 // 2)
+            insights_window.geometry(f"500x400+{x}+{y}")
+        except tk.TclError:
+            # Widget has been destroyed, cannot create toplevel
+            return
         
         # Insights content
         insights_frame = ctk.CTkScrollableFrame(insights_window)
@@ -936,25 +948,71 @@ class CityComparisonPanel(ctk.CTkFrame):
             # Add team member information if available
             if is_team_member and city_name in self.team_cities_data:
                 team_data = self.team_cities_data[city_name]
-                city_data["member_name"] = team_data.get("member_name", "Unknown Member")
-                city_data["last_updated"] = team_data.get("last_updated", "")
-                city_data["activity_status"] = team_data.get("activity_status", "Unknown")
+                if isinstance(team_data, dict):
+                    city_data["member_name"] = team_data.get("member_name", "Unknown Member")
+                    city_data["last_updated"] = team_data.get("last_updated", "")
+                    city_data["activity_status"] = team_data.get("activity_status", "Unknown")
+                elif isinstance(team_data, list) and len(team_data) > 0 and isinstance(team_data[0], dict):
+                    # Handle case where team_data is a list of dictionaries
+                    first_member = team_data[0]
+                    city_data["member_name"] = first_member.get("member_name", "Unknown Member")
+                    city_data["last_updated"] = first_member.get("last_updated", "")
+                    city_data["activity_status"] = first_member.get("activity_status", "Unknown")
+                else:
+                    # Fallback for unexpected data structure
+                    city_data["member_name"] = "Unknown Member"
+                    city_data["last_updated"] = ""
+                    city_data["activity_status"] = "Unknown"
             
             # Try to get real weather data if weather service is available
             if self.weather_service:
                 try:
                     # Use get_current_weather which returns a dictionary
                     weather_response = self.weather_service.get_current_weather(city_name)
-                    current_data = weather_response.get("current", {})
                     
-                    city_data["weather_data"] = {
-                        "temperature": current_data.get("temp_c", 0),
-                        "description": current_data.get("condition", {}).get("text", "Unknown"),
-                        "humidity": current_data.get("humidity", 0),
-                        "wind_speed": current_data.get("wind_kph", 0) / 3.6,  # Convert km/h to m/s
-                        "pressure": current_data.get("pressure_mb", 0),
-                        "feels_like": current_data.get("feelslike_c", 0)
-                    }
+                    # Handle case where weather_response might be a list or not have 'current' key
+                    if isinstance(weather_response, dict):
+                        current_data = weather_response.get("current", {})
+                    elif isinstance(weather_response, list) and len(weather_response) > 0:
+                        current_data = weather_response[0] if isinstance(weather_response[0], dict) else {}
+                    else:
+                        current_data = {}
+                    
+                    # Ensure current_data is a dictionary
+                    if not isinstance(current_data, dict):
+                        current_data = {}
+                    
+                    # Safely extract condition text
+                    condition_data = current_data.get("condition", {}) if isinstance(current_data, dict) else {}
+                    if isinstance(condition_data, dict):
+                        description = condition_data.get("text", "Unknown")
+                    elif isinstance(condition_data, list) and len(condition_data) > 0:
+                        # Handle case where condition might be a list
+                        first_condition = condition_data[0]
+                        description = first_condition.get("text", "Unknown") if isinstance(first_condition, dict) else "Unknown"
+                    else:
+                        description = "Unknown"
+                    
+                    # Safely extract weather data with type checking
+                    if isinstance(current_data, dict):
+                        city_data["weather_data"] = {
+                            "temperature": current_data.get("temp_c", 0),
+                            "description": description,
+                            "humidity": current_data.get("humidity", 0),
+                            "wind_speed": current_data.get("wind_kph", 0),  # Keep in km/h as expected by UI
+                            "pressure": current_data.get("pressure_mb", 0),
+                            "feels_like": current_data.get("feelslike_c", 0)
+                        }
+                    else:
+                        # Fallback to default values if current_data is not a dict
+                        city_data["weather_data"] = {
+                            "temperature": 0,
+                            "description": "Unknown",
+                            "humidity": 0,
+                            "wind_speed": 0,
+                            "pressure": 1013,
+                            "feels_like": 0
+                        }
                 except Exception as weather_error:
                     logger.error(f"Failed to fetch weather data for {city_name}: {weather_error}")
                     # Fall back to mock data

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+import tkinter as tk
 
 import customtkinter as ctk
 from dotenv import load_dotenv
@@ -12,6 +13,12 @@ from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.components.theme_preview_card import ThemePreviewCard
 from src.ui.components.city_comparison_panel import CityComparisonPanel
 from src.ui.components.ml_comparison_panel import MLComparisonPanel
+from src.ui.components import (
+    AnimationManager, ShimmerEffect, MicroInteractions, LoadingSkeleton,
+    WeatherBackgroundManager, ParticleSystem, TemperatureGradient,
+    ErrorManager, StatusMessageManager, VisualPolishManager,
+    GlassMorphism, ShadowSystem, KeyboardShortcuts
+)
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
@@ -49,8 +56,22 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.github_service = GitHubTeamService()  # GitHub service can work without API keys
             self.loading_manager = LoadingManager()  # Still initialize for offline mode
 
+        # Initialize visual polish managers
+        self.animation_manager = AnimationManager()
+        self.micro_interactions = MicroInteractions()
+        self.weather_background_manager = WeatherBackgroundManager(self)
+        self.error_manager = ErrorManager(self)
+        self.status_manager = StatusMessageManager(self)
+        self.visual_polish_manager = VisualPolishManager(self)
+        
         # Initialize theme manager and register as observer
         DataTerminalTheme.add_observer(self._on_theme_changed)
+        
+        # Register visual polish managers with theme system
+        theme_manager.add_observer(self.weather_background_manager.update_theme)
+        theme_manager.add_observer(self.error_manager.update_theme)
+        theme_manager.add_observer(self.status_manager.update_theme)
+        theme_manager.add_observer(self.visual_polish_manager.update_theme)
         
         # Weather icons mapping
         self.weather_icons = {
@@ -66,6 +87,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             "fog": "🌫️",
         }
 
+        # Track scheduled after() calls for cleanup
+        self.scheduled_calls = []
+        self.is_destroyed = False
+        
+        # Bind cleanup to window close
+        self.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
         # State
         self.current_city = "London"
         self.temp_unit = "C"  # Default temperature unit
@@ -189,9 +217,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             hover_color=DataTerminalTheme.SUCCESS,
             text_color=DataTerminalTheme.BACKGROUND,
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            command=self._search_weather,
+            command=self._enhanced_search_weather,
         )
         self.search_button.pack(side="left")
+        
+        # Add micro-interactions to search button
+        self.micro_interactions.add_hover_effect(self.search_button)
+        self.micro_interactions.add_click_effect(self.search_button)
 
         # Current location indicator
         self.location_label = ctk.CTkLabel(
@@ -323,9 +355,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.HOVER,
-            command=self._toggle_temperature_unit,
+            command=self._enhanced_toggle_temperature_unit,
         )
         self.temp_toggle_btn.pack(side="left", padx=(0, 12), pady=8)
+        
+        # Add micro-interactions to temperature toggle button
+        self.micro_interactions.add_hover_effect(self.temp_toggle_btn)
+        self.micro_interactions.add_click_effect(self.temp_toggle_btn)
 
         # Right column - Forecast and charts
         self._create_forecast_section()
@@ -742,6 +778,34 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Failed to update temperature chart: {e}")
 
+    def _enhanced_search_weather(self):
+        """Enhanced weather search with micro-interactions."""
+        # Add ripple effect on button click
+        self.micro_interactions.add_ripple_effect(self.search_button)
+        
+        search_term = self.search_entry.get().strip()
+        if search_term:
+            # Pulse animation for search entry
+            self.animation_manager.pulse_animation(self.search_entry)
+            
+            # Update current city with fade effect
+            self.current_city = search_term
+            self.animation_manager.fade_in(self.location_label)
+            self.location_label.configure(text=f"📍 Current: {self.current_city}")
+
+            # Update weather display with slide effect
+            self.animation_manager.fade_in(self.city_label)
+            self.city_label.configure(text=self.current_city)
+
+            # Clear search entry with animation
+            self.animation_manager.fade_out(self.search_entry, callback=lambda: self.search_entry.delete(0, "end"))
+
+            # Call original weather update
+            self._update_weather_display()
+        else:
+            # Show warning pulse for empty search
+            self.micro_interactions.add_warning_pulse(self.search_entry)
+    
     def _search_weather(self):
         """Handle weather search functionality."""
         search_term = self.search_entry.get().strip()
@@ -769,10 +833,21 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         return "🌤️"  # Default icon
 
     def _update_weather_display(self, weather_data):
-        """Update UI with enhanced weather display."""
+        """Update UI with enhanced weather display and visual effects."""
         try:
             # Store current weather data for activity suggestions
             self.current_weather_data = weather_data
+
+            # Update weather-based background
+            from src.ui.components.weather_effects import WeatherCondition
+            weather_condition = WeatherCondition(
+                condition=weather_data.description,
+                temperature=weather_data.temperature,
+                humidity=getattr(weather_data, 'humidity', 50),
+                wind_speed=getattr(weather_data, 'wind_speed', 0),
+                time_of_day='day' if 6 <= datetime.now().hour <= 18 else 'night'
+            )
+            self.weather_background_manager.update_weather_background(weather_condition)
 
             # Update activities if on activities tab
             if self.tabview.get() == "Activities":
@@ -781,10 +856,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             # Refresh activity suggestions with new weather data
             self._refresh_activity_suggestions()
 
-            # Update location
+            # Update location with fade animation
             location_name = f"{
                 weather_data.location.name}, {
                 weather_data.location.country}"
+            self.animation_manager.fade_in(self.city_label)
             self.city_label.configure(text=location_name)
             self.location_label.configure(text=f"📍 Current: {location_name}")
 
@@ -796,9 +872,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     icon = emoji
                     break
 
-            # Update main display
-            self.temp_label.configure(text=f"{int(weather_data.temperature)}°C")
+            # Update main display with number transition animation
+            self.animation_manager.animate_number_change(
+                self.temp_label, 
+                f"{int(weather_data.temperature)}°C"
+            )
+            self.animation_manager.fade_in(self.condition_label)
             self.condition_label.configure(text=f"{icon} {weather_data.description}")
+            
+            # Show success status
+            self.status_manager.show_weather_fact()
 
             # Update metrics
             if "humidity" in self.metric_labels:
@@ -845,6 +928,40 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Error updating display: {e}")
             self.status_label.configure(text=f"❌ Error: {str(e)}")
+
+    def _enhanced_toggle_temperature_unit(self):
+        """Enhanced temperature unit toggle with micro-interactions."""
+        # Add ripple effect on button click
+        self.micro_interactions.add_ripple_effect(self.temp_toggle_btn)
+        
+        # Animate button state change
+        self.animation_manager.pulse_animation(self.temp_toggle_btn)
+        
+        # Store old unit for smooth transition
+        old_unit = self.temp_unit
+        
+        # Call original toggle method
+        self._toggle_temperature_unit()
+        
+        # Animate temperature value changes
+        if hasattr(self, "temp_label"):
+            self.animation_manager.animate_number_change(
+                self.temp_label, 
+                self.temp_label.cget("text")
+            )
+        
+        # Animate feels like temperature if available
+        if hasattr(self, "metric_labels") and "feels_like" in self.metric_labels:
+            self.animation_manager.fade_in(self.metric_labels["feels_like"])
+        
+        # Success pulse for successful conversion
+        self.animation_manager.success_pulse(self.temp_toggle_btn)
+        
+        # Show status with unit change
+        new_unit_name = "Fahrenheit" if self.temp_unit == "F" else "Celsius"
+        if hasattr(self, "status_label"):
+            self.animation_manager.fade_in(self.status_label)
+            self.status_label.configure(text=f"🌡️ Temperature unit changed to {new_unit_name}")
 
     def _toggle_temperature_unit(self):
         """Toggle between Celsius and Fahrenheit."""
@@ -1371,8 +1488,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             text="",
             button_color=DataTerminalTheme.PRIMARY,
             progress_color=DataTerminalTheme.SUCCESS,
-            command=self._toggle_auto_refresh,
+            command=self._enhanced_toggle_auto_refresh,
         )
+        
+        # Add micro-interactions to auto-refresh switch
+        self.micro_interactions.add_hover_effect(self.auto_refresh_switch)
+        self.micro_interactions.add_click_effect(self.auto_refresh_switch)
         self.auto_refresh_switch.grid(row=4, column=1, sticky="w", padx=15, pady=(6, 15))
 
     def _create_theme_selector(self):
@@ -1400,19 +1521,43 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 preview.set_selected(True)
 
     def apply_theme(self, theme_name: str):
-        """Apply selected theme to the entire application."""
+        """Apply selected theme to the entire application with micro-interactions."""
         try:
+            # Find and animate the selected theme card
+            selected_card = None
+            for card in self.theme_preview_cards:
+                if card.theme_key == theme_name:
+                    selected_card = card
+                    # Add ripple effect to selected theme card
+                    self.micro_interactions.add_ripple_effect(card)
+                    # Success pulse for theme selection
+                    self.animation_manager.success_pulse(card)
+                    break
+            
             # Apply theme using theme manager
             theme_manager.apply_theme(theme_name, self)
             
-            # Update theme preview cards selection
+            # Update theme preview cards selection with fade effects
             for card in self.theme_preview_cards:
-                card.set_selected(card.theme_key == theme_name)
+                if card.theme_key == theme_name:
+                    card.set_selected(True)
+                    # Highlight selected card
+                    self.animation_manager.fade_in(card)
+                else:
+                    card.set_selected(False)
+                    # Subtle fade for unselected cards
+                    self.animation_manager.fade_out(card, duration=200)
                 
             # Update temperature chart if it exists
             if hasattr(self, 'temp_chart') and self.temp_chart:
                 theme_data = theme_manager.THEMES.get(theme_name, {})
                 self.temp_chart.update_theme(theme_data)
+                
+            # Show theme change status with animation
+            theme_display_name = theme_manager.THEMES.get(theme_name, {}).get('name', theme_name)
+            if hasattr(self, "status_label"):
+                self.animation_manager.fade_in(self.status_label)
+                self.status_label.configure(text=f"🎨 Theme changed to {theme_display_name}")
                 
             logging.info(f"Applied theme: {theme_name}")
             
@@ -1483,9 +1628,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             height=32,
             fg_color=DataTerminalTheme.INFO,
             font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
-            command=self._export_data,
+            command=self._enhanced_export_data,
         )
         export_btn.grid(row=0, column=1, padx=4, sticky="w")
+        
+        # Add micro-interactions to export button
+        self.micro_interactions.add_hover_effect(export_btn)
+        self.micro_interactions.add_click_effect(export_btn)
 
         # Import data button
         import_btn = ctk.CTkButton(
@@ -1495,9 +1644,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             height=32,
             fg_color=DataTerminalTheme.SUCCESS,
             font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
-            command=self._import_data,
+            command=self._enhanced_import_data,
         )
         import_btn.grid(row=0, column=2, padx=4, sticky="w")
+        
+        # Add micro-interactions to import button
+        self.micro_interactions.add_hover_effect(import_btn)
+        self.micro_interactions.add_click_effect(import_btn)
 
     def _create_about_section(self, parent):
         """Create about section."""
@@ -1561,9 +1714,13 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             border_width=1,
             border_color=DataTerminalTheme.PRIMARY,
             font=(DataTerminalTheme.FONT_FAMILY, 11),
-            command=self._open_github,
+            command=self._enhanced_open_github,
         )
         github_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        
+        # Add micro-interactions to GitHub button
+        self.micro_interactions.add_hover_effect(github_btn)
+        self.micro_interactions.add_click_effect(github_btn)
 
         docs_btn = ctk.CTkButton(
             links_frame,
@@ -1638,6 +1795,36 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, "weather_service") and self.weather_service:
             self.after(100, self._refresh_weather_with_new_units)
 
+    def _enhanced_toggle_auto_refresh(self):
+        """Enhanced auto-refresh toggle with micro-interactions."""
+        # Add ripple effect on switch toggle
+        self.micro_interactions.add_ripple_effect(self.auto_refresh_switch)
+        
+        enabled = self.auto_refresh_switch.get()
+        self.auto_refresh_enabled = enabled
+        
+        # Animate status change
+        if enabled:
+            # Success pulse for enabling
+            self.animation_manager.success_pulse(self.auto_refresh_switch)
+            status_text = "🔄 Auto-refresh enabled"
+            # Start refresh cycle immediately
+            self.after(1000, self._schedule_refresh)
+        else:
+            # Warning pulse for disabling
+            self.animation_manager.warning_pulse(self.auto_refresh_switch)
+            status_text = "⏸️ Auto-refresh disabled"
+        
+        # Show status with fade effect
+        if hasattr(self, "status_label"):
+            self.animation_manager.fade_in(self.status_label)
+            self.status_label.configure(text=status_text)
+        else:
+            print(status_text)
+        
+        # Call original method for core functionality
+        self._toggle_auto_refresh()
+
     def _toggle_auto_refresh(self):
         """Toggle auto-refresh functionality."""
         enabled = self.auto_refresh_switch.get()
@@ -1650,9 +1837,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _schedule_refresh(self):
         """Schedule automatic weather refresh."""
-        if self.auto_refresh_enabled:
+        try:
+            if self.is_destroyed or not self.winfo_exists() or not self.auto_refresh_enabled:
+                return
             self._load_weather_data()
-            self.after(self.refresh_interval, self._schedule_refresh)
+            self.safe_after(self.refresh_interval, self._schedule_refresh)
+        except tk.TclError:
+            # Widget has been destroyed, stop the scheduler
+            return
 
     def _convert_temperature(self, temp_str, from_unit, to_unit):
         """Convert temperature string from one unit to another."""
@@ -1723,6 +1915,34 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, "current_city") and self.current_city:
             self._load_weather_data()
 
+    def _enhanced_open_github(self):
+        """Enhanced GitHub opening with micro-interactions."""
+        # Add ripple effect to GitHub button
+        if hasattr(self, 'github_button'):
+            self.micro_interactions.add_ripple_effect(self.github_button)
+        
+        # Show loading animation
+        if hasattr(self, 'status_manager'):
+            self.status_manager.show_loading("Opening GitHub...")
+        
+        try:
+            result = self._open_github()
+            
+            # Success pulse animation
+            if hasattr(self, 'github_button'):
+                self.micro_interactions.add_success_pulse(self.github_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_success("GitHub repository opened!")
+                
+        except Exception as e:
+            # Warning pulse for errors
+            if hasattr(self, 'github_button'):
+                self.micro_interactions.add_warning_pulse(self.github_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_error(f"Failed to open GitHub: {str(e)}")
+    
     def _open_github(self):
         """Open GitHub repository in browser."""
         import webbrowser
@@ -1795,6 +2015,34 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             else:
                 print(f"❌ Failed to clear cache: {e}")
 
+    def _enhanced_export_data(self):
+        """Enhanced export with micro-interactions."""
+        # Add ripple effect to export button
+        if hasattr(self, 'export_button'):
+            self.micro_interactions.add_ripple_effect(self.export_button)
+        
+        # Show loading animation
+        if hasattr(self, 'status_manager'):
+            self.status_manager.show_loading("Preparing export...")
+        
+        try:
+            result = self._export_data()
+            
+            # Success pulse animation
+            if hasattr(self, 'export_button'):
+                self.micro_interactions.add_success_pulse(self.export_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_success("Data exported successfully!")
+                
+        except Exception as e:
+            # Warning pulse for errors
+            if hasattr(self, 'export_button'):
+                self.micro_interactions.add_warning_pulse(self.export_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_error(f"Export failed: {str(e)}")
+    
     def _export_data(self):
         """Export application data."""
         try:
@@ -1846,6 +2094,34 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             else:
                 print(f"❌ Failed to export data: {e}")
 
+    def _enhanced_import_data(self):
+        """Enhanced import with micro-interactions."""
+        # Add ripple effect to import button
+        if hasattr(self, 'import_button'):
+            self.micro_interactions.add_ripple_effect(self.import_button)
+        
+        # Show loading animation
+        if hasattr(self, 'status_manager'):
+            self.status_manager.show_loading("Processing import...")
+        
+        try:
+            result = self._import_data()
+            
+            # Success pulse animation
+            if hasattr(self, 'import_button'):
+                self.micro_interactions.add_success_pulse(self.import_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_success("Data imported successfully!")
+                
+        except Exception as e:
+            # Warning pulse for errors
+            if hasattr(self, 'import_button'):
+                self.micro_interactions.add_warning_pulse(self.import_button)
+            
+            if hasattr(self, 'status_manager'):
+                self.status_manager.show_error(f"Import failed: {str(e)}")
+    
     def _import_data(self):
         """Import application data."""
         try:
@@ -1930,11 +2206,52 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         # Start time update
         self._update_time()
 
+    def safe_after(self, delay, callback):
+        """Safe after() call that tracks scheduled calls for cleanup."""
+        if self.is_destroyed:
+            return None
+        try:
+            call_id = self.after(delay, callback)
+            self.scheduled_calls.append(call_id)
+            return call_id
+        except tk.TclError:
+            return None
+    
+    def _cleanup_scheduled_calls(self):
+        """Cancel all scheduled after() calls."""
+        for call_id in self.scheduled_calls:
+            try:
+                self.after_cancel(call_id)
+            except (tk.TclError, ValueError):
+                pass
+        self.scheduled_calls.clear()
+    
+    def _on_closing(self):
+        """Handle application closing."""
+        self.is_destroyed = True
+        self._cleanup_scheduled_calls()
+        
+        # Cleanup animation manager
+        if hasattr(self, 'animation_manager'):
+            self.animation_manager.cleanup()
+        
+        # Cleanup status manager
+        if hasattr(self, 'status_manager'):
+            self.status_manager.cleanup()
+        
+        self.destroy()
+    
     def _update_time(self):
         """Update time display."""
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.time_label.configure(text=current_time)
-        self.after(1000, self._update_time)
+        try:
+            if self.is_destroyed or not self.winfo_exists():
+                return
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.time_label.configure(text=current_time)
+            self.safe_after(1000, self._update_time)
+        except tk.TclError:
+            # Widget has been destroyed, stop the timer
+            return
 
     def _initialize_progressive_loading(self):
         """Initialize progressive loading with UI-first approach."""
@@ -1992,7 +2309,22 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self._load_weather_data_with_timeout()
 
     def _show_loading_state(self):
-        """Show loading indicators."""
+        """Show loading indicators with visual polish."""
+        # Start shimmer effects on weather cards
+        if hasattr(self, 'weather_metrics_frame'):
+            self.shimmer_effect = ShimmerEffect(self.weather_metrics_frame)
+            self.shimmer_effect.start_shimmer()
+        
+        # Show dynamic loading messages
+        self.status_manager.show_loading_message()
+        
+        # Apply loading skeleton to forecast cards
+        if hasattr(self, 'forecast_frame'):
+            self.forecast_skeleton = LoadingSkeleton(self.forecast_frame)
+            self.forecast_skeleton.show()
+        
+        # Update labels with fade effect
+        self.animation_manager.fade_in(self.city_label)
         self.city_label.configure(text="Loading...")
         self.temp_label.configure(text="--°C")
         self.condition_label.configure(text="Fetching weather data...")
@@ -2002,7 +2334,20 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.loading_spinner.start()
 
     def _hide_loading_state(self):
-        """Hide loading indicators."""
+        """Hide loading indicators and clean up visual effects."""
+        # Stop shimmer effects
+        if hasattr(self, 'shimmer_effect'):
+            self.shimmer_effect.stop_shimmer()
+            delattr(self, 'shimmer_effect')
+        
+        # Hide loading skeleton
+        if hasattr(self, 'forecast_skeleton'):
+            self.forecast_skeleton.hide()
+            delattr(self, 'forecast_skeleton')
+        
+        # Clear status messages
+        self.status_manager.clear_messages()
+        
         # Hide loading spinner if available
         if hasattr(self, "loading_spinner"):
             self.loading_spinner.stop()
@@ -2259,14 +2604,26 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.logger.error(f"Failed to update air quality display: {e}")
 
     def _show_error_state(self, error_message):
-        """Show error state in UI."""
+        """Show error state in UI with enhanced styling."""
         self._hide_loading_state()
-
+        
+        # Show styled error card
+        self.error_manager.show_error(
+            title="Weather Data Error",
+            message=error_message,
+            error_type="network" if "network" in error_message.lower() else "api"
+        )
+        
+        # Update labels with animation
+        self.animation_manager.fade_in(self.city_label)
         self.city_label.configure(text="Error")
         self.temp_label.configure(text="--°C")
         self.condition_label.configure(
             text=f"❌ {error_message}", text_color=DataTerminalTheme.ERROR
         )
+        
+        # Show contextual help
+        self.status_manager.show_error_help()
 
         if hasattr(self, "status_label"):
             self.status_label.configure(
