@@ -11,6 +11,7 @@ from src.services.github_team_service import GitHubTeamService
 from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.components.theme_preview_card import ThemePreviewCard
 from src.ui.components.city_comparison_panel import CityComparisonPanel
+from src.ui.components.ml_comparison_panel import MLComparisonPanel
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
@@ -209,6 +210,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Create tabs
         self.weather_tab = self.tabview.add("Weather")
         self.comparison_tab = self.tabview.add("🏙️ Team Compare")
+        self.ml_comparison_tab = self.tabview.add("🧠 AI Analysis")
         self.activities_tab = self.tabview.add("Activities")
         self.maps_tab = self.tabview.add("Maps")
         self.settings_tab = self.tabview.add("Settings")
@@ -220,13 +222,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.comparison_tab.grid_columnconfigure(0, weight=1)
         self.comparison_tab.grid_rowconfigure(0, weight=1)
 
+        self.ml_comparison_tab.grid_columnconfigure(0, weight=1)
+        self.ml_comparison_tab.grid_rowconfigure(0, weight=1)
+
         self.activities_tab.grid_columnconfigure(0, weight=1)
         self.activities_tab.grid_rowconfigure(0, weight=1)
 
         self.maps_tab.grid_columnconfigure(0, weight=1)
         self.maps_tab.grid_rowconfigure(0, weight=1)
-
-
 
         self.settings_tab.grid_columnconfigure(0, weight=1)
         self.settings_tab.grid_rowconfigure(0, weight=1)
@@ -234,6 +237,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Create tab content
         self._create_weather_tab()
         self._create_comparison_tab()
+        self._create_ml_comparison_tab()
         self._create_activities_tab()
         self._create_maps_tab()
         self._create_settings_tab()
@@ -907,7 +911,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
         self.city_comparison_panel.pack(fill="both", expand=True)
 
+    def _create_ml_comparison_tab(self):
+        """Create ML-powered comparison and analysis tab."""
+        self._create_ml_comparison_tab_content()
 
+    def _create_ml_comparison_tab_content(self):
+        """Create the ML-powered comparison and analysis functionality."""
+        # Create the ML comparison panel
+        self.ml_comparison_panel = MLComparisonPanel(
+            self.ml_comparison_tab,
+            weather_service=self.weather_service,
+            github_service=self.github_service
+        )
+        self.ml_comparison_panel.pack(fill="both", expand=True)
 
     def _create_activities_tab(self):
         """Create activities tab content."""

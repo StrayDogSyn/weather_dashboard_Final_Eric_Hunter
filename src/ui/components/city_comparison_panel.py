@@ -580,22 +580,22 @@ class CityComparisonPanel(ctk.CTkFrame):
         logger.info(f"Selected {city_name} in dropdown {dropdown_index}")
     
     def _compare_selected_cities(self):
-         """Compare the selected cities from dropdowns."""
-         selected_cities = []
-         
-         # Update status
-         self.status_label.configure(text="Collecting selected cities...")
-         
-         # Collect selected cities from dropdowns
-         for dropdown in self.city_dropdowns:
-             city = dropdown.get()
-             if city and city not in ["Select a city...", "No team data available", "Error loading data"]:
-                 selected_cities.append(city)
-         
-         if len(selected_cities) < 1:
-             self.status_label.configure(text="⚠️ Please select at least 1 city to compare")
-             logger.warning("Please select at least 1 city to compare")
-             return
+        """Compare the selected cities from dropdowns."""
+        selected_cities = []
+        
+        # Update status
+        self.status_label.configure(text="Collecting selected cities...")
+        
+        # Collect selected cities from dropdowns
+        for dropdown in self.city_dropdowns:
+            city = dropdown.get()
+            if city and city not in ["Select a city...", "No team data available", "Error loading data"]:
+                selected_cities.append(city)
+        
+        if len(selected_cities) < 1:
+            self.status_label.configure(text="⚠️ Please select at least 1 city to compare")
+            logger.warning("Please select at least 1 city to compare")
+            return
         
         # Clear existing comparison display
         self._clear_comparison_display()
@@ -905,43 +905,8 @@ class CityComparisonPanel(ctk.CTkFrame):
         self._fetch_and_add_city(city_name, is_team_member=is_team_member)
         
         logger.info(f"Quick added city: {city_name}")
-     
-     def _fetch_and_add_city(self, city_name, is_team_member=False):
-         """Fetch weather data for a city and add it to comparison."""
-         try:
-             # Get weather data
-             weather_data = self.weather_service.get_current_weather(city_name)
-             
-             if not weather_data:
-                 logger.error(f"Could not fetch weather data for {city_name}")
-                 return
-             
-             # Get team member info if applicable
-             member_name = None
-             if is_team_member and city_name in self.team_cities_data:
-                 for member_data in self.team_cities_data[city_name]:
-                     member_name = member_data.get('name', 'Unknown')
-                     break  # Use first member found
-             
-             # Create city data structure
-             city_data = {
-                 'city_name': city_name,
-                 'temperature': weather_data.get('temperature', 0),
-                 'humidity': weather_data.get('humidity', 0),
-                 'wind_speed': weather_data.get('wind_speed', 0),
-                 'pressure': weather_data.get('pressure', 0),
-                 'description': weather_data.get('description', 'N/A'),
-                 'is_team_member': is_team_member,
-                 'member_name': member_name
-             }
-             
-             # Add to comparison display
-             self._add_city_to_comparison(city_data)
-             
-         except Exception as e:
-             logger.error(f"Error fetching data for {city_name}: {e}")
-     
-     def _clear_comparison_display(self):
+
+    def _clear_comparison_display(self):
         """Clear the comparison display area."""
         # Remove all comparison columns
         for column in self.comparison_columns:
