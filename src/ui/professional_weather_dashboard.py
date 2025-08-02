@@ -89,6 +89,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Track scheduled after() calls for cleanup
         self.scheduled_calls = []
+        
+        # Track open hourly breakdown windows
+        self.open_hourly_windows = []
         self.is_destroyed = False
         
         # Bind cleanup to window close
@@ -871,6 +874,30 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             hourly_window.transient(self)
             hourly_window.grab_set()
             
+            # Check if we have newer weather data available
+            current_time = datetime.now()
+            current_data_timestamp = getattr(self.current_weather_data, 'timestamp', current_time) if hasattr(self, 'current_weather_data') and self.current_weather_data else current_time
+            
+            # Store reference to window and its day index with creation timestamp
+            window_info = {
+                'window': hourly_window,
+                'day_index': day_index,
+                'created_at': current_time,
+                'data_timestamp': current_data_timestamp
+            }
+            self.open_hourly_windows.append(window_info)
+            logging.info(f"Hourly window opened for day {day_index}. Total open windows: {len(self.open_hourly_windows)}")
+            logging.info(f"Window created at {window_info['created_at'].strftime('%H:%M:%S')} with data from {window_info['data_timestamp'].strftime('%H:%M:%S')}")
+            
+            # Set up cleanup when window is closed
+            def on_window_close():
+                if window_info in self.open_hourly_windows:
+                    self.open_hourly_windows.remove(window_info)
+                    logging.info(f"Hourly window closed for day {day_index}. Total open windows: {len(self.open_hourly_windows)}")
+                hourly_window.destroy()
+            
+            hourly_window.protocol("WM_DELETE_WINDOW", on_window_close)
+            
             # Center the window
             hourly_window.update_idletasks()
             x = (hourly_window.winfo_screenwidth() // 2) - (600 // 2)
@@ -882,9 +909,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             content_frame.pack(fill="both", expand=True, padx=20, pady=20)
             
             # Title
+            target_date = datetime.now() + timedelta(days=day_index)
             title_label = ctk.CTkLabel(
                 content_frame,
-                text=f"Hourly Forecast - {(datetime.now() + timedelta(days=day_index)).strftime('%A, %B %d')}",
+                text=f"Hourly Forecast - {target_date.strftime('%A, %B %d')}",
                 font=ctk.CTkFont(size=18, weight="bold"),
                 text_color=theme_manager.get_current_theme().get("text", "#FFFFFF")
             )
@@ -894,69 +922,329 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             scrollable_frame = ctk.CTkScrollableFrame(content_frame)
             scrollable_frame.pack(fill="both", expand=True)
             
-            # Add sample hourly data (in a real implementation, this would come from the forecast service)
-            for hour in range(0, 24, 3):  # Every 3 hours
-                hour_frame = ctk.CTkFrame(scrollable_frame)
-                hour_frame.pack(fill="x", padx=5, pady=2)
-                
-                # Time
-                time_label = ctk.CTkLabel(
-                    hour_frame,
-                    text=f"{hour:02d}:00",
+            # Get real hourly forecast data
+            hourly_data = self._get_hourly_data_for_day(day_index)
+            
+            # Check if we have newer weather data available and update window info if needed
+            if hasattr(self, 'last_weather_data_timestamp') and self.last_weather_data_timestamp > current_data_timestamp:
+                window_info['data_timestamp'] = self.last_weather_data_timestamp
+                logging.info(f"Updated window data timestamp to latest: {self.last_weather_data_timestamp.strftime('%H:%M:%S')}")
+            
+            if hourly_data:
+                # Display real hourly data
+                for hour_entry in hourly_data:
+                    hour_frame = ctk.CTkFrame(scrollable_frame)
+                    hour_frame.pack(fill="x", padx=5, pady=2)
+                    
+                    # Time
+                    time_str = hour_entry.get('time', '00:00')
+                    time_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=time_str,
+                        font=ctk.CTkFont(size=14),
+                        width=60
+                    )
+                    time_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Weather icon
+                    icon = self._get_weather_icon(hour_entry.get('condition', 'clear'))
+                    icon_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=icon,
+                        font=ctk.CTkFont(size=14),
+                        width=40
+                    )
+                    icon_label.pack(side="left", padx=5, pady=5)
+                    
+                    # Temperature
+                    temp = hour_entry.get('temperature', 20)
+                    if hasattr(self, 'temp_unit') and self.temp_unit == 'F':
+                        temp = temp * 9/5 + 32
+                    temp_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"{int(temp)}°{getattr(self, 'temp_unit', 'C')}",
+                        font=ctk.CTkFont(size=14),
+                        width=60
+                    )
+                    temp_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Precipitation
+                    precip = hour_entry.get('precipitation', 0)
+                    precip_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"💧 {int(precip)}%" if precip > 0 else "",
+                        font=ctk.CTkFont(size=12),
+                        width=60
+                    )
+                    precip_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Wind
+                    wind = hour_entry.get('wind_speed', 0)
+                    wind_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"💨 {wind:.1f} m/s",
+                        font=ctk.CTkFont(size=12)
+                    )
+                    wind_label.pack(side="left", padx=10, pady=5)
+            else:
+                # Fallback to sample data if no real data available
+                no_data_label = ctk.CTkLabel(
+                    scrollable_frame,
+                    text="No hourly forecast data available for this day.",
                     font=ctk.CTkFont(size=14),
-                    width=60
+                    text_color=theme_manager.get_current_theme().get("text_secondary", "#CCCCCC")
                 )
-                time_label.pack(side="left", padx=10, pady=5)
+                no_data_label.pack(pady=20)
                 
-                # Weather icon
-                icon_label = ctk.CTkLabel(
-                    hour_frame,
-                    text="🌤️",
-                    font=ctk.CTkFont(size=14),
-                    width=40
-                )
-                icon_label.pack(side="left", padx=5, pady=5)
-                
-                # Temperature
-                temp = 20 + (hour // 3) - 2  # Sample temperature variation
-                temp_label = ctk.CTkLabel(
-                    hour_frame,
-                    text=f"{temp}°{self.temp_unit}",
-                    font=ctk.CTkFont(size=14),
-                    width=60
-                )
-                temp_label.pack(side="left", padx=10, pady=5)
-                
-                # Precipitation
-                precip = max(0, (hour - 12) * 5) if 9 <= hour <= 15 else 0  # Sample precipitation
-                precip_label = ctk.CTkLabel(
-                    hour_frame,
-                    text=f"💧 {precip}%" if precip > 0 else "",
-                    font=ctk.CTkFont(size=12),
-                    width=60
-                )
-                precip_label.pack(side="left", padx=10, pady=5)
-                
-                # Wind
-                wind = 2.0 + (hour * 0.1)  # Sample wind variation
-                wind_label = ctk.CTkLabel(
-                    hour_frame,
-                    text=f"💨 {wind:.1f} m/s",
-                    font=ctk.CTkFont(size=12)
-                )
-                wind_label.pack(side="left", padx=10, pady=5)
+                # Show sample data as fallback
+                for hour in range(0, 24, 3):  # Every 3 hours
+                    hour_frame = ctk.CTkFrame(scrollable_frame)
+                    hour_frame.pack(fill="x", padx=5, pady=2)
+                    
+                    # Time
+                    time_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"{hour:02d}:00",
+                        font=ctk.CTkFont(size=14),
+                        width=60
+                    )
+                    time_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Weather icon
+                    icon_label = ctk.CTkLabel(
+                        hour_frame,
+                        text="🌤️",
+                        font=ctk.CTkFont(size=14),
+                        width=40
+                    )
+                    icon_label.pack(side="left", padx=5, pady=5)
+                    
+                    # Temperature
+                    temp = 20 + (hour // 3) - 2  # Sample temperature variation
+                    temp_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"{temp}°{getattr(self, 'temp_unit', 'C')}",
+                        font=ctk.CTkFont(size=14),
+                        width=60
+                    )
+                    temp_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Precipitation
+                    precip = max(0, (hour - 12) * 5) if 9 <= hour <= 15 else 0  # Sample precipitation
+                    precip_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"💧 {precip}%" if precip > 0 else "",
+                        font=ctk.CTkFont(size=12),
+                        width=60
+                    )
+                    precip_label.pack(side="left", padx=10, pady=5)
+                    
+                    # Wind
+                    wind = 2.0 + (hour * 0.1)  # Sample wind variation
+                    wind_label = ctk.CTkLabel(
+                        hour_frame,
+                        text=f"💨 {wind:.1f} m/s",
+                        font=ctk.CTkFont(size=12)
+                    )
+                    wind_label.pack(side="left", padx=10, pady=5)
             
             # Close button
             close_button = ctk.CTkButton(
                 content_frame,
                 text="Close",
-                command=hourly_window.destroy,
+                command=on_window_close,
                 font=ctk.CTkFont(size=14)
             )
             close_button.pack(pady=(10, 0))
             
+            # Store reference to content frame for updates
+            window_info['content_frame'] = content_frame
+            
         except Exception as e:
             self.logger.error(f"Failed to show hourly breakdown: {e}")
+    
+    def _refresh_open_hourly_windows(self):
+        """Refresh content of all open hourly breakdown windows."""
+        try:
+            current_time = datetime.now().strftime('%H:%M:%S')
+            current_data_timestamp = getattr(self.current_weather_data, 'timestamp', datetime.now()) if hasattr(self, 'current_weather_data') and self.current_weather_data else datetime.now()
+            
+            self.logger.info(f"[{current_time}] Refreshing {len(self.open_hourly_windows)} open hourly windows")
+            self.logger.info(f"[{current_time}] Current weather data timestamp: {current_data_timestamp.strftime('%H:%M:%S')}")
+            
+            for window_info in self.open_hourly_windows[:]:
+                try:
+                    window = window_info['window']
+                    day_index = window_info['day_index']
+                    window_data_timestamp = window_info.get('data_timestamp', datetime.min)
+                    
+                    # Check if window still exists
+                    if not window.winfo_exists():
+                        self.open_hourly_windows.remove(window_info)
+                        self.logger.info(f"[{current_time}] Removed non-existent window for day {day_index}")
+                        continue
+                    
+                    # Check if current data is newer than window's data
+                    if current_data_timestamp <= window_data_timestamp:
+                        self.logger.info(f"[{current_time}] Skipping window for day {day_index} - data is current (window: {window_data_timestamp.strftime('%H:%M:%S')}, current: {current_data_timestamp.strftime('%H:%M:%S')})")
+                        continue
+                    
+                    self.logger.info(f"[{current_time}] Refreshing hourly window for day {day_index} with newer data (window: {window_data_timestamp.strftime('%H:%M:%S')}, current: {current_data_timestamp.strftime('%H:%M:%S')})")
+                    
+                    # Update the window's data timestamp
+                    window_info['data_timestamp'] = current_data_timestamp
+                    
+                    # Clear existing content (except close button)
+                    for child in content_frame.winfo_children():
+                        if not isinstance(child, ctk.CTkButton):
+                            child.destroy()
+                    
+                    # Recreate the scrollable frame and content
+                    scrollable_frame = ctk.CTkScrollableFrame(content_frame)
+                    scrollable_frame.pack(fill="both", expand=True)
+                    
+                    # Get updated hourly data
+                    hourly_data = self._get_hourly_data_for_day(day_index)
+                    
+                    if hourly_data:
+                        # Display updated hourly data
+                        for hour_entry in hourly_data:
+                            hour_frame = ctk.CTkFrame(scrollable_frame)
+                            hour_frame.pack(fill="x", padx=5, pady=2)
+                            
+                            # Time
+                            time_str = hour_entry.get('time', '00:00')
+                            time_label = ctk.CTkLabel(
+                                hour_frame,
+                                text=time_str,
+                                font=ctk.CTkFont(size=14),
+                                width=60
+                            )
+                            time_label.pack(side="left", padx=10, pady=5)
+                            
+                            # Weather icon
+                            condition = hour_entry.get('condition', 'clear')
+                            icon = self._get_weather_icon(condition)
+                            icon_label = ctk.CTkLabel(
+                                hour_frame,
+                                text=icon,
+                                font=ctk.CTkFont(size=16),
+                                width=40
+                            )
+                            icon_label.pack(side="left", padx=10, pady=5)
+                            
+                            # Temperature
+                            temp = hour_entry.get('temperature', 20)
+                            temp_label = ctk.CTkLabel(
+                                hour_frame,
+                                text=f"{int(temp)}°{getattr(self, 'temp_unit', 'C')}",
+                                font=ctk.CTkFont(size=14),
+                                width=60
+                            )
+                            temp_label.pack(side="left", padx=10, pady=5)
+                            
+                            # Precipitation
+                            precip = hour_entry.get('precipitation', 0)
+                            precip_label = ctk.CTkLabel(
+                                hour_frame,
+                                text=f"💧 {int(precip)}%" if precip > 0 else "",
+                                font=ctk.CTkFont(size=12),
+                                width=60
+                            )
+                            precip_label.pack(side="left", padx=10, pady=5)
+                            
+                            # Wind
+                            wind = hour_entry.get('wind_speed', 0)
+                            wind_label = ctk.CTkLabel(
+                                hour_frame,
+                                text=f"💨 {wind:.1f} m/s",
+                                font=ctk.CTkFont(size=12)
+                            )
+                            wind_label.pack(side="left", padx=10, pady=5)
+                    else:
+                        # Show "no data" message
+                        no_data_label = ctk.CTkLabel(
+                            scrollable_frame,
+                            text="No hourly forecast data available for this day.",
+                            font=ctk.CTkFont(size=14)
+                        )
+                        no_data_label.pack(pady=20)
+                        
+                except Exception as e:
+                    self.logger.error(f"Failed to refresh hourly window: {e}")
+                    # Remove problematic window from tracking
+                    if window_info in self.open_hourly_windows:
+                        self.open_hourly_windows.remove(window_info)
+                        
+        except Exception as e:
+            self.logger.error(f"Failed to refresh open hourly windows: {e}")
+    
+    def _get_hourly_data_for_day(self, day_index):
+        """Extract hourly forecast data for a specific day."""
+        try:
+            if not self.current_weather_data or not hasattr(self.current_weather_data, 'forecast_data'):
+                return None
+            
+            forecast_data = self.current_weather_data.forecast_data
+            if not forecast_data or not hasattr(forecast_data, 'hourly_forecasts'):
+                return None
+            
+            # Calculate target date
+            target_date = datetime.now().date() + timedelta(days=day_index)
+            
+            hourly_data = []
+            for forecast in forecast_data.hourly_forecasts:
+                # Get the forecast datetime
+                forecast_dt = forecast.timestamp
+                
+                # Check if this forecast is for the target day
+                if forecast_dt.date() == target_date:
+                    # Get precipitation probability as percentage
+                    precip_prob = 0
+                    if forecast.precipitation_probability is not None:
+                        precip_prob = forecast.precipitation_probability * 100
+                    
+                    hour_data = {
+                        'time': forecast_dt.strftime('%H:%M'),
+                        'temperature': forecast.temperature,
+                        'condition': forecast.condition.value if hasattr(forecast.condition, 'value') else str(forecast.condition),
+                        'precipitation': precip_prob,
+                        'wind_speed': forecast.wind_speed or 0
+                    }
+                    hourly_data.append(hour_data)
+            
+            return hourly_data if hourly_data else None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get hourly data for day {day_index}: {e}")
+            return None
+    
+    def _get_weather_icon(self, condition):
+        """Get weather icon emoji based on condition."""
+        condition_lower = condition.lower()
+        
+        icon_map = {
+            'clear': '☀️',
+            'sunny': '☀️',
+            'clouds': '☁️',
+            'cloudy': '☁️',
+            'partly cloudy': '⛅',
+            'overcast': '☁️',
+            'rain': '🌧️',
+            'drizzle': '🌦️',
+            'shower': '🌦️',
+            'thunderstorm': '⛈️',
+            'snow': '❄️',
+            'mist': '🌫️',
+            'fog': '🌫️',
+            'haze': '🌫️'
+        }
+        
+        for key, icon in icon_map.items():
+            if key in condition_lower:
+                return icon
+        
+        return '🌤️'  # Default icon
 
     def _update_temperature_chart(self, weather_data):
         """Update temperature chart with weather data."""
@@ -1116,6 +1404,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             # Store current weather data for activity suggestions
             self.current_weather_data = weather_data
+            # Track when weather data was last updated
+            self.last_weather_data_timestamp = datetime.now()
 
             # Update weather-based background
             from src.ui.components.weather_effects import WeatherCondition
@@ -1161,6 +1451,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             
             # Show success status
             self.status_manager.show_weather_fact()
+            
+            # Refresh any open hourly breakdown windows
+            self.logger.info("About to refresh open hourly windows from _update_weather_display")
+            self._refresh_open_hourly_windows()
 
             # Update metrics
             if "humidity" in self.metric_labels:
@@ -1234,7 +1528,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.animation_manager.fade_in(self.metric_labels["feels_like"])
         
         # Success pulse for successful conversion
-        self.animation_manager.success_pulse(self.temp_toggle_btn)
+        self.animation_manager.pulse_effect(self.temp_toggle_btn, duration=0.3, intensity=1.2)
         
         # Show status with unit change
         new_unit_name = "Fahrenheit" if self.temp_unit == "F" else "Celsius"
@@ -2519,6 +2813,16 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         self.is_destroyed = True
         self._cleanup_scheduled_calls()
         
+        # Cleanup open hourly windows
+        if hasattr(self, 'open_hourly_windows'):
+            for window_info in self.open_hourly_windows:
+                try:
+                    if window_info['window'].winfo_exists():
+                        window_info['window'].destroy()
+                except:
+                    pass
+            self.open_hourly_windows.clear()
+        
         # Cleanup animation manager
         if hasattr(self, 'animation_manager'):
             self.animation_manager.cleanup()
@@ -2886,6 +3190,9 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                     # Trigger staggered animation for updated cards
                     for i, card in enumerate(self.forecast_cards):
                         self.after(i * 100, lambda c=card: c.animate_in())
+                
+                # Refresh any open hourly breakdown windows
+                self._refresh_open_hourly_windows()
                         
         except Exception as e:
             self.logger.error(f"Failed to update forecast display: {e}")
