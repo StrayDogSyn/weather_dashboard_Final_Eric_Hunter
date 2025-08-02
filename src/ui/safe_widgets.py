@@ -32,7 +32,7 @@ class SafeWidget:
             if after_id and self.winfo_exists():
                 self.after_cancel(after_id)
                 self._after_ids[id(self)].discard(after_id)
-        except:
+        except BaseException:
             pass
 
     def cleanup_after_callbacks(self) -> None:
@@ -56,7 +56,7 @@ class SafeWidget:
             try:
                 if hasattr(widget, "cleanup_after_callbacks"):
                     widget.cleanup_after_callbacks()
-            except:
+            except BaseException:
                 pass
         cls._after_ids.clear()
 

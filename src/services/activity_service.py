@@ -103,7 +103,8 @@ Format as JSON array with this structure:
 
                     if validated_suggestions:
                         self.logger.info(
-                            f"Generated {len(validated_suggestions)} AI activity suggestions"
+                            f"Generated {
+                                len(validated_suggestions)} AI activity suggestions"
                         )
                         return validated_suggestions
 

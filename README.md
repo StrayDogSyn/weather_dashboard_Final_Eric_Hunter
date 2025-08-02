@@ -188,16 +188,29 @@ Pillow          # Image processing
 weather_dashboard_Final_Eric_Hunter/
 ├── src/                    # Source code
 │   ├── config/            # Configuration management
+│   │   └── app_config.py  # Application configuration
 │   ├── models/            # Data models
+│   │   └── weather_models.py # Weather data structures
 │   ├── services/          # Business logic & APIs
-│   └── ui/               # GUI components
-│       ├── components/   # Reusable UI components
-│       │   ├── chart/   # Chart-related components
-│       │   └── temperature_chart.py
-│       ├── professional_weather_dashboard.py
-│       └── theme.py     # UI theming
+│   │   ├── activity_service.py
+│   │   ├── config_service.py
+│   │   ├── enhanced_weather_service.py
+│   │   ├── geocoding_service.py
+│   │   ├── loading_manager.py
+│   │   └── logging_service.py
+│   ├── ui/               # GUI components
+│   │   ├── components/   # Reusable UI components
+│   │   │   └── search_components.py # Enhanced search functionality
+│   │   ├── professional_weather_dashboard.py # Main dashboard
+│   │   ├── safe_widgets.py # Safe CustomTkinter widgets
+│   │   └── theme.py     # UI theming
+│   └── utils/            # Utility functions
+│       └── loading_manager.py
 ├── data/                 # Application data
 │   └── window_config.json
+├── cache/                # Weather data cache
+├── assets/               # Images and sounds
+├── docs/                 # Documentation
 ├── main.py              # Entry point
 ├── requirements.txt     # Dependencies
 ├── .gitignore          # Git ignore rules
@@ -208,23 +221,22 @@ weather_dashboard_Final_Eric_Hunter/
 
 ## 🏗️ Architecture
 
-The Weather Dashboard follows clean architecture principles with dependency injection and separation of concerns:
+The Weather Dashboard follows clean architecture principles with modular design and separation of concerns:
 
 ### Core Components
 
-- **`src/core/`** - Dependency injection container, interfaces, and custom exceptions
-- **`src/models/`** - Data models and domain entities (WeatherData, JournalEntry, etc.)
-- **`src/repositories/`** - Data access layer with repository pattern
-- **`src/services/`** - Business logic layer (weather, configuration, logging services)
-- **`src/ui/`** - User interface components and dashboard
-- **`src/utils/`** - Utility functions and helpers
+- **`src/config/`** - Application configuration management with environment variable support
+- **`src/models/`** - Data models and domain entities (WeatherData, location models, etc.)
+- **`src/services/`** - Business logic layer (weather, configuration, geocoding, activity services)
+- **`src/ui/`** - User interface components and main dashboard
+- **`src/utils/`** - Utility functions and loading management
 
 ### Key Patterns
 
-- **Dependency Injection**: Centralized service container for loose coupling
-- **Repository Pattern**: Abstract data access with consistent interfaces
-- **Observer Pattern**: Event-driven UI updates
-- **Strategy Pattern**: Multiple weather API providers
+- **Service Layer Architecture**: Clean separation between UI, business logic, and data
+- **Configuration Management**: Centralized settings with environment variable support
+- **Component-Based UI**: Modular CustomTkinter components for reusability
+- **Caching Strategy**: Intelligent data caching for performance optimization
 
 ### Documentation
 
@@ -298,7 +310,8 @@ python --version
 - **Weather Models** (`src/models/`) - Data structures for weather information
 - **Enhanced Weather Service** (`src/services/`) - API integration and data processing
 - **Professional Dashboard** (`src/ui/`) - Main application interface with Data Terminal design theme
-- **Chart Components** (`src/ui/components/`) - Interactive data visualization widgets
+- **Search Components** (`src/ui/components/`) - Enhanced search functionality with autocomplete
+- **Safe Widgets** (`src/ui/`) - Robust CustomTkinter widget implementations
 
 ### Key Features
 

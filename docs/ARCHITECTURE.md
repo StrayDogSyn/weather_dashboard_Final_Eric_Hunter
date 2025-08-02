@@ -13,223 +13,264 @@ The Weather Dashboard is a modern Python application built with CustomTkinter th
 - **Model Layer**: Data structures and domain entities
 
 ### 2. Dependency Injection
+
 - Centralized container for service management
 - Interface-based design for testability
 - Loose coupling between components
 
 ### 3. Repository Pattern
+
 - Abstract data access layer
 - Consistent interface for data operations
 - Easy testing and mocking
 
 ## Directory Structure
 
-```
+```text
 src/
-├── core/                    # Core application infrastructure
-│   ├── container.py         # Dependency injection container
-│   ├── interfaces.py        # Interface definitions
-│   └── exceptions.py        # Custom exceptions
+├── config/                  # Configuration management
+│   └── app_config.py        # Application configuration classes
 ├── models/                  # Data models and entities
-│   ├── weather_models.py    # Weather-related data structures
-│   ├── journal_models.py    # Journal entry models
-│   └── activity_models.py   # Activity tracking models
-├── repositories/            # Data access layer
-│   ├── base_repository.py   # Base repository interface
-│   └── weather_repository.py # Weather data repository
+│   └── weather_models.py    # Weather-related data structures
 ├── services/                # Business logic layer
+│   ├── activity_service.py  # Activity suggestions
 │   ├── config_service.py    # Configuration management
-│   ├── weather_service.py   # Weather API integration
-│   ├── journal_service.py   # Journal management
+│   ├── enhanced_weather_service.py # Weather API integration
+│   ├── geocoding_service.py # Location services
+│   ├── loading_manager.py   # Loading state management
 │   └── logging_service.py   # Logging infrastructure
 ├── ui/                      # User interface layer
-│   ├── dashboard/           # Main dashboard components
 │   ├── components/          # Reusable UI components
-│   ├── tabs/               # Tab implementations
-│   ├── dialogs/            # Dialog windows
+│   │   └── search_components.py # Enhanced search functionality
+│   ├── professional_weather_dashboard.py # Main dashboard
+│   ├── safe_widgets.py      # Safe CustomTkinter widgets
 │   └── theme.py            # UI theming
-├── utils/                   # Utility functions
-└── database/               # Database-related code
+└── utils/                   # Utility functions
+    └── loading_manager.py   # Loading utilities
 ```
 
 ## Key Components
 
-### Core Infrastructure
+### Configuration Layer
 
-#### Dependency Container (`core/container.py`)
-- Manages service lifecycle
-- Provides dependency resolution
-- Supports singleton and transient services
+#### Application Configuration (`config/app_config.py`)
+- Centralized configuration classes
+- Environment variable integration
+- Type-safe configuration access
 
-#### Interfaces (`core/interfaces.py`)
-- Defines contracts for services
-- Enables dependency inversion
-- Facilitates testing and mocking
+#### Configuration Service (`services/config_service.py`)
 
-#### Custom Exceptions (`core/exceptions.py`)
-- Application-specific error types
-- Structured error handling
-- Better debugging and logging
+- Configuration management and validation
+- API key handling
+- Runtime configuration updates
 
 ### Service Layer
 
-#### Configuration Service
-- Centralized configuration management
-- Environment variable support
-- Validation and type safety
+#### Enhanced Weather Service (`services/enhanced_weather_service.py`)
 
-#### Weather Service
-- Multiple weather API integration
+- OpenWeatherMap API integration
 - Data caching and optimization
 - Error handling and fallbacks
+- Progressive loading capabilities
 
-#### Journal Service
-- Weather journal management
-- Entry CRUD operations
-- Search and filtering
+#### Geocoding Service (`services/geocoding_service.py`)
 
-### Repository Layer
+- Location search and validation
+- Coordinate conversion
+- Address resolution
 
-#### Base Repository
-- Common data access patterns
-- Async operation support
-- Transaction management
+#### Activity Service (`services/activity_service.py`)
 
-#### Weather Repository
-- Weather data persistence
-- Cache management
+- Weather-based activity suggestions
+- Condition analysis
+- Recommendation engine
+
+#### Loading Manager (`services/loading_manager.py`)
+
+- Asynchronous operation management
+- Progress tracking
+- State coordination
+
+### Data Layer
+
+#### Weather Models (`models/weather_models.py`)
+
+- Weather data structures
+- Type-safe data containers
+- Validation and serialization
 - Historical data access
 
 ### UI Layer
 
-#### Dashboard
-- Main application window
-- Tab management
-- Component orchestration
+#### Professional Weather Dashboard (`ui/professional_weather_dashboard.py`)
 
-#### Components
-- Reusable UI elements
-- Chart and visualization components
-- Form and input components
+- Main application window with Data Terminal theme
+- Tab management and navigation
+- Weather data display and visualization
+- User interaction handling
+
+#### Search Components (`ui/components/search_components.py`)
+
+- Enhanced search functionality
+- Autocomplete and suggestions
+- Recent searches and favorites
+- Location validation
+
+#### Safe Widgets (`ui/safe_widgets.py`)
+
+- Robust CustomTkinter widget implementations
+- Error-resistant UI components
+- Enhanced widget functionality
+
+#### Theme Management (`ui/theme.py`)
+
+- Data Terminal visual theme
+- Color scheme and styling
+- Consistent UI appearance
 
 ## Design Patterns
 
-### 1. Repository Pattern
+### 1. Service Layer Pattern
 ```python
-class IWeatherRepository(ABC):
-    @abstractmethod
-    async def get_current_weather(self, location: str) -> WeatherData:
-        pass
+class EnhancedWeatherService:
+    def __init__(self, config_service: ConfigService):
+        self._config = config_service
+        self._cache = {}
 ```
 
-### 2. Dependency Injection
+### 2. Configuration Management
 ```python
-class WeatherService:
-    def __init__(self, repository: IWeatherRepository):
-        self._repository = repository
+class ConfigService:
+    def __init__(self):
+        self._weather_config = WeatherConfig()
+        self._ui_config = UIConfig()
 ```
 
-### 3. Observer Pattern
-- Event-driven UI updates
-- Loose coupling between components
-- Reactive data flow
+### 3. Component-Based Architecture
 
-### 4. Strategy Pattern
-- Multiple weather API providers
-- Configurable algorithms
-- Runtime behavior switching
+- Modular UI components
+- Reusable search functionality
+- Separation of concerns
+
+### 4. Caching Strategy
+
+- Intelligent data caching
+- Performance optimization
+- Offline capability support
 
 ## Data Flow
 
-1. **User Interaction** → UI Components
-2. **UI Components** → Service Layer (via dependency injection)
-3. **Service Layer** → Repository Layer
-4. **Repository Layer** → External APIs/Database
-5. **Response** flows back through the layers
-6. **UI Updates** via observer pattern
+1. **User Interaction** → Professional Weather Dashboard
+2. **Dashboard** → Service Layer (Weather, Geocoding, Activity services)
+3. **Service Layer** → External APIs (OpenWeatherMap)
+4. **Service Layer** → Local Cache/Storage
+5. **Response** flows back through services to UI
+6. **UI Updates** via direct component updates and state management
 
 ## Configuration Management
 
 ### Environment Variables
+
 - API keys and secrets
 - Feature flags
 - Performance tuning
 
 ### Configuration Files
+
 - Application settings
 - UI preferences
 - Default values
 
 ### Runtime Configuration
+
 - User preferences
 - Dynamic settings
 - Cache configuration
 
 ## Error Handling
 
-### Exception Hierarchy
+### Exception Management
 ```python
-WeatherDashboardError
-├── ConfigurationError
-├── APIError
-│   ├── WeatherAPIError
-│   └── RateLimitError
-├── DatabaseError
-└── ValidationError
+# Service-level error handling
+try:
+    weather_data = await self.weather_service.get_weather(location)
+except requests.RequestException as e:
+    self.logger.error(f"API request failed: {e}")
+    return cached_data
+except ValueError as e:
+    self.logger.error(f"Invalid location: {e}")
+    show_error_message("Please enter a valid location")
 ```
 
 ### Error Recovery
-- Graceful degradation
-- Fallback mechanisms
-- User-friendly error messages
+
+- Graceful degradation with cached data
+- User-friendly error notifications
+- Comprehensive logging for debugging
+- Fallback to default configurations
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - Service layer testing
-- Repository mocking
-- Business logic validation
+- Configuration validation
+- Weather data processing
+- Error handling verification
 
 ### Integration Tests
+
 - API integration testing
-- Database operations
+- Cache functionality
+- Service coordination
 - End-to-end workflows
 
 ### UI Tests
-- Component testing
-- User interaction simulation
-- Visual regression testing
+
+- Component functionality
+- User interaction flows
+- Theme and styling validation
+- Search functionality testing
 
 ## Performance Considerations
 
-### Caching
-- Weather data caching
-- Image and asset caching
+### Caching Strategy
+
+- Weather data caching with TTL
+- Search history and favorites
 - Configuration caching
+- Offline data availability
 
 ### Async Operations
+
 - Non-blocking API calls
-- Background data updates
-- Responsive UI
+- Progressive data loading
+- Background cache updates
+- Responsive UI interactions
 
 ### Resource Management
-- Memory optimization
-- Connection pooling
-- Cleanup procedures
+
+- Memory-efficient data structures
+- Intelligent cache cleanup
+- API rate limiting
+- Optimized UI rendering
 
 ## Security
 
 ### API Key Management
+
 - Environment variable storage
 - Secure configuration
 - Key rotation support
 
 ### Data Protection
+
 - Input validation
 - SQL injection prevention
 - XSS protection
 
 ### Privacy
+
 - Local data storage
 - Minimal data collection
 - User consent management
@@ -237,16 +278,19 @@ WeatherDashboardError
 ## Deployment
 
 ### Requirements
+
 - Python 3.8+
 - Required packages in requirements.txt
 - Optional development dependencies
 
 ### Configuration
+
 - Environment setup
 - API key configuration
 - Database initialization
 
 ### Monitoring
+
 - Application logging
 - Error tracking
 - Performance metrics
@@ -254,12 +298,14 @@ WeatherDashboardError
 ## Future Enhancements
 
 ### Planned Features
+
 - Mobile responsive design
 - Advanced analytics
 - Machine learning predictions
 - Social sharing
 
 ### Technical Improvements
+
 - Microservice architecture
 - GraphQL API
 - Real-time updates
@@ -268,12 +314,14 @@ WeatherDashboardError
 ## Contributing
 
 ### Code Standards
+
 - PEP 8 compliance
 - Type hints
 - Comprehensive documentation
 - Test coverage
 
 ### Development Workflow
+
 - Feature branches
 - Code reviews
 - Automated testing

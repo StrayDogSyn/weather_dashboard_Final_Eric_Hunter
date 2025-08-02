@@ -55,35 +55,8 @@ class DataTerminalTheme:
         ctk.set_default_color_theme("dark-blue")  # Base theme
 
         # Override with custom colors
-        theme_config = {
-            "CTk": {"fg_color": [cls.BACKGROUND, cls.BACKGROUND]},
-            "CTkFrame": {
-                "fg_color": [cls.CARD_BG, cls.CARD_BG],
-                "border_color": [cls.BORDER, cls.BORDER],
-            },
-            "CTkButton": {
-                "fg_color": [cls.PRIMARY, cls.PRIMARY],
-                "hover_color": [cls.SUCCESS, cls.SUCCESS],
-                "text_color": [cls.BACKGROUND, cls.BACKGROUND],
-                "border_color": [cls.PRIMARY, cls.PRIMARY],
-            },
-            "CTkEntry": {
-                "fg_color": [cls.CARD_BG, cls.CARD_BG],
-                "border_color": [cls.BORDER, cls.BORDER],
-                "text_color": [cls.TEXT, cls.TEXT],
-                "placeholder_text_color": [cls.TEXT_SECONDARY, cls.TEXT_SECONDARY],
-            },
-            "CTkLabel": {"text_color": [cls.TEXT, cls.TEXT]},
-            "CTkProgressBar": {
-                "fg_color": [cls.ACCENT, cls.ACCENT],
-                "progress_color": [cls.PRIMARY, cls.PRIMARY],
-            },
-            "CTkScrollbar": {
-                "fg_color": [cls.ACCENT, cls.ACCENT],
-                "button_color": [cls.PRIMARY, cls.PRIMARY],
-                "button_hover_color": [cls.SUCCESS, cls.SUCCESS],
-            },
-        }
+        # Note: Custom theme configuration would go here if needed
+        # Currently using default dark-blue theme
 
         # Apply theme (Note: CustomTkinter doesn't support runtime theme changes,
         # so we'll use these colors directly in our components)

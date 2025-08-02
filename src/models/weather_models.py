@@ -8,6 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+
 def safe_divide(a, b, default=0):
     """Safely divide two numbers, returning default if division by zero."""
     try:
@@ -120,7 +121,7 @@ class Location:
 @dataclass
 class LocationResult:
     """Enhanced location result for search and geocoding."""
-    
+
     name: str
     display_name: str
     latitude: float
@@ -129,11 +130,11 @@ class LocationResult:
     country_code: str = ""
     state: Optional[str] = None
     raw_address: str = ""
-    
+
     def __str__(self) -> str:
         """String representation of location result."""
         return self.display_name
-    
+
     @property
     def coordinates(self) -> tuple[float, float]:
         """Get coordinates as (lat, lon) tuple."""

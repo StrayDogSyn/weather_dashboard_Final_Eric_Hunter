@@ -5,7 +5,6 @@ Handles weather data, air quality, astronomical data, and advanced search.
 
 import json
 import logging
-import socket
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
@@ -16,7 +15,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from ..models.weather_models import ForecastData, Location, WeatherCondition, WeatherData
+from ..models.weather_models import (
+    ForecastData,
+    Location,
+    LocationResult,
+    WeatherCondition,
+    WeatherData,
+)
 from .config_service import ConfigService
 
 
@@ -233,26 +238,26 @@ class EnhancedWeatherService:
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_file = Path.cwd() / "cache" / "enhanced_weather_cache.json"
         self._load_cache()
-        
+
         # Offline mode flag
         self._offline_mode = False
         self._last_successful_request = time.time()
-        
+
         # Rate limiting
         self._last_request_time = 0
         self._min_request_interval = 1.0  # 1 second between requests
-        
+
         # Connection pooling and retry strategy
         self._session = self._create_session_with_retries()
-        
+
         # Enhanced caching with TTL
         self._cache_ttl = {
-            'current_weather': 600,  # 10 minutes
-            'forecast': 3600,        # 1 hour
-            'air_quality': 1800,     # 30 minutes
-            'geocoding': 86400 * 7   # 7 days
+            "current_weather": 600,  # 10 minutes
+            "forecast": 3600,  # 1 hour
+            "air_quality": 1800,  # 30 minutes
+            "geocoding": 86400 * 7,  # 7 days
         }
-        
+
         self.logger.info("🌐 Enhanced Weather Service initialized with connection pooling")
 
         # API endpoints
@@ -302,11 +307,11 @@ class EnhancedWeatherService:
             time.sleep(sleep_time)
 
         self._last_request_time = datetime.now().timestamp()
-    
+
     def _create_session_with_retries(self) -> requests.Session:
         """Create HTTP session with enhanced connection pooling and exponential backoff."""
         session = requests.Session()
-        
+
         # Enhanced retry strategy with exponential backoff
         retry_strategy = Retry(
             total=3,
@@ -314,92 +319,96 @@ class EnhancedWeatherService:
             allowed_methods=["HEAD", "GET", "OPTIONS"],
             backoff_factor=2,  # 2, 4, 8 seconds - more aggressive backoff
             raise_on_status=False,
-            respect_retry_after_header=True  # Respect server retry-after headers
+            respect_retry_after_header=True,  # Respect server retry-after headers
         )
-        
+
         # Enhanced HTTP adapter with larger connection pool
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
             pool_connections=20,  # Increased from 10
-            pool_maxsize=50,     # Increased from 20
-            pool_block=False
+            pool_maxsize=50,  # Increased from 20
+            pool_block=False,
         )
-        
+
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        
+
         # Set aggressive timeout for faster failure detection
         session.timeout = (3.0, 5.0)  # (connect_timeout, read_timeout)
-        
+
         # Add headers for better caching and compression
-        session.headers.update({
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'User-Agent': 'WeatherDashboard/1.0'
-        })
-        
+        session.headers.update(
+            {
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
+                "User-Agent": "WeatherDashboard/1.0",
+            }
+        )
+
         return session
-    
+
     def _is_cache_valid_with_ttl(self, cache_key: str, cache_type: str) -> bool:
         """Check if cached data is still valid based on TTL."""
         if cache_key not in self._cache:
             return False
-            
+
         cached_data = self._cache[cache_key]
-        if 'timestamp' not in cached_data:
+        if "timestamp" not in cached_data:
             return False
-            
-        cache_age = time.time() - time.mktime(datetime.fromisoformat(cached_data['timestamp']).timetuple())
+
+        cache_age = time.time() - time.mktime(
+            datetime.fromisoformat(cached_data["timestamp"]).timetuple()
+        )
         ttl = self._cache_ttl.get(cache_type, 600)  # Default 10 minutes
-        
+
         return cache_age < ttl
-    
+
     def _get_offline_fallback(self, data_type: str, location: str = "Unknown") -> Dict[str, Any]:
         """Get enhanced offline fallback data when API is unavailable."""
         self.logger.warning(f"🔌 Using offline fallback for {data_type}")
-        
+
         # Try to get last known good data from cache first
         cache_key = f"{data_type}_{location.lower()}"
         if cache_key in self._cache:
             cached_data = self._cache[cache_key]
-            if 'data' in cached_data:
+            if "data" in cached_data:
                 self.logger.info(f"Using cached {data_type} data for offline mode")
-                cached_data['data']['offline'] = True
-                cached_data['data']['cache_used'] = True
-                return cached_data['data']
-        
+                cached_data["data"]["offline"] = True
+                cached_data["data"]["cache_used"] = True
+                return cached_data["data"]
+
         # Fallback to default offline data
         fallbacks = {
-            'weather': {
-                'location': location,
-                'temperature': 20.0,
-                'condition': 'Offline Mode',
-                'description': 'Weather data unavailable - check connection',
-                'humidity': 50,
-                'pressure': 1013.25,
-                'wind_speed': 0.0,
-                'timestamp': time.time(),
-                'offline': True,
-                'cache_used': False
+            "weather": {
+                "location": location,
+                "temperature": 20.0,
+                "condition": "Offline Mode",
+                "description": "Weather data unavailable - check connection",
+                "humidity": 50,
+                "pressure": 1013.25,
+                "wind_speed": 0.0,
+                "timestamp": time.time(),
+                "offline": True,
+                "cache_used": False,
             },
-            'forecast': {
-                'location': location,
-                'days': [],
-                'message': 'Forecast unavailable in offline mode',
-                'offline': True,
-                'cache_used': False
+            "forecast": {
+                "location": location,
+                "days": [],
+                "message": "Forecast unavailable in offline mode",
+                "offline": True,
+                "cache_used": False,
             },
-            'air_quality': {
-                'location': location,
-                'aqi': 50,
-                'quality': 'Offline Mode',
-                'offline': True,
-                'cache_used': False
-            }
+            "air_quality": {
+                "location": location,
+                "aqi": 50,
+                "quality": "Offline Mode",
+                "offline": True,
+                "cache_used": False,
+            },
         }
-        
-        return fallbacks.get(data_type, {'error': 'No offline data available'})
-    
+
+        return fallbacks.get(data_type, {"error": "No offline data available"})
+
     def _check_offline_mode(self) -> None:
         """Check if service should enter offline mode based on failed requests."""
         time_since_success = time.time() - self._last_successful_request
@@ -411,8 +420,8 @@ class EnhancedWeatherService:
         """Make API request with enhanced error handling, connection pooling, and rate limiting."""
         if self._offline_mode:
             self.logger.warning("🔌 Service in offline mode, using fallback data")
-            return self._get_offline_fallback('weather', params.get('q', 'Unknown'))
-            
+            return self._get_offline_fallback("weather", params.get("q", "Unknown"))
+
         try:
             # Rate limiting
             self._rate_limit()
@@ -438,15 +447,15 @@ class EnhancedWeatherService:
             self.logger.error("⏰ Enhanced API request timed out")
             self._check_offline_mode()
             raise Exception("Weather service timeout - please try again")
-            
+
         except requests.exceptions.ConnectionError:
             self.logger.error("🌐 Connection error - checking offline mode")
             self._check_offline_mode()
             if self._offline_mode:
-                return self._get_offline_fallback('weather', params.get('q', 'Unknown'))
+                return self._get_offline_fallback("weather", params.get("q", "Unknown"))
             raise Exception("No internet connection - please check your network")
 
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             if response.status_code == 401:
                 self.logger.error("🔑 Invalid API key")
                 raise Exception("Invalid API key - please check your configuration")
@@ -484,13 +493,19 @@ class EnhancedWeatherService:
             self.logger.error("⏰ Geocoding API request timed out")
             raise Exception("Geocoding service timeout - please try again")
 
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             if response.status_code == 401:
                 self.logger.error("🔑 Invalid API key for geocoding")
                 raise Exception("Invalid API key - please check your configuration")
             else:
-                self.logger.error(f"🌐 Geocoding API error: {response.status_code}")
-                raise Exception(f"Geocoding service error: {response.status_code}")
+                self.logger.error(
+                    f"🌐 Geocoding API error: {
+                        response.status_code}"
+                )
+                raise Exception(
+                    f"Geocoding service error: {
+                        response.status_code}"
+                )
 
         except requests.exceptions.RequestException as e:
             self.logger.error(f"🌐 Geocoding request failed: {e}")
@@ -546,12 +561,13 @@ class EnhancedWeatherService:
             elif search_type == "coordinates":
                 locations = self._search_by_coordinates(query)
             else:
-                # Default to geocoding search for city names and general queries
+                # Default to geocoding search for city names and general
+                # queries
                 locations = self._search_by_geocoding(query, limit)
 
             # If primary search fails, try fallback methods
             if not locations and search_type != "geocoding":
-                self.logger.debug(f"🔄 Primary search failed, trying geocoding fallback")
+                self.logger.debug("🔄 Primary search failed, trying geocoding fallback")
                 locations = self._search_by_geocoding(query, limit)
 
             # Cache the results
@@ -567,133 +583,145 @@ class EnhancedWeatherService:
         except Exception as e:
             self.logger.warning(f"Enhanced location search failed: {e}")
             return []
-    
-    def search_locations_advanced(self, query: str) -> List['LocationResult']:
+
+    def search_locations_advanced(self, query: str) -> List["LocationResult"]:
         """Advanced location search with support for multiple formats."""
-        from ..models.weather_models import LocationResult
-        
+
         query = query.strip()
         if not query:
             return []
-        
+
         # Check if zip code
         if self.is_zip_code(query):
             return self.geocode_zip(query)
-        
+
         # Check if coordinates
         if self.is_coordinates(query):
             return self.reverse_geocode(query)
-        
+
         # Standard city search with fuzzy matching
         return self.search_cities_fuzzy(query)
-    
+
     def is_zip_code(self, query: str) -> bool:
         """Check if query is a zip/postal code."""
         import re
-        
+
         zip_patterns = {
-            'US': re.compile(r'^\d{5}(-\d{4})?$'),  # 12345 or 12345-6789
-            'UK': re.compile(r'^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$', re.IGNORECASE),  # SW1A 1AA
-            'CA': re.compile(r'^[A-Z]\d[A-Z]\s?\d[A-Z]\d$', re.IGNORECASE)  # K1A 0A6
+            "US": re.compile(r"^\d{5}(-\d{4})?$"),  # 12345 or 12345-6789
+            # SW1A 1AA
+            "UK": re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$", re.IGNORECASE),
+            # K1A 0A6
+            "CA": re.compile(r"^[A-Z]\d[A-Z]\s?\d[A-Z]\d$", re.IGNORECASE),
         }
-        
+
         for pattern in zip_patterns.values():
             if pattern.match(query):
                 return True
         return False
-    
+
     def is_coordinates(self, query: str) -> bool:
         """Check if query is coordinates (lat,lon)."""
         import re
-        coordinate_pattern = re.compile(r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$')
+
+        coordinate_pattern = re.compile(r"^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$")
         return bool(coordinate_pattern.match(query))
-    
-    def geocode_zip(self, zip_code: str) -> List['LocationResult']:
+
+    def geocode_zip(self, zip_code: str) -> List["LocationResult"]:
         """Geocode a zip/postal code."""
         from ..models.weather_models import LocationResult
-        
+
         try:
             # Convert existing LocationSearchResult to LocationResult
             search_results = self._search_by_zipcode(zip_code, 3)
             location_results = []
-            
+
             for result in search_results:
                 location_result = LocationResult(
                     name=result.name,
-                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    display_name=f"{result.name}, {result.state or ''}, "
+                    f"{result.country}".strip(", "),
                     latitude=result.lat or 0.0,
                     longitude=result.lon or 0.0,
                     country=result.country,
-                    country_code=result.country[:2].upper() if result.country else '',
+                    country_code=result.country[:2].upper() if result.country else "",
                     state=result.state,
-                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(
+                        ", "
+                    ),
                 )
                 location_results.append(location_result)
-            
+
             return location_results
-            
+
         except Exception as e:
             self.logger.error(f"Geocoding error for zip '{zip_code}': {e}")
             return []
-    
-    def reverse_geocode(self, coordinates: str) -> List['LocationResult']:
+
+    def reverse_geocode(self, coordinates: str) -> List["LocationResult"]:
         """Reverse geocode coordinates."""
-        from ..models.weather_models import LocationResult
         import re
-        
+
+        from ..models.weather_models import LocationResult
+
         try:
-            coordinate_pattern = re.compile(r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$')
+            coordinate_pattern = re.compile(r"^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$")
             match = coordinate_pattern.match(coordinates)
             if not match:
                 return []
-            
+
             # Convert existing coordinate search to LocationResult
             search_results = self._search_by_coordinates(coordinates)
             location_results = []
-            
+
             for result in search_results:
                 location_result = LocationResult(
                     name=result.name,
-                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    display_name=f"{result.name}, {result.state or ''}, "
+                    f"{result.country}".strip(", "),
                     latitude=result.lat or 0.0,
                     longitude=result.lon or 0.0,
                     country=result.country,
-                    country_code=result.country[:2].upper() if result.country else '',
+                    country_code=result.country[:2].upper() if result.country else "",
                     state=result.state,
-                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(
+                        ", "
+                    ),
                 )
                 location_results.append(location_result)
-            
+
             return location_results
-            
+
         except Exception as e:
             self.logger.error(f"Reverse geocoding error for '{coordinates}': {e}")
             return []
-    
-    def search_cities_fuzzy(self, query: str) -> List['LocationResult']:
+
+    def search_cities_fuzzy(self, query: str) -> List["LocationResult"]:
         """Search cities with fuzzy matching."""
         from ..models.weather_models import LocationResult
-        
+
         try:
             # Convert existing geocoding search to LocationResult
             search_results = self._search_by_geocoding(query, 8)
             location_results = []
-            
+
             for result in search_results:
                 location_result = LocationResult(
                     name=result.name,
-                    display_name=f"{result.name}, {result.state or ''}, {result.country}".strip(', '),
+                    display_name=f"{result.name}, {result.state or ''}, "
+                    f"{result.country}".strip(", "),
                     latitude=result.lat or 0.0,
                     longitude=result.lon or 0.0,
                     country=result.country,
-                    country_code=result.country[:2].upper() if result.country else '',
+                    country_code=result.country[:2].upper() if result.country else "",
                     state=result.state,
-                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(', ')
+                    raw_address=f"{result.name}, {result.state or ''}, {result.country}".strip(
+                        ", "
+                    ),
                 )
                 location_results.append(location_result)
-            
+
             return location_results
-            
+
         except Exception as e:
             self.logger.error(f"City search error for '{query}': {e}")
             return []
@@ -733,7 +761,8 @@ class EnhancedWeatherService:
     def _search_by_zipcode(self, zipcode: str, limit: int = 5) -> List[LocationSearchResult]:
         """Search location by zipcode using OpenWeather's zip endpoint with geocoding fallback."""
         try:
-            # Format zipcode for API (remove spaces, handle international formats)
+            # Format zipcode for API (remove spaces, handle international
+            # formats)
             formatted_zip = zipcode.replace(" ", "")
 
             # For US zipcodes, use simple format
@@ -761,7 +790,8 @@ class EnhancedWeatherService:
                 )
                 return [location]
 
-            # If zip endpoint fails, try geocoding as fallback for international postal codes
+            # If zip endpoint fails, try geocoding as fallback for
+            # international postal codes
             self.logger.debug(f"🔄 Zip endpoint failed, trying geocoding fallback for: {zipcode}")
             return self._search_by_geocoding(zipcode, limit)
 
@@ -790,7 +820,8 @@ class EnhancedWeatherService:
                 self.logger.warning(f"Invalid coordinates: {lat}, {lon}")
                 return []
 
-            # Warn about extreme coordinates that might not have meaningful results
+            # Warn about extreme coordinates that might not have meaningful
+            # results
             if abs(lat) >= 89 or abs(lon) >= 179:
                 self.logger.debug(
                     f"⚠️ Using extreme coordinates: {lat}, {lon} - results may be limited"
@@ -814,8 +845,9 @@ class EnhancedWeatherService:
                 )
                 return [location]
 
-            # If reverse geocoding fails, still return the coordinates as a valid location
-            self.logger.debug(f"🔄 Reverse geocoding failed, returning coordinates as location")
+            # If reverse geocoding fails, still return the coordinates as a
+            # valid location
+            self.logger.debug("🔄 Reverse geocoding failed, returning coordinates as location")
             location = LocationSearchResult(
                 name=f"Location at {lat}, {lon}", country="", state="", lat=lat, lon=lon
             )
@@ -829,7 +861,8 @@ class EnhancedWeatherService:
             return []
 
     def _search_by_geocoding(self, query: str, limit: int = 5) -> List[LocationSearchResult]:
-        """Search location using standard geocoding API with multiple query strategies and enhanced fallback."""
+        """Search location using standard geocoding API with multiple query
+        strategies and enhanced fallback."""
         # Try multiple query formats for better results
         query_variations = self._generate_query_variations(query)
 
@@ -848,7 +881,7 @@ class EnhancedWeatherService:
         for i, query_variant in enumerate(query_variations):
             try:
                 self.logger.debug(
-                    f"🏙️ Geocoding search attempt {i+1}/{len(query_variations)}: {query_variant}"
+                    f"🏙️ Geocoding search attempt {i + 1}/{len(query_variations)}: {query_variant}"
                 )
 
                 data = self._make_geocoding_request(
@@ -868,7 +901,8 @@ class EnhancedWeatherService:
                         locations.append(location)
 
                     self.logger.debug(
-                        f"✅ Found {len(locations)} locations with query: {query_variant}"
+                        f"✅ Found {
+                            len(locations)} locations with query: {query_variant}"
                     )
                     return locations
 
@@ -941,8 +975,8 @@ class EnhancedWeatherService:
         cache_key = f"air_quality_{lat}_{lon}"
 
         # Check cache first with TTL validation
-        if self._is_cache_valid_with_ttl(cache_key, 'air_quality'):
-            self.logger.debug(f"📋 Using cached air quality data")
+        if self._is_cache_valid_with_ttl(cache_key, "air_quality"):
+            self.logger.debug("📋 Using cached air quality data")
             return AirQualityData.from_dict(self._cache[cache_key]["data"])
 
         try:
@@ -974,11 +1008,14 @@ class EnhancedWeatherService:
             self._cache[cache_key] = {
                 "data": air_quality.to_dict(),
                 "timestamp": datetime.now().isoformat(),
-                "ttl": self._cache_ttl['air_quality']
+                "ttl": self._cache_ttl["air_quality"],
             }
             self._save_cache()
 
-            self.logger.info(f"✅ Air quality data retrieved: AQI {air_quality.aqi}")
+            self.logger.info(
+                f"✅ Air quality data retrieved: AQI {
+                    air_quality.aqi}"
+            )
             return air_quality
 
         except Exception as e:
@@ -1047,7 +1084,7 @@ class EnhancedWeatherService:
         cache_key = f"enhanced_{location.lower()}"
 
         # Check cache first with TTL validation
-        if self._is_cache_valid_with_ttl(cache_key, 'current_weather'):
+        if self._is_cache_valid_with_ttl(cache_key, "current_weather"):
             self.logger.debug(f"📋 Using cached enhanced weather data for {location}")
             cached_data = self._cache[cache_key]["data"]
 
@@ -1061,7 +1098,8 @@ class EnhancedWeatherService:
                 # Handle both enum string representation and direct value
                 condition_str = weather_dict["condition"]
                 if condition_str.startswith("WeatherCondition."):
-                    # Extract the enum name (e.g., 'CLEAR' from 'WeatherCondition.CLEAR')
+                    # Extract the enum name (e.g., 'CLEAR' from
+                    # 'WeatherCondition.CLEAR')
                     enum_name = condition_str.split(".")[-1]
                     weather_dict["condition"] = getattr(WeatherCondition, enum_name)
                 else:
@@ -1142,9 +1180,9 @@ class EnhancedWeatherService:
 
         # Cache with TTL for current weather (10 minutes)
         self._cache[cache_key] = {
-            "data": cache_data, 
+            "data": cache_data,
             "timestamp": datetime.now().isoformat(),
-            "ttl": self._cache_ttl['current_weather']
+            "ttl": self._cache_ttl["current_weather"],
         }
         self._save_cache()
 
@@ -1178,7 +1216,8 @@ class EnhancedWeatherService:
         # Normalize degrees to 0-360 range
         degrees = degrees % 360
 
-        # Calculate index (16 directions, so 360/16 = 22.5 degrees per direction)
+        # Calculate index (16 directions, so 360/16 = 22.5 degrees per
+        # direction)
         index = round(degrees / 22.5) % 16
 
         return directions[index]
@@ -1202,7 +1241,10 @@ class EnhancedWeatherService:
         try:
             enhanced_data = self.get_enhanced_weather(location)
             self.logger.debug(
-                f"Enhanced data type: {type(enhanced_data)}, location type: {type(enhanced_data.location)}"
+                f"Enhanced data type: {
+                    type(enhanced_data)}, location type: {
+                    type(
+                        enhanced_data.location)}"
             )
 
             # Get forecast data
@@ -1280,7 +1322,7 @@ class EnhancedWeatherService:
         try:
             # Check cache first with TTL validation
             cache_key = f"forecast_{location.lower()}"
-            if self._is_cache_valid_with_ttl(cache_key, 'forecast'):
+            if self._is_cache_valid_with_ttl(cache_key, "forecast"):
                 self.logger.debug(f"📋 Using cached forecast data for {location}")
                 return self._cache[cache_key]["data"]
 
@@ -1292,9 +1334,9 @@ class EnhancedWeatherService:
             if forecast_data:
                 # Cache the forecast data with TTL (1 hour)
                 self._cache[cache_key] = {
-                    "data": forecast_data, 
+                    "data": forecast_data,
                     "timestamp": datetime.now().isoformat(),
-                    "ttl": self._cache_ttl['forecast']
+                    "ttl": self._cache_ttl["forecast"],
                 }
                 self._save_cache()
 
@@ -1311,29 +1353,29 @@ class EnhancedWeatherService:
     def get_forecast(self, location: str) -> ForecastData:
         """Get 5-day forecast data."""
         cache_key = f"forecast_{location.lower()}"
-        
+
         # Check cache with TTL validation
-        if self._is_cache_valid_with_ttl(cache_key, 'forecast'):
+        if self._is_cache_valid_with_ttl(cache_key, "forecast"):
             self.logger.debug(f"📋 Using cached forecast for {location}")
-            return ForecastData.from_openweather_forecast(self._cache[cache_key]['data'])
-        
+            return ForecastData.from_openweather_forecast(self._cache[cache_key]["data"])
+
         try:
             # Fetch forecast data
-            data = self._make_request('forecast', {'q': location})
-            
+            data = self._make_request("forecast", {"q": location})
+
             if not data:
                 raise Exception("No forecast data received")
-            
+
             # Cache the result with TTL (1 hour)
             self._cache[cache_key] = {
-                'data': data,
-                'timestamp': datetime.now().isoformat(),
-                'ttl': self._cache_ttl['forecast']
+                "data": data,
+                "timestamp": datetime.now().isoformat(),
+                "ttl": self._cache_ttl["forecast"],
             }
             self._save_cache()
-            
+
             return ForecastData.from_openweather_forecast(data)
-            
+
         except Exception as e:
             self.logger.error(f"Forecast fetch failed: {e}")
             raise

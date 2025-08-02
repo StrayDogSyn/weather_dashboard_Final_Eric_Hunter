@@ -27,7 +27,9 @@ class ColoredFormatter(logging.Formatter):
         """Format log record with colors."""
         # Add color to level name
         level_color = self.COLORS.get(record.levelname, self.COLORS["RESET"])
-        colored_level = f"{level_color}{record.levelname}{self.COLORS['RESET']}"
+        colored_level = f"{level_color}{
+            record.levelname}{
+            self.COLORS['RESET']}"
 
         # Create colored record
         record.colored_levelname = colored_level

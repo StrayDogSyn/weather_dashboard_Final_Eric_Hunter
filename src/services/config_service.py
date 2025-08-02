@@ -13,7 +13,6 @@ from ..config.app_config import AppConfig, UIConfig, WeatherConfig
 
 class ConfigurationError(Exception):
     """Configuration related errors."""
-    pass
 
 
 class ConfigService:

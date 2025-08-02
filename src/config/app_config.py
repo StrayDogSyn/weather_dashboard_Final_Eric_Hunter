@@ -201,7 +201,8 @@ class AppConfig:
         if maps_key := os.getenv("GOOGLE_MAPS_API_KEY"):
             self.api.google_maps_api_key = maps_key
             print(
-                f"Debug - AppConfig: Loaded GOOGLE_MAPS_API_KEY: {'[SET]' if maps_key else '[EMPTY]'}"
+                f"Debug - AppConfig: Loaded GOOGLE_MAPS_API_KEY: "
+                f"{'[SET]' if maps_key else '[EMPTY]'}"
             )
 
         if timeout := os.getenv("API_TIMEOUT"):

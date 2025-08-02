@@ -44,6 +44,7 @@ def clean_cache_files():
                 print(f"  Removed: {pyc_path}")
     
     print("✅ Cache cleanup completed")
+    return True
 
 
 def clean_temp_files():
@@ -67,6 +68,7 @@ def clean_temp_files():
                 print(f"  Removed: {file_path}")
     
     print("✅ Temporary file cleanup completed")
+    return True
 
 
 def format_code():
@@ -79,11 +81,21 @@ def format_code():
         "Sorting imports with isort"
     )
     
-    # Format code
-    success &= run_command(
-        "black src/ tests/ --line-length 100",
-        "Formatting code with black"
-    )
+    # Format code (only format existing directories)
+    dirs_to_format = []
+    if Path("src").exists():
+        dirs_to_format.append("src/")
+    if Path("tests").exists():
+        dirs_to_format.append("tests/")
+    
+    if dirs_to_format:
+        success &= run_command(
+            f"black {' '.join(dirs_to_format)} --line-length 100",
+            "Formatting code with black"
+        )
+    else:
+        print("⚠️ No directories found to format with black")
+        success = False
     
     return success
 
