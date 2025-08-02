@@ -209,9 +209,9 @@ class ForecastItemDisplayDTO:
     date_label: str
     time_label: str
     temperature: FormattedValueDTO
-    temperature_range: Optional[str] = None  # For daily forecasts
     condition: str
     icon: IconDTO
+    temperature_range: Optional[str] = None  # For daily forecasts
     precipitation_chance: Optional[int] = None
     wind_speed: Optional[FormattedValueDTO] = None
     humidity: Optional[int] = None

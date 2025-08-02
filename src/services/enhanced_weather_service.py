@@ -860,7 +860,7 @@ class EnhancedWeatherService:
 
     def geocode_zip(self, zip_code: str) -> List["LocationResult"]:
         """Geocode a zip/postal code."""
-        from ..models.weather_models import LocationResult
+        from ..models.location import LocationResult
 
         try:
             # Convert existing LocationSearchResult to LocationResult
@@ -893,7 +893,7 @@ class EnhancedWeatherService:
         """Reverse geocode coordinates."""
         import re
 
-        from ..models.weather_models import LocationResult
+        from ..models.location import LocationResult
 
         try:
             coordinate_pattern = re.compile(r"^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$")
@@ -929,7 +929,7 @@ class EnhancedWeatherService:
 
     def search_cities_fuzzy(self, query: str) -> List["LocationResult"]:
         """Search cities with fuzzy matching."""
-        from ..models.weather_models import LocationResult
+        from ..models.location import LocationResult
 
         try:
             # Convert existing geocoding search to LocationResult

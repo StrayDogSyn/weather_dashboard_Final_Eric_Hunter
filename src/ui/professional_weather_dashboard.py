@@ -3923,6 +3923,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Show loading indicators with visual polish."""
         # Use new error handler's loading system
         self.current_loading_state = self.error_handler.show_loading(
+            self,
             "Fetching weather data...",
             show_progress=True
         )
@@ -4142,7 +4143,9 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _get_offline_weather_data(self):
         """Get offline fallback weather data."""
-        from src.models.weather_models import EnhancedWeatherData, Location, WeatherCondition
+        from src.models.weather import WeatherCondition
+        from src.models.location import Location
+        # Note: EnhancedWeatherData may need to be defined or imported from appropriate module
 
         # Create basic offline weather data
         location = Location(name=self.current_city, country="Unknown", latitude=0.0, longitude=0.0)

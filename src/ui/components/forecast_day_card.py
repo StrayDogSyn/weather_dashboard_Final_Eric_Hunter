@@ -246,11 +246,11 @@ class ForecastDayCard(ctk.CTkFrame):
         except:
             return color
     
-    def _on_theme_changed(self):
+    def _on_theme_changed(self, theme_data=None):
         """Handle theme change updates."""
         try:
             # Update colors
-            current_theme = theme_manager.get_current_theme()
+            current_theme = theme_data if theme_data else theme_manager.get_current_theme()
             self.configure(
                 fg_color=current_theme.get("card", "#1A1A1A"),
                 border_color=current_theme.get("border", "#333333")

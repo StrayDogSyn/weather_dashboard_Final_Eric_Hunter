@@ -9,7 +9,7 @@ try:
 except ImportError:
     genai = None
 
-from src.models.weather_models import WeatherData
+from src.models.weather import WeatherData
 from src.services.config_service import ConfigService
 
 

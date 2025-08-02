@@ -26,9 +26,16 @@ class ErrorHandler:
         self.parent = parent
         self.logger = UserFriendlyLogger(__name__)
         
-        # Initialize components
-        self.toast_manager = ToastManager(parent)
-        self.diagnostics_manager = DiagnosticsManager(parent)
+        # Initialize components with error handling
+        try:
+            self.toast_manager = ToastManager(parent)
+        except Exception as e:
+            self.toast_manager = None
+            
+        try:
+            self.diagnostics_manager = DiagnosticsManager(parent)
+        except Exception as e:
+            self.diagnostics_manager = None
         
         # Error state components
         self.offline_indicator = None
@@ -46,22 +53,45 @@ class ErrorHandler:
         self.last_errors = []
         self.max_error_history = 10
         
-        # Setup global error handling
+        # Setup error handling
         self._setup_error_handling()
     
     def _setup_error_handling(self):
         """Setup comprehensive error handling."""
-        # Override tkinter's report_callback_exception
-        original_report = self.parent.tk.report_callback_exception
-        
-        def custom_report(exc_type, exc_value, exc_traceback):
-            try:
-                self._handle_tkinter_error(exc_type, exc_value, exc_traceback)
-            except Exception:
-                # Fallback to original handler if our handler fails
-                original_report(exc_type, exc_value, exc_traceback)
-        
-        self.parent.tk.report_callback_exception = custom_report
+        try:
+            # Check if parent has tk attribute and report_callback_exception method
+            if (hasattr(self.parent, 'tk') and 
+                self.parent.tk is not None and 
+                hasattr(self.parent.tk, 'report_callback_exception')):
+                # Override tkinter's report_callback_exception
+                original_report = self.parent.tk.report_callback_exception
+                
+                def custom_report(exc_type, exc_value, exc_traceback):
+                    try:
+                        self._handle_tkinter_error(exc_type, exc_value, exc_traceback)
+                    except Exception:
+                        # Fallback to original handler if our handler fails
+                        original_report(exc_type, exc_value, exc_traceback)
+                
+                self.parent.tk.report_callback_exception = custom_report
+            else:
+                # For CustomTkinter or other cases, try alternative approach
+                import tkinter as tk
+                root = tk._default_root
+                if root and hasattr(root, 'report_callback_exception'):
+                    original_report = root.report_callback_exception
+                    
+                    def custom_report(exc_type, exc_value, exc_traceback):
+                        try:
+                            self._handle_tkinter_error(exc_type, exc_value, exc_traceback)
+                        except Exception:
+                            # Fallback to original handler if our handler fails
+                            original_report(exc_type, exc_value, exc_traceback)
+                    
+                    root.report_callback_exception = custom_report
+        except Exception as e:
+            # If error handling setup fails, log it but don't crash the app
+            pass
     
     def _handle_tkinter_error(self, exc_type, exc_value, exc_traceback):
         """Handle tkinter callback exceptions."""
@@ -91,6 +121,21 @@ class ErrorHandler:
             self.last_errors.pop(0)
         
         self.error_count += 1
+        
+        # Store in diagnostics manager if available
+        if self.diagnostics_manager:
+            try:
+                error_report = ErrorReport(
+                    timestamp=error_info["timestamp"],
+                    error_type=error_info["type"],
+                    error_message=error_info["message"],
+                    user_message="",
+                    technical_details=''.join(error_info["traceback"]),
+                    system_info={}
+                )
+                self.diagnostics_manager.add_error_report(error_report)
+            except Exception as e:
+                print(f"Warning: Could not store error report: {e}")
     
     def _is_critical_error(self, exc_type, exc_value) -> bool:
         """Determine if error is critical and requires immediate attention."""
@@ -167,38 +212,42 @@ class ErrorHandler:
     # Toast notification methods
     def show_success_toast(self, message: str, duration: int = 3000):
         """Show success toast notification."""
-        self.toast_manager.show_toast(
-            message=message,
-            toast_type=ToastType.SUCCESS,
-            duration=duration
-        )
+        if self.toast_manager:
+            self.toast_manager.show_toast(
+                message=message,
+                toast_type=ToastType.SUCCESS,
+                duration=duration
+            )
     
     def show_error_toast(self, message: str, persistent: bool = False):
         """Show error toast notification."""
-        duration = None if persistent else 5000
-        self.toast_manager.show_toast(
-            message=message,
-            toast_type=ToastType.ERROR,
-            duration=duration,
-            action_text="Report" if persistent else None,
-            action_callback=self._show_bug_report if persistent else None
-        )
+        if self.toast_manager:
+            duration = None if persistent else 5000
+            self.toast_manager.show_toast(
+                message=message,
+                toast_type=ToastType.ERROR,
+                duration=duration,
+                action_text="Report" if persistent else None,
+                action_callback=self._show_bug_report if persistent else None
+            )
     
     def show_warning_toast(self, message: str, duration: int = 5000):
         """Show warning toast notification."""
-        self.toast_manager.show_toast(
-            message=message,
-            toast_type=ToastType.WARNING,
-            duration=duration
-        )
+        if self.toast_manager:
+            self.toast_manager.show_toast(
+                message=message,
+                toast_type=ToastType.WARNING,
+                duration=duration
+            )
     
     def show_info_toast(self, message: str, duration: int = 5000):
         """Show info toast notification."""
-        self.toast_manager.show_toast(
-            message=message,
-            toast_type=ToastType.INFO,
-            duration=duration
-        )
+        if self.toast_manager:
+            self.toast_manager.show_toast(
+                message=message,
+                toast_type=ToastType.INFO,
+                duration=duration
+            )
     
     # Error state methods
     def show_offline_indicator(self, parent: tk.Widget, has_cached_data: bool = False):
