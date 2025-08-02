@@ -500,8 +500,34 @@ class MLComparisonPanel(ctk.CTkFrame):
             logger.info(f"Added city: {city_name}")
             
         except Exception as e:
-            logger.error(f"Error adding city {city_name}: {e}")
-            messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
+            # Import custom exceptions for proper handling
+            try:
+                from src.services.enhanced_weather_service import (
+                    WeatherServiceError, RateLimitError, APIKeyError, 
+                    NetworkError, ServiceUnavailableError
+                )
+                
+                if isinstance(e, RateLimitError):
+                    logger.warning(f"Rate limit exceeded for {city_name}: {e}")
+                    messagebox.showwarning("Rate Limit", f"Rate limit exceeded for {city_name}. Please try again later.")
+                elif isinstance(e, APIKeyError):
+                    logger.error(f"API key error for {city_name}: {e}")
+                    messagebox.showerror("Configuration Error", "Weather API key is invalid. Please check your configuration.")
+                elif isinstance(e, NetworkError):
+                    logger.warning(f"Network error for {city_name}: {e}")
+                    messagebox.showwarning("Network Error", f"Network error for {city_name}. Please check your connection and try again.")
+                elif isinstance(e, ServiceUnavailableError):
+                    logger.warning(f"Service unavailable for {city_name}: {e}")
+                    messagebox.showwarning("Service Unavailable", f"Weather service is temporarily unavailable for {city_name}. Please try again later.")
+                elif isinstance(e, WeatherServiceError):
+                    logger.error(f"Weather service error for {city_name}: {e}")
+                    messagebox.showerror("Weather Service Error", f"Weather service error for {city_name}: {str(e)}")
+                else:
+                    logger.error(f"Unexpected error adding city {city_name}: {e}")
+                    messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
+            except ImportError:
+                logger.error(f"Error adding city {city_name}: {e}")
+                messagebox.showerror("Error", f"Error adding {city_name}: {str(e)}")
     
     def _clear_cities(self):
         """Clear all cities from analysis."""
@@ -540,31 +566,52 @@ class MLComparisonPanel(ctk.CTkFrame):
             # Get current theme
             current_theme = self.theme_manager.get_current_theme() if self.theme_manager else None
             
+            # Hide placeholder
+            if hasattr(self, 'placeholder_label'):
+                self.placeholder_label.pack_forget()
+            
             # Create the appropriate chart
             if chart_type == "similarity":
-                fig = self.ml_service.create_similarity_heatmap(self.weather_profiles, figsize=(10, 8), theme=current_theme)
+                fig = self.ml_service.create_similarity_heatmap(self.weather_profiles, figsize=(8, 6), theme=current_theme)
                 self.viz_title.configure(text="🔥 Weather Similarity Heatmap")
             elif chart_type == "clusters":
-                fig = self.ml_service.create_cluster_visualization(self.weather_profiles, figsize=(12, 8), theme=current_theme)
+                fig = self.ml_service.create_cluster_visualization(self.weather_profiles, figsize=(10, 6), theme=current_theme)
                 self.viz_title.configure(text="🎯 Weather Clusters Analysis")
             elif chart_type == "radar":
                 city_names = [profile.city_name for profile in self.weather_profiles]
-                fig = self.ml_service.create_radar_chart(self.weather_profiles, city_names, figsize=(10, 10), theme=current_theme)
+                fig = self.ml_service.create_radar_chart(self.weather_profiles, city_names, figsize=(8, 8), theme=current_theme)
                 self.viz_title.configure(text="📊 Weather Profile Radar Chart")
             else:
                 return
             
-            # Embed the chart
-            self.chart_canvas = FigureCanvasTkAgg(fig, self.chart_frame)
+            # Configure figure for embedding
+            fig.patch.set_facecolor('none')  # Transparent background
+            fig.tight_layout(pad=1.0)
+            
+            # Create canvas frame for better control
+            if not hasattr(self, 'canvas_frame') or not self.canvas_frame.winfo_exists():
+                self.canvas_frame = ctk.CTkFrame(self.chart_frame, fg_color="transparent")
+                self.canvas_frame.pack(fill="both", expand=True, padx=5, pady=5)
+            
+            # Embed the chart with proper CustomTkinter integration
+            self.chart_canvas = FigureCanvasTkAgg(fig, self.canvas_frame)
             self.chart_canvas.draw()
-            self.chart_canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
+            
+            # Configure the tkinter widget for CustomTkinter
+            canvas_widget = self.chart_canvas.get_tk_widget()
+            canvas_widget.configure(highlightthickness=0, relief='flat')
+            canvas_widget.pack(fill="both", expand=True)
+            
+            # Store figure reference for theme updates
+            self.current_figure = fig
             
             # Generate insights based on chart type
             self._generate_chart_insights(chart_type)
-            
+             
         except Exception as e:
             logger.error(f"Error creating {chart_type} visualization: {e}")
             messagebox.showerror("Visualization Error", f"Error creating {chart_type}: {str(e)}")
+            self._show_placeholder()
     
     def _on_chart_type_changed(self, selection: str):
         """Handle chart type selection change."""
@@ -580,12 +627,48 @@ class MLComparisonPanel(ctk.CTkFrame):
     
     def _clear_visualization(self):
         """Clear the current visualization."""
-        if self.chart_canvas:
-            self.chart_canvas.get_tk_widget().destroy()
-            self.chart_canvas = None
+        # Properly cleanup matplotlib canvas
+        if hasattr(self, 'chart_canvas') and self.chart_canvas:
+            try:
+                self.chart_canvas.get_tk_widget().destroy()
+                if hasattr(self.chart_canvas, 'figure'):
+                    plt.close(self.chart_canvas.figure)
+                self.chart_canvas = None
+            except Exception as e:
+                logger.warning(f"Error cleaning up chart canvas: {e}")
         
-        if hasattr(self, 'placeholder_label'):
-            self.placeholder_label.pack(expand=True)
+        # Clear canvas frame
+        if hasattr(self, 'canvas_frame') and self.canvas_frame and self.canvas_frame.winfo_exists():
+            self.canvas_frame.destroy()
+            self.canvas_frame = None
+        
+        # Clear current figure reference
+        if hasattr(self, 'current_figure'):
+            try:
+                plt.close(self.current_figure)
+            except:
+                pass
+            self.current_figure = None
+        
+        # Reset title
+        self.viz_title.configure(text="📊 Select a visualization type")
+        
+        # Show placeholder
+        self._show_placeholder()
+        
+        # Clear insights
+        self._clear_insights()
+    
+    def _show_placeholder(self):
+        """Show placeholder text when no visualization is selected."""
+        if not hasattr(self, 'placeholder_label') or not self.placeholder_label.winfo_exists():
+            self.placeholder_label = ctk.CTkLabel(
+                self.chart_frame,
+                text="Select a visualization type from the dropdown above\nto see ML-powered weather analysis",
+                font=ctk.CTkFont(size=14),
+                text_color=("gray60", "gray40")
+            )
+        self.placeholder_label.pack(expand=True)
     
     def _generate_chart_insights(self, chart_type: str):
         """Generate AI insights based on the current chart."""
@@ -653,6 +736,9 @@ class MLComparisonPanel(ctk.CTkFrame):
             
         except Exception as e:
             logger.error(f"Error generating insights: {e}")
+    
+
+
     
     def _show_preference_dialog(self):
         """Show the weather preference dialog."""
@@ -903,9 +989,21 @@ class MLComparisonPanel(ctk.CTkFrame):
         self.insights_display.insert("1.0", "🤖 AI insights will appear here after analysis...")
         self.insights_display.configure(state="disabled")
     
-    def update_theme(self):
+    def update_theme(self, theme_name: str = None):
         """Update the theme."""
         self._apply_theme()
+        
+        # Update current visualization with new theme
+        if hasattr(self, 'current_chart_type') and self.current_chart_type:
+            self._refresh_visualization_theme()
+    
+    def _refresh_visualization_theme(self):
+        """Refresh the current visualization with updated theme."""
+        if hasattr(self, 'current_chart_type') and self.current_chart_type and len(self.weather_profiles) >= 2:
+            # Store current chart type
+            chart_type = self.current_chart_type
+            # Recreate visualization with new theme
+            self._show_visualization(chart_type)
     
     def destroy(self):
         """Clean up resources."""

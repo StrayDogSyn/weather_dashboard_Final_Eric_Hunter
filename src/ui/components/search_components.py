@@ -186,25 +186,47 @@ class EnhancedSearchBar(ctk.CTkFrame):
         return False
 
     def perform_search(self, query: str):
-        """Perform autocomplete search."""
+        """Perform autocomplete search with enhanced error handling."""
         if self.is_searching:
             return
 
         self.is_searching = True
         self.show_loading()
 
-        try:
-            # Use weather service for advanced search
-            results = self.weather_service.search_locations_advanced(query)
+        def search_task():
+            try:
+                # Import custom exceptions for proper error handling
+                from src.services.enhanced_weather_service import (
+                    WeatherServiceError, RateLimitError, APIKeyError, 
+                    NetworkError, ServiceUnavailableError
+                )
+                
+                results = self.weather_service.search_locations_advanced(query)
+                self.after(0, self.handle_search_results, results)
+                
+            except RateLimitError as e:
+                print(f"Rate limit exceeded: {e}")
+                self.after(0, self.handle_search_error, "Search rate limit exceeded. Please wait a moment.")
+            except APIKeyError as e:
+                print(f"API key error: {e}")
+                self.after(0, self.handle_search_error, "API configuration error. Please check settings.")
+            except NetworkError as e:
+                print(f"Network error: {e}")
+                self.after(0, self.handle_search_error, "Network connection error. Please check your internet.")
+            except ServiceUnavailableError as e:
+                print(f"Service unavailable: {e}")
+                self.after(0, self.handle_search_error, "Search service temporarily unavailable.")
+            except WeatherServiceError as e:
+                print(f"Weather service error: {e}")
+                self.after(0, self.handle_search_error, "Search service error. Please try again.")
+            except Exception as e:
+                print(f"Unexpected search error: {e}")
+                self.after(0, self.handle_search_error, "An unexpected error occurred during search.")
+            finally:
+                self.is_searching = False
+                self.after(0, self.hide_loading)
 
-            # Update UI in main thread
-            self.after(0, self.update_autocomplete_results, results)
-        except Exception as e:
-            print(f"Search error: {e}")
-            self.after(0, self.show_no_results)
-        finally:
-            self.is_searching = False
-            self.after(0, self.hide_loading)
+        threading.Thread(target=search_task, daemon=True).start()
 
     def update_autocomplete_results(self, results: List[LocationResult]):
         """Update autocomplete dropdown with results."""
@@ -292,21 +314,32 @@ class EnhancedSearchBar(ctk.CTkFrame):
         self.hide_dropdown()
         self.perform_search(query)
 
-    def show_no_results(self):
-        """Show no results message."""
+    def show_no_results(self, message: str = "No results found"):
+        """Show no results message with optional custom message."""
         # Clear previous results
         for widget in self.autocomplete_scroll.winfo_children():
             widget.destroy()
 
         no_results = ctk.CTkLabel(
             self.autocomplete_scroll,
-            text="No results found",
+            text=message,
             font=("Arial", 11),
             text_color="#888888",
         )
         no_results.pack(pady=20)
 
         self.show_dropdown()
+
+    def handle_search_error(self, error_message: str = "Search failed"):
+        """Handle search errors with user-friendly messages."""
+        self.hide_loading()
+        self.show_no_results(error_message)
+        print(f"Search error: {error_message}")
+
+    def handle_search_results(self, results):
+        """Handle successful search results."""
+        self.hide_loading()
+        self.update_autocomplete_results(results)
 
     def navigate_dropdown(self, direction: int):
         """Navigate dropdown with arrow keys."""
@@ -398,11 +431,17 @@ class EnhancedSearchBar(ctk.CTkFrame):
             self.after(500, self.animate_loading)
 
     def use_current_location(self):
-        """Use geolocation to get current location."""
+        """Use geolocation to get current location with enhanced error handling."""
         self.geo_button.configure(text="⏳")
 
         def get_location():
             try:
+                # Import custom exceptions for proper error handling
+                from src.services.enhanced_weather_service import (
+                    WeatherServiceError, RateLimitError, APIKeyError, 
+                    NetworkError, ServiceUnavailableError
+                )
+                
                 location = self.geocoding_service.get_current_location()
                 if location:
                     # Convert to LocationResult format if needed
@@ -422,10 +461,23 @@ class EnhancedSearchBar(ctk.CTkFrame):
                         )
                         self.after(0, self.handle_geolocation_result, location_result)
                 else:
-                    self.after(0, self.handle_geolocation_error)
+                    self.after(0, self.handle_geolocation_error, "Location not found")
+                    
+            except RateLimitError as e:
+                print(f"Geolocation rate limit: {e}")
+                self.after(0, self.handle_geolocation_error, "Rate limit exceeded")
+            except APIKeyError as e:
+                print(f"Geolocation API key error: {e}")
+                self.after(0, self.handle_geolocation_error, "API configuration error")
+            except NetworkError as e:
+                print(f"Geolocation network error: {e}")
+                self.after(0, self.handle_geolocation_error, "Network connection error")
+            except ServiceUnavailableError as e:
+                print(f"Geolocation service unavailable: {e}")
+                self.after(0, self.handle_geolocation_error, "Service temporarily unavailable")
             except Exception as e:
-                print(f"Geolocation error: {e}")
-                self.after(0, self.handle_geolocation_error)
+                print(f"Unexpected geolocation error: {e}")
+                self.after(0, self.handle_geolocation_error, "Geolocation failed")
 
         threading.Thread(target=get_location, daemon=True).start()
 
@@ -442,10 +494,15 @@ class EnhancedSearchBar(ctk.CTkFrame):
         if self.on_location_selected:
             self.on_location_selected(location)
 
-    def handle_geolocation_error(self):
-        """Handle geolocation error."""
+    def handle_geolocation_error(self, error_message: str = "Location error"):
+        """Handle geolocation error with user feedback."""
         self.geo_button.configure(text="❌")
-        self.after(2000, lambda: self.geo_button.configure(text="📍"))
+        
+        # Show error tooltip or status
+        print(f"Geolocation error: {error_message}")
+        
+        # Reset button after 3 seconds
+        self.after(3000, lambda: self.geo_button.configure(text="📍"))
 
     def get_country_flag(self, country_code: str) -> str:
         """Get country flag emoji from country code."""

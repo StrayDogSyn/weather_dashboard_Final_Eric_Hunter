@@ -6,9 +6,11 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 [![AI Powered](https://img.shields.io/badge/AI-Powered-purple.svg)](https://github.com/)
 
-A cutting-edge weather dashboard application featuring **AI-powered analytics**, **machine learning insights**, and **dynamic theme system**. Built with Python and CustomTkinter, offering real-time weather data, advanced visualizations, ML-driven city comparisons, and intelligent weather pattern analysis.
+A modern weather dashboard application featuring **AI-powered analytics**, **machine learning insights**, and **dynamic theme system**. Built with Python and CustomTkinter, offering real-time weather data, advanced visualizations, ML-driven city comparisons, and intelligent weather pattern analysis.
 
 > **📋 Status**: ✅ Production Ready | 🤖 AI-Enhanced | 🎨 Multi-Theme | 🔬 ML Analytics | 🛠️ Advanced Architecture
+
+**Author**: E Hunter Petross | **Project**: Weather Dashboard Capstone | **Technology**: Python, CustomTkinter, OpenWeatherMap API
 
 ## **Screenshots**
 
@@ -212,28 +214,65 @@ python main.py
 
 ## 🛠️ Technical Stack
 
-### Architecture
+### Core Architecture
 
-- **Clean Architecture** with MVC pattern
-- **Service layer** for API and data management
-- **SQLite database** with SQLAlchemy ORM
-- **Custom UI components** with modern styling
-- **Matplotlib** for data visualization
+- **Clean Architecture** with MVC pattern and dependency injection
+- **Service layer** for API integration and business logic
+- **SQLite database** with SQLAlchemy ORM for data persistence
+- **Component-based UI** with CustomTkinter framework
+- **Async support** for non-blocking operations
+- **Comprehensive logging** with structured error handling
+- **AI/ML Integration** with OpenAI GPT and scikit-learn for intelligent analysis
+- **Dynamic Theme System** with real-time switching and chart integration
+- **Performance Optimization** with intelligent caching and async operations
 
 ### Key Dependencies
 
 ```txt
-customtkinter     # Modern UI framework
-requests         # HTTP client
-matplotlib       # Charts and advanced ML visualizations
-numpy            # Numerical computing for ML algorithms
-pandas           # Data analysis and manipulation
-scikit-learn     # Machine learning algorithms (clustering, PCA)
-python-dotenv    # Environment management
-Pillow          # Image processing
+# UI Framework
+customtkinter==5.2.2          # Modern UI framework
+ttkbootstrap==1.10.1          # Bootstrap-themed widgets
+
+# Data & Visualization
+matplotlib==3.8.2             # Charts and visualizations
+seaborn==0.13.0               # Statistical plotting
+plotly==5.17.0                # Interactive charts
+numpy==1.24.4                 # Numerical computing
+pandas==2.1.4                 # Data analysis
+scipy==1.11.4                 # Scientific computing
+
+# Machine Learning
+scikit-learn==1.3.2           # ML algorithms (clustering, PCA)
+joblib==1.3.2                 # Model persistence
+
+# API & Networking
+requests==2.31.0              # HTTP client
+aiohttp==3.9.1                # Async HTTP client
+httpx==0.25.2                 # Modern HTTP client
+
+# Configuration & Environment
+python-dotenv==1.0.0          # Environment management
+pydantic==2.5.2               # Data validation
+pyyaml==6.0.1                 # YAML parsing
+
+# Geolocation
+geopy==2.4.1                  # Geocoding services
+geocoder==1.38.1              # Alternative geocoding
+timezonefinder==6.2.0         # Timezone lookup
+
+# AI Integration
+openai==1.6.1                 # OpenAI API client
+google-generativeai==0.3.2    # Google Gemini AI
+
+# Utilities
+Pillow==10.1.0                # Image processing
+loguru==0.7.2                 # Enhanced logging
+rich==13.7.0                  # Rich text formatting
+cachetools==5.3.2             # Caching utilities
+ratelimit==2.2.1              # API rate limiting
 ```
 
-> 🏗️ **Clean Architecture**: Modular design with separation of concerns - models, services, and UI components
+> 🏗️ **Modern Stack**: Production-ready dependencies with pinned versions for reproducible builds
 
 ### Project Structure
 
@@ -245,39 +284,68 @@ weather_dashboard_Final_Eric_Hunter/
 │   ├── models/            # Data models
 │   │   └── weather_models.py # Weather data structures
 │   ├── services/          # Business logic & APIs
-│   │   ├── activity_service.py
-│   │   ├── config_service.py
-│   │   ├── enhanced_weather_service.py
-│   │   ├── geocoding_service.py
-│   │   ├── github_team_service.py
-│   │   ├── loading_manager.py
-│   │   ├── logging_service.py
-│   │   └── 🆕 ml_weather_service.py # AI/ML analytics engine
+│   │   ├── activity_service.py        # Activity suggestions
+│   │   ├── config_service.py          # Configuration management
+│   │   ├── enhanced_weather_service.py # Weather API integration
+│   │   ├── geocoding_service.py       # Location services
+│   │   ├── github_team_service.py     # Team data integration
+│   │   ├── loading_manager.py         # Loading states
+│   │   ├── logging_service.py         # Structured logging
+│   │   └── ml_weather_service.py      # AI/ML analytics engine
 │   ├── ui/               # GUI components
 │   │   ├── components/   # Reusable UI components
+│   │   │   ├── animation_manager.py   # UI animations
 │   │   │   ├── city_comparison_panel.py # Traditional comparison
-│   │   │   ├── 🆕 ml_comparison_panel.py # AI-powered analysis
-│   │   │   └── search_components.py # Enhanced search functionality
+│   │   │   ├── error_manager.py       # Error handling UI
+│   │   │   ├── forecast_day_card.py   # Forecast display
+│   │   │   ├── ml_comparison_panel.py # AI-powered analysis
+│   │   │   ├── search_components.py   # Enhanced search
+│   │   │   ├── simple_temperature_chart.py # Basic charts
+│   │   │   ├── status_manager.py      # Status messages
+│   │   │   ├── theme_preview_card.py  # Theme previews
+│   │   │   ├── visual_polish.py       # Visual enhancements
+│   │   │   └── weather_effects.py     # Weather animations
 │   │   ├── professional_weather_dashboard.py # Main dashboard
-│   │   ├── safe_widgets.py # Safe CustomTkinter widgets
-│   │   ├── theme.py     # UI theming
-│   │   └── 🆕 theme_manager.py # Dynamic theme system
+│   │   ├── safe_widgets.py           # Safe CustomTkinter widgets
+│   │   ├── theme.py                  # UI theming
+│   │   └── theme_manager.py          # Dynamic theme system
 │   └── utils/            # Utility functions
 │       └── loading_manager.py
-├── data/                 # Application data
-│   └── window_config.json
-├── cache/                # Weather data cache
+├── assets/               # Static resources
+│   ├── images/          # Application images
+│   │   └── Main.png     # Dashboard screenshot
+│   └── sounds/          # Audio files
+├── cache/                # Runtime cache
+│   ├── enhanced_weather_cache.json
+│   ├── favorites.json
+│   ├── recent_searches.json
+│   └── weather_cache.json
 ├── config/               # Configuration files
-│   └── 🆕 theme_config.json # Theme settings
-├── assets/               # Images and sounds
+│   ├── cleanup_config.yaml
+│   ├── cleanup_patterns.yaml
+│   └── theme_config.json
+├── data/                 # Application data
+│   ├── favorite_locations.json
+│   ├── recent_searches.json
+│   ├── search_history.json
+│   ├── team_cache.json
+│   └── team_weather.json
 ├── docs/                 # Documentation
-├── main.py              # Entry point
-├── requirements.txt     # Dependencies (includes ML libraries)
+│   ├── API_GUIDE.md     # API integration guide
+│   ├── ARCHITECTURE.md  # Architecture documentation
+│   └── WORKS_CITED.md   # Citations and references
+├── scripts/              # Development tools
+│   ├── clean.py         # Cleanup utilities
+│   └── config/          # Script configurations
+├── main.py              # Application entry point
+├── requirements.txt     # Production dependencies
+├── requirements-dev.txt # Development dependencies
+├── requirements-test.txt # Testing dependencies
 ├── .gitignore          # Git ignore rules
-└── README.md           # This file
+└── README.md           # This documentation
 ```
 
-> 📁 **Clean Structure**: Streamlined architecture focusing on essential components with clear separation of concerns
+> 📁 **Organized Structure**: Clean architecture with clear separation of concerns and comprehensive tooling
 
 ## 🏗️ Architecture
 
@@ -330,65 +398,12 @@ The Weather Dashboard follows clean architecture principles with modular design 
 
 ---
 
-**Author**: E Hunter Petross
-**Project**: Weather Dashboard Capstone
-**Technology**: Python, TKinter, OpenWeatherMap API
-
-## 📚 Key Information
-
-### Quick Reference
-
-- **API Integration**: Uses OpenWeatherMap API for real-time weather data
-- **UI Framework**: CustomTkinter for modern, responsive interface
-- **Data Visualization**: Matplotlib for interactive charts and graphs
-- **Architecture**: Clean separation with models, services, and UI layers
-- **Configuration**: Environment-based API key management
-- **Cross-Platform**: Compatible with Windows, macOS, and Linux
-
-## 🧪 Development
-
-### Running the Application
-
-```bash
-# Start the weather dashboard
-python main.py
-
-# Ensure all dependencies are installed
-pip install -r requirements.txt
-
-# Check Python version (3.8+ required)
-python --version
-```
-
-**Development**: Modular codebase with clear separation of concerns for easy maintenance and extension
-
-## 📖 Technical Details
-
-### Application Architecture
-
-- **Configuration Service** (`src/config/`) - Centralized application configuration management
-- **Weather Models** (`src/models/`) - Data structures for weather information
-- **Enhanced Weather Service** (`src/services/`) - API integration and data processing
-- **Professional Dashboard** (`src/ui/`) - Main application interface with Data Terminal design theme
-- **Search Components** (`src/ui/components/`) - Enhanced search functionality with autocomplete
-- **Safe Widgets** (`src/ui/`) - Robust CustomTkinter widget implementations
-
-### Key Features
-
-- **Real-time Weather Data** - Current conditions and 5-day forecasts
-- **Interactive Charts** - Temperature trends, metrics comparison, and forecast visualization
-- **Responsive Design** - Adapts to different window sizes and screen resolutions
-- **Modern UI** - Glassmorphic theme with smooth animations and transitions
-- **Configuration Management** - Robust settings and API key handling
-
 ## 🔒 Security
 
 - **API key protection** with environment variables
 - **Input validation** and sanitization
 - **Secure error handling** without information disclosure
 - **Comprehensive logging** for security monitoring
-
-> 🔐 **Security**: API keys stored in environment variables, input validation, and secure error handling
 
 ## 🤝 Contributing
 
@@ -401,8 +416,6 @@ python --version
 
 **Standards**: PEP 8, 80%+ test coverage, type hints, conventional commits
 
-> 👥 **Contributing**: Fork the repository, create feature branches, and submit pull requests with comprehensive testing
-
 ## 📄 License
 
 MIT License - This project is open source and available under the MIT License.
@@ -411,39 +424,10 @@ MIT License - This project is open source and available under the MIT License.
 
 - **[OpenWeatherMap](https://openweathermap.org/)** - Weather data API
 - **[CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)** - Modern GUI framework
-- **[Microsoft Cortana](https://www.microsoft.com/en-us/cortana)** - Voice assistant integration
 - **Python Community** - Excellent libraries and documentation
 
 > 📚 **Complete Attribution**: See [WORKS_CITED.md](docs/WORKS_CITED.md) for comprehensive citations of all external resources, APIs, libraries, and frameworks used in this project.
 
 ---
 
-## 🚀 CI/CD & Quality
-
-### Automated Pipeline
-
-- **Cross-platform testing** (Linux, Windows, macOS)
-- **Python versions** 3.8-3.11 support
-- **Code quality checks** (Black, flake8, mypy)
-- **Security scanning** with CodeQL
-- **85%+ test coverage** maintained
-
-### Local Quality Checks
-
-```bash
-# Install dev dependencies
-pip install -r tests/requirements-test.txt
-
-# Run all checks
-python scripts/pre_commit_check.py
-```
-
-> 🔧 **Development**: Python 3.8+, pip install requirements, configure API key, and run main.py
-
----
-
-### Built with Python • CustomTkinter • OpenWeatherMap API
-
----
-
-> 📚 **Getting Started**: Clone repository, install dependencies, configure API key, and launch with `python main.py`
+**Author**: E Hunter Petross | **Technology**: Python, CustomTkinter, OpenWeatherMap API | **License**: MIT
