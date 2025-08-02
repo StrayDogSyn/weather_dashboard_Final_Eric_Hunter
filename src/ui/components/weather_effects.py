@@ -551,6 +551,12 @@ class StatusMessageManager:
         except tk.TclError:
             pass
 
+    def cleanup(self):
+        """Clean up resources and stop cycling."""
+        self.stop_tip_cycling()
+        self.message_queue.clear()
+        self.current_message = ""
+
     def update_theme(self, theme_data: Dict = None):
         """Update theme colors for status message manager."""
         if theme_data and hasattr(self.status_label, "configure"):

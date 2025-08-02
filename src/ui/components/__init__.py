@@ -9,7 +9,7 @@ from .animation_manager import AnimationManager, LoadingSkeleton, MicroInteracti
 # from .forecast_panel import ForecastPanel  # Module not found
 # from .chart_panel import ChartPanel  # Module not found
 from .city_comparison_panel import CityComparisonPanel
-from .common import HeaderComponent, SearchBar, StatusBar, StatusBarComponent
+from .common import HeaderComponent, SearchBar, StatusBarComponent
 from .error_manager import ErrorCard, ErrorLevel, ErrorManager, NotificationToast
 from .ml_comparison_panel import MLComparisonPanel
 from .status_manager import StatusMessageManager, StatusType, TooltipManager
@@ -55,5 +55,4 @@ __all__ = [
     "HeaderComponent",
     "StatusBarComponent",
     "SearchBar",
-    "StatusBar",
 ]

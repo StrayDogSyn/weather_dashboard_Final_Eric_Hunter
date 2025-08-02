@@ -6,7 +6,6 @@ different parts of the weather dashboard application.
 
 from .header import HeaderComponent
 from .search_bar import SearchBar
-from .status_bar import StatusBar
 from .status_bar_component import StatusBarComponent
 
-__all__ = ["HeaderComponent", "StatusBarComponent", "SearchBar", "StatusBar"]
+__all__ = ["HeaderComponent", "StatusBarComponent", "SearchBar"]

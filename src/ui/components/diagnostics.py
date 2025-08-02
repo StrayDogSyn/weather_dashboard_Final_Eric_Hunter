@@ -591,3 +591,15 @@ class DiagnosticsManager:
     def register_error_handler(self, error_type: type, handler: Callable):
         """Register custom error handler."""
         self.error_handlers[error_type] = handler
+
+    def add_error_report(self, error_info: Dict[str, Any]):
+        """Add error report to diagnostics manager."""
+        try:
+            # Log the error for diagnostics
+            self.logger.log_user_error(
+                Exception(error_info.get('message', 'Unknown error')),
+                error_info.get('type', 'Unknown')
+            )
+        except Exception:
+            # Silently ignore if logging fails
+            pass
