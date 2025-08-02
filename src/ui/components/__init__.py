@@ -13,6 +13,7 @@ from .weather_effects import WeatherBackgroundManager, ParticleSystem, Temperatu
 from .error_manager import ErrorManager, ErrorCard, NotificationToast, ErrorLevel
 from .status_manager import StatusMessageManager, TooltipManager, StatusType
 from .visual_polish import VisualPolishManager, GlassMorphism, ShadowSystem, KeyboardShortcuts, SpacingGrid
+from .common import HeaderComponent, StatusBarComponent, SearchBar, StatusBar
 
 __all__ = [
     # 'WeatherCard',  # Module not found
@@ -38,5 +39,9 @@ __all__ = [
     'GlassMorphism',
     'ShadowSystem',
     'KeyboardShortcuts',
-    'SpacingGrid'
+    'SpacingGrid',
+    'HeaderComponent',
+    'StatusBarComponent',
+    'SearchBar',
+    'StatusBar'
 ]
