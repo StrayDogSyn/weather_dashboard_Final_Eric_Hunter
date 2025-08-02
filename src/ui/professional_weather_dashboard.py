@@ -437,7 +437,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_additional_metrics_section()
 
     def _create_forecast_cards(self, parent):
-        """Create 5-day forecast cards with improved spacing."""
+        """Create 5-day forecast cards using enhanced ForecastDayCard component."""
         forecast_frame = ctk.CTkFrame(parent, fg_color="transparent")
         forecast_frame.pack(fill="x", padx=15, pady=(0, 15))
 
@@ -445,41 +445,35 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         for i in range(5):
             forecast_frame.grid_columnconfigure(i, weight=1)
 
-        # Create 5 forecast cards
+        # Store forecast cards for later updates
+        self.forecast_cards = []
+
+        # Create 5 enhanced forecast cards
         for i in range(5):
-            day_card = ctk.CTkFrame(
+            # Calculate day and date
+            forecast_date = datetime.now() + timedelta(days=i)
+            day_name = forecast_date.strftime("%a")
+            date_str = forecast_date.strftime("%m/%d")
+            
+            # Create enhanced forecast card with click handler
+            day_card = ForecastDayCard(
                 forecast_frame,
-                fg_color=DataTerminalTheme.BACKGROUND,
-                corner_radius=8,
-                border_width=1,
-                border_color=DataTerminalTheme.BORDER,
-                height=100,
+                day=day_name,
+                date=date_str,
+                icon="01d",  # Default sunny icon
+                high=22,
+                low=15,
+                precipitation=0.0,
+                wind_speed=0.0,
+                temp_unit=self.temp_unit,
+                on_click=self._on_forecast_card_click
             )
+            
             day_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
-            day_card.grid_propagate(False)
-
-            # Day name
-            day = (datetime.now() + timedelta(days=i)).strftime("%a")
-            day_label = ctk.CTkLabel(
-                day_card,
-                text=day,
-                font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
-                text_color=DataTerminalTheme.TEXT,
-            )
-            day_label.pack(pady=(8, 3))
-
-            # Weather icon
-            icon_label = ctk.CTkLabel(day_card, text="🌤️", font=(DataTerminalTheme.FONT_FAMILY, 22))
-            icon_label.pack(pady=5)
-
-            # Temperature
-            temp_label = ctk.CTkLabel(
-                day_card,
-                text="22°/15°",
-                font=(DataTerminalTheme.FONT_FAMILY, 10, "bold"),
-                text_color=DataTerminalTheme.PRIMARY,
-            )
-            temp_label.pack(pady=(3, 8))
+            self.forecast_cards.append(day_card)
+            
+            # Add staggered animation
+            day_card.animate_in(delay=i * 100)
 
     def _create_additional_metrics_section(self):
         """Create additional metrics section for the third column."""
@@ -688,47 +682,281 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _update_forecast_cards(self, weather_data):
         """Update 5-day forecast cards with weather data."""
         try:
-            # This would typically use forecast data from the weather service
-            # For now, we'll generate sample forecast data based on current
-            # weather
-            if hasattr(weather_data, "temperature"):
-                base_temp = weather_data.temperature
-
-                # Find all forecast cards and update them
-                forecast_frame = None
-                for child in self.weather_tab.winfo_children():
-                    if isinstance(child, ctk.CTkFrame):
-                        for subchild in child.winfo_children():
-                            if isinstance(subchild, ctk.CTkFrame):
-                                # Look for forecast cards container
-                                for frame_child in subchild.winfo_children():
-                                    if hasattr(frame_child, "grid_slaves"):
-                                        forecast_frame = frame_child
-                                        break
-                                if forecast_frame:
-                                    break
-                        if forecast_frame:
-                            break
-
-                if forecast_frame:
-                    # Update forecast cards with sample data
-                    cards = forecast_frame.grid_slaves()
-                    for i, card in enumerate(cards[:5]):
-                        if isinstance(card, ctk.CTkFrame):
-                            # Generate forecast temperatures (slight
-                            # variations)
-                            high_temp = int(base_temp + (i * 2) - 2)
-                            low_temp = int(base_temp - 5 + (i * 1))
-
-                            # Update temperature label in card
-                            for widget in card.winfo_children():
-                                if isinstance(widget, ctk.CTkLabel):
-                                    text = widget.cget("text")
-                                    if "°" in text and "/" in text:
-                                        widget.configure(text=f"{high_temp}°/{low_temp}°")
-                                        break
+            # Check if we have forecast cards to update
+            if not hasattr(self, 'forecast_cards') or not self.forecast_cards:
+                return
+            
+            # If we have forecast data, use it; otherwise generate sample data
+            if hasattr(weather_data, 'forecast_data') and weather_data.forecast_data:
+                self._update_cards_with_forecast_data(weather_data.forecast_data)
+            elif hasattr(weather_data, "temperature"):
+                self._update_cards_with_sample_data(weather_data.temperature)
+                
         except Exception as e:
             self.logger.error(f"Failed to update forecast cards: {e}")
+    
+    def _update_cards_with_forecast_data(self, forecast_data):
+        """Update forecast cards with real forecast data."""
+        try:
+            # Get daily forecasts from forecast data
+            daily_forecasts = self._parse_daily_forecasts(forecast_data)
+            
+            for i, card in enumerate(self.forecast_cards):
+                if i < len(daily_forecasts):
+                    daily_data = daily_forecasts[i]
+                    
+                    # Update card with real data
+                    card.update_data(
+                        icon=daily_data.get('icon', '01d'),
+                        high=daily_data.get('high_temp', 22),
+                        low=daily_data.get('low_temp', 15),
+                        precipitation=daily_data.get('precipitation', 0.0),
+                        wind_speed=daily_data.get('wind_speed', 0.0),
+                        temp_unit=self.temp_unit
+                    )
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to update cards with forecast data: {e}")
+    
+    def _update_cards_with_sample_data(self, base_temp):
+        """Update forecast cards with sample data based on current temperature."""
+        try:
+            for i, card in enumerate(self.forecast_cards):
+                # Generate forecast temperatures (slight variations)
+                high_temp = int(base_temp + (i * 2) - 2)
+                low_temp = int(base_temp - 5 + (i * 1))
+                
+                # Sample weather conditions
+                icons = ['01d', '02d', '03d', '04d', '09d']
+                precipitations = [0.0, 0.1, 0.3, 0.2, 0.0]
+                wind_speeds = [2.5, 3.0, 4.2, 3.8, 2.1]
+                
+                card.update_data(
+                    icon=icons[i % len(icons)],
+                    high=high_temp,
+                    low=low_temp,
+                    precipitation=precipitations[i % len(precipitations)],
+                    wind_speed=wind_speeds[i % len(wind_speeds)],
+                    temp_unit=self.temp_unit
+                )
+                
+        except Exception as e:
+            self.logger.error(f"Failed to update cards with sample data: {e}")
+    
+    def _parse_daily_forecasts(self, forecast_data):
+        """Parse forecast data into daily summaries."""
+        try:
+            daily_forecasts = []
+            
+            # Check if forecast_data has the expected structure
+            if hasattr(forecast_data, 'get_daily_forecast'):
+                # Use the model's method to get daily forecast
+                daily_data = forecast_data.get_daily_forecast()
+                for day_data in daily_data[:5]:  # Get first 5 days
+                    daily_forecasts.append({
+                        'icon': getattr(day_data, 'icon', '01d'),
+                        'high_temp': int(getattr(day_data, 'high_temp', 22)),
+                        'low_temp': int(getattr(day_data, 'low_temp', 15)),
+                        'precipitation': getattr(day_data, 'precipitation_probability', 0.0),
+                        'wind_speed': getattr(day_data, 'wind_speed', 0.0)
+                    })
+            elif hasattr(forecast_data, 'list'):
+                # Parse OpenWeatherMap 5-day forecast format
+                daily_forecasts = self._parse_openweather_forecast(forecast_data.list)
+            else:
+                # Fallback to sample data
+                for i in range(5):
+                    daily_forecasts.append({
+                        'icon': ['01d', '02d', '03d', '04d', '09d'][i],
+                        'high_temp': 22 + (i * 2) - 2,
+                        'low_temp': 15 + i,
+                        'precipitation': [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                        'wind_speed': [2.5, 3.0, 4.2, 3.8, 2.1][i]
+                    })
+            
+            return daily_forecasts
+            
+        except Exception as e:
+            self.logger.error(f"Failed to parse daily forecasts: {e}")
+            return []
+    
+    def _parse_openweather_forecast(self, forecast_list):
+        """Parse OpenWeatherMap forecast list into daily summaries."""
+        try:
+            daily_data = {}
+            
+            # Group forecast entries by date
+            for entry in forecast_list:
+                if 'dt_txt' in entry:
+                    date_str = entry['dt_txt'][:10]  # Get YYYY-MM-DD part
+                    
+                    if date_str not in daily_data:
+                        daily_data[date_str] = {
+                            'temps': [],
+                            'icons': [],
+                            'precipitation': 0.0,
+                            'wind_speeds': []
+                        }
+                    
+                    # Collect temperature data
+                    if 'main' in entry and 'temp' in entry['main']:
+                        daily_data[date_str]['temps'].append(entry['main']['temp'])
+                    
+                    # Collect weather icons (use most common one)
+                    if 'weather' in entry and len(entry['weather']) > 0:
+                        daily_data[date_str]['icons'].append(entry['weather'][0].get('icon', '01d'))
+                    
+                    # Collect precipitation probability
+                    if 'pop' in entry:
+                        daily_data[date_str]['precipitation'] = max(
+                            daily_data[date_str]['precipitation'], 
+                            entry['pop']
+                        )
+                    
+                    # Collect wind speed
+                    if 'wind' in entry and 'speed' in entry['wind']:
+                        daily_data[date_str]['wind_speeds'].append(entry['wind']['speed'])
+            
+            # Convert to daily forecasts
+            daily_forecasts = []
+            for date_str in sorted(daily_data.keys())[:5]:  # Get first 5 days
+                day_data = daily_data[date_str]
+                
+                # Calculate high/low temperatures
+                temps = day_data['temps']
+                high_temp = int(max(temps)) if temps else 22
+                low_temp = int(min(temps)) if temps else 15
+                
+                # Get most common icon
+                icons = day_data['icons']
+                icon = max(set(icons), key=icons.count) if icons else '01d'
+                
+                # Average wind speed
+                wind_speeds = day_data['wind_speeds']
+                avg_wind = sum(wind_speeds) / len(wind_speeds) if wind_speeds else 0.0
+                
+                daily_forecasts.append({
+                    'icon': icon,
+                    'high_temp': high_temp,
+                    'low_temp': low_temp,
+                    'precipitation': day_data['precipitation'],
+                    'wind_speed': avg_wind
+                })
+            
+            return daily_forecasts
+            
+        except Exception as e:
+            self.logger.error(f"Failed to parse OpenWeather forecast: {e}")
+            return []
+    
+    def _on_forecast_card_click(self, card):
+        """Handle forecast card click to show hourly breakdown."""
+        try:
+            # Get the card index
+            card_index = self.forecast_cards.index(card) if card in self.forecast_cards else 0
+            
+            # Create hourly breakdown dialog
+            self._show_hourly_breakdown(card_index)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to handle forecast card click: {e}")
+    
+    def _show_hourly_breakdown(self, day_index):
+        """Show hourly weather breakdown for selected day."""
+        try:
+            # Create a new window for hourly breakdown
+            hourly_window = ctk.CTkToplevel(self)
+            hourly_window.title(f"Hourly Forecast - Day {day_index + 1}")
+            hourly_window.geometry("600x400")
+            hourly_window.transient(self)
+            hourly_window.grab_set()
+            
+            # Center the window
+            hourly_window.update_idletasks()
+            x = (hourly_window.winfo_screenwidth() // 2) - (600 // 2)
+            y = (hourly_window.winfo_screenheight() // 2) - (400 // 2)
+            hourly_window.geometry(f"600x400+{x}+{y}")
+            
+            # Create content
+            content_frame = ctk.CTkFrame(hourly_window)
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Title
+            title_label = ctk.CTkLabel(
+                content_frame,
+                text=f"Hourly Forecast - {(datetime.now() + timedelta(days=day_index)).strftime('%A, %B %d')}",
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color=theme_manager.get_current_theme().get("text", "#FFFFFF")
+            )
+            title_label.pack(pady=(0, 20))
+            
+            # Scrollable frame for hourly data
+            scrollable_frame = ctk.CTkScrollableFrame(content_frame)
+            scrollable_frame.pack(fill="both", expand=True)
+            
+            # Add sample hourly data (in a real implementation, this would come from the forecast service)
+            for hour in range(0, 24, 3):  # Every 3 hours
+                hour_frame = ctk.CTkFrame(scrollable_frame)
+                hour_frame.pack(fill="x", padx=5, pady=2)
+                
+                # Time
+                time_label = ctk.CTkLabel(
+                    hour_frame,
+                    text=f"{hour:02d}:00",
+                    font=ctk.CTkFont(size=14),
+                    width=60
+                )
+                time_label.pack(side="left", padx=10, pady=5)
+                
+                # Weather icon
+                icon_label = ctk.CTkLabel(
+                    hour_frame,
+                    text="🌤️",
+                    font=ctk.CTkFont(size=14),
+                    width=40
+                )
+                icon_label.pack(side="left", padx=5, pady=5)
+                
+                # Temperature
+                temp = 20 + (hour // 3) - 2  # Sample temperature variation
+                temp_label = ctk.CTkLabel(
+                    hour_frame,
+                    text=f"{temp}°{self.temp_unit}",
+                    font=ctk.CTkFont(size=14),
+                    width=60
+                )
+                temp_label.pack(side="left", padx=10, pady=5)
+                
+                # Precipitation
+                precip = max(0, (hour - 12) * 5) if 9 <= hour <= 15 else 0  # Sample precipitation
+                precip_label = ctk.CTkLabel(
+                    hour_frame,
+                    text=f"💧 {precip}%" if precip > 0 else "",
+                    font=ctk.CTkFont(size=12),
+                    width=60
+                )
+                precip_label.pack(side="left", padx=10, pady=5)
+                
+                # Wind
+                wind = 2.0 + (hour * 0.1)  # Sample wind variation
+                wind_label = ctk.CTkLabel(
+                    hour_frame,
+                    text=f"💨 {wind:.1f} m/s",
+                    font=ctk.CTkFont(size=12)
+                )
+                wind_label.pack(side="left", padx=10, pady=5)
+            
+            # Close button
+            close_button = ctk.CTkButton(
+                content_frame,
+                text="Close",
+                command=hourly_window.destroy,
+                font=ctk.CTkFont(size=14)
+            )
+            close_button.pack(pady=(10, 0))
+            
+        except Exception as e:
+            self.logger.error(f"Failed to show hourly breakdown: {e}")
 
     def _update_temperature_chart(self, weather_data):
         """Update temperature chart with weather data."""
@@ -986,7 +1214,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.micro_interactions.add_ripple_effect(self.temp_toggle_btn)
         
         # Animate button state change
-        self.animation_manager.pulse_animation(self.temp_toggle_btn)
+        self.animation_manager.pulse_effect(self.temp_toggle_btn, duration=500, intensity=0.3)
         
         # Store old unit for smooth transition
         old_unit = self.temp_unit
@@ -1064,6 +1292,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                         self.metric_labels["feels_like"].configure(text=f"{celsius:.0f}°C")
                     except ValueError:
                         pass
+        
+        # Update forecast cards with new temperature unit
+        if hasattr(self, 'forecast_cards') and hasattr(self, 'current_weather_data'):
+            if hasattr(self.current_weather_data, 'forecast_data'):
+                self._update_forecast_cards(self.current_weather_data)
 
     def _create_comparison_tab(self):
         """Create team collaboration and city comparison tab."""
@@ -2563,7 +2796,13 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         # Load forecast data in background
         def forecast_task():
             try:
-                return self.weather_service.get_forecast_data(self.current_city)
+                # Use coordinates if available, otherwise use city name
+                if hasattr(self, 'current_location') and self.current_location:
+                    return self.weather_service.get_forecast_data(
+                        self.current_location["lat"], self.current_location["lon"]
+                    )
+                else:
+                    return self.weather_service.get_forecast_data(self.current_city)
             except Exception as e:
                 self.logger.warning(f"Background forecast loading failed: {e}")
                 return None
@@ -2627,7 +2866,27 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             # Update forecast UI components if they exist
             if hasattr(self, "forecast_frame") and forecast_data:
                 self.logger.info("📊 Forecast data updated in background")
-                # Add specific forecast update logic here
+                
+                # Store forecast data for use in forecast cards
+                if hasattr(self, 'current_weather_data'):
+                    self.current_weather_data.forecast_data = forecast_data
+                else:
+                    # Create a simple object to hold forecast data
+                    class WeatherDataWithForecast:
+                        def __init__(self, forecast_data):
+                            self.forecast_data = forecast_data
+                            self.temperature = 20  # Default temperature
+                    
+                    self.current_weather_data = WeatherDataWithForecast(forecast_data)
+                
+                # Update forecast cards with new data
+                if hasattr(self, 'forecast_cards') and self.forecast_cards:
+                    self._update_forecast_cards(self.current_weather_data)
+                    
+                    # Trigger staggered animation for updated cards
+                    for i, card in enumerate(self.forecast_cards):
+                        self.after(i * 100, lambda c=card: c.animate_in())
+                        
         except Exception as e:
             self.logger.error(f"Failed to update forecast display: {e}")
 
