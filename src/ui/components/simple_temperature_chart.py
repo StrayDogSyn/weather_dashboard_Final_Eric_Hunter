@@ -12,10 +12,15 @@ class SimpleTemperatureChart(ctk.CTkFrame):
         self.temperatures: List[float] = []
         self.max_points = 24  # Show 24 hours of data
         
+        # Initialize theme colors
+        self.chart_color = "#00FF41"
+        self.bg_color = "#0D0D0D"
+        self.text_color = "#E0E0E0"
+        
         # Create canvas for drawing the chart
         self.canvas = tk.Canvas(
             self,
-            bg=self._apply_appearance_mode(self.cget("fg_color")),
+            bg=self.bg_color,
             highlightthickness=0,
             height=200
         )
@@ -32,6 +37,24 @@ class SimpleTemperatureChart(ctk.CTkFrame):
     def set_data(self, temperatures: List[float]) -> None:
         """Set the chart data (alias for update_data)."""
         self.update_data(temperatures)
+    
+    def update_theme(self, theme_data):
+        """Update chart colors based on theme data."""
+        try:
+            # Update canvas background
+            self.canvas.configure(bg=theme_data.get("chart_bg", "#0D0D0D"))
+            
+            # Store theme colors for next redraw
+            self.chart_color = theme_data.get("chart_color", "#00FF41")
+            self.bg_color = theme_data.get("chart_bg", "#0D0D0D")
+            self.text_color = theme_data.get("text", "#E0E0E0")
+            
+            # Redraw chart with new colors if data exists
+            if hasattr(self, 'temp_data') and self.temp_data:
+                self._draw_chart()
+                
+        except Exception as e:
+            print(f"Error updating chart theme: {e}")
         
     def _draw_chart(self) -> None:
         """Draw the temperature chart on the canvas."""
@@ -70,11 +93,15 @@ class SimpleTemperatureChart(ctk.CTkFrame):
             y = margin + chart_height - ((temp - min_temp) / temp_range) * chart_height
             points.extend([x, y])
             
+        # Get theme colors
+        chart_color = getattr(self, 'chart_color', '#00FF41')
+        text_color = getattr(self, 'text_color', '#E0E0E0')
+        
         # Draw the temperature line
         if len(points) >= 4:
             self.canvas.create_line(
                 points,
-                fill="#1f77b4",
+                fill=chart_color,
                 width=2,
                 smooth=True
             )
@@ -84,13 +111,12 @@ class SimpleTemperatureChart(ctk.CTkFrame):
             x, y = points[i], points[i + 1]
             self.canvas.create_oval(
                 x - 3, y - 3, x + 3, y + 3,
-                fill="#1f77b4",
-                outline="white",
+                fill=chart_color,
+                outline=text_color,
                 width=1
             )
             
         # Draw temperature labels
-        text_color = "white" if self._get_appearance_mode() == "dark" else "black"
         
         # Min and max temperature labels
         self.canvas.create_text(

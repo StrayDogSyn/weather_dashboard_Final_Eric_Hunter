@@ -8,7 +8,9 @@ from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
 from src.services.enhanced_weather_service import EnhancedWeatherService
 from src.ui.components.forecast_day_card import ForecastDayCard
+from src.ui.components.theme_preview_card import ThemePreviewCard
 from src.ui.theme import DataTerminalTheme
+from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
 
 # Load environment variables
@@ -41,6 +43,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.activity_service = None
             self.loading_manager = LoadingManager()  # Still initialize for offline mode
 
+        # Initialize theme manager and register as observer
+        DataTerminalTheme.add_observer(self._on_theme_changed)
+        
         # Weather icons mapping
         self.weather_icons = {
             "clear": "☀️",
@@ -1417,19 +1422,20 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             width=140,
             anchor="w",
         )
-        theme_label.grid(row=1, column=0, sticky="w", padx=15, pady=6)
+        theme_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=15, pady=6)
 
-        self.theme_var = ctk.StringVar(value="Dark Terminal")
-        theme_menu = ctk.CTkOptionMenu(
+        # Theme preview grid
+        self.theme_grid = ctk.CTkFrame(
             appearance_frame,
-            values=["Dark Terminal", "Light Mode", "Midnight Blue"],
-            variable=self.theme_var,
-            width=180,
-            height=30,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_theme,
+            fg_color="transparent"
         )
-        theme_menu.grid(row=1, column=1, sticky="w", padx=15, pady=6)
+        self.theme_grid.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))
+        self.theme_grid.grid_columnconfigure(0, weight=1)
+        self.theme_grid.grid_columnconfigure(1, weight=1)
+        self.theme_grid.grid_columnconfigure(2, weight=1)
+        
+        # Create theme preview cards
+        self._create_theme_selector()
 
         # Temperature units
         units_label = ctk.CTkLabel(
@@ -1439,7 +1445,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             width=140,
             anchor="w",
         )
-        units_label.grid(row=2, column=0, sticky="w", padx=15, pady=6)
+        units_label.grid(row=3, column=0, sticky="w", padx=15, pady=6)
 
         self.units_var = ctk.StringVar(value="Celsius")
         units_menu = ctk.CTkOptionMenu(
@@ -1451,7 +1457,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.BACKGROUND,
             command=self._change_units,
         )
-        units_menu.grid(row=2, column=1, sticky="w", padx=15, pady=6)
+        units_menu.grid(row=3, column=1, sticky="w", padx=15, pady=6)
 
         # Auto-refresh toggle
         refresh_label = ctk.CTkLabel(
@@ -1461,7 +1467,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             width=140,
             anchor="w",
         )
-        refresh_label.grid(row=3, column=0, sticky="w", padx=15, pady=(6, 15))
+        refresh_label.grid(row=4, column=0, sticky="w", padx=15, pady=(6, 15))
 
         self.auto_refresh_switch = ctk.CTkSwitch(
             appearance_frame,
@@ -1470,7 +1476,69 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             progress_color=DataTerminalTheme.SUCCESS,
             command=self._toggle_auto_refresh,
         )
-        self.auto_refresh_switch.grid(row=3, column=1, sticky="w", padx=15, pady=(6, 15))
+        self.auto_refresh_switch.grid(row=4, column=1, sticky="w", padx=15, pady=(6, 15))
+
+    def _create_theme_selector(self):
+        """Create theme preview cards for theme selection."""
+        self.theme_preview_cards = []
+        
+        for i, (key, theme) in enumerate(theme_manager.THEMES.items()):
+            # Create theme preview card
+            preview = ThemePreviewCard(
+                self.theme_grid,
+                theme_data=theme,
+                theme_key=key,
+                on_select=lambda t=key: self.apply_theme(t)
+            )
+            
+            # Arrange in 3 columns, 2 rows
+            row = i // 3
+            col = i % 3
+            preview.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            
+            self.theme_preview_cards.append(preview)
+            
+            # Set current theme as selected
+            if key == "matrix":  # Default theme
+                preview.set_selected(True)
+
+    def apply_theme(self, theme_name: str):
+        """Apply selected theme to the entire application."""
+        try:
+            # Apply theme using theme manager
+            theme_manager.apply_theme(theme_name, self)
+            
+            # Update theme preview cards selection
+            for card in self.theme_preview_cards:
+                card.set_selected(card.theme_key == theme_name)
+                
+            # Update temperature chart if it exists
+            if hasattr(self, 'temp_chart') and self.temp_chart:
+                theme_data = theme_manager.THEMES.get(theme_name, {})
+                self.temp_chart.update_theme(theme_data)
+                
+            logging.info(f"Applied theme: {theme_name}")
+            
+        except Exception as e:
+             logging.error(f"Error applying theme {theme_name}: {e}")
+
+    def _on_theme_changed(self):
+        """Callback for when theme changes - update UI colors."""
+        try:
+            # Force update of the entire widget tree
+            self.update_idletasks()
+            
+            # Update temperature chart colors if it exists
+            if hasattr(self, 'temp_chart') and self.temp_chart:
+                theme_data = {
+                    'chart_color': DataTerminalTheme.PRIMARY,
+                    'chart_bg': DataTerminalTheme.BACKGROUND,
+                    'text_color': DataTerminalTheme.TEXT
+                }
+                self.temp_chart.update_theme(theme_data)
+                
+        except Exception as e:
+            logging.error(f"Error updating theme: {e}")
 
     def _create_data_settings(self, parent):
         """Create data management section."""
@@ -1627,25 +1695,16 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             print("✅ API keys saved successfully")
 
     def _change_theme(self, theme_name):
-        """Change application theme."""
-        try:
-            # Map theme names to CustomTkinter appearance modes
-            theme_map = {"Dark": "dark", "Light": "light", "System": "system"}
-
-            appearance_mode = theme_map.get(theme_name, "dark")
-            ctk.set_appearance_mode(appearance_mode)
-
-            # Update status
-            if hasattr(self, "status_label"):
-                self.status_label.configure(text=f"🎨 Theme changed to {theme_name}")
-            else:
-                print(f"🎨 Theme changed to {theme_name}")
-
-        except Exception as e:
-            if hasattr(self, "status_label"):
-                self.status_label.configure(text=f"❌ Failed to change theme: {str(e)}")
-            else:
-                print(f"❌ Failed to change theme: {e}")
+        """Legacy theme change method - redirects to new theme system."""
+        # Map old theme names to new theme keys
+        theme_map = {
+            "Dark Terminal": "matrix",
+            "Light Mode": "arctic", 
+            "Midnight Blue": "midnight"
+        }
+        
+        new_theme_key = theme_map.get(theme_name, "matrix")
+        self.apply_theme(new_theme_key)
 
     def _change_units(self, unit):
         """Change temperature units and update entire application."""

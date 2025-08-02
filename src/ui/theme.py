@@ -9,7 +9,7 @@ import customtkinter as ctk
 
 
 class DataTerminalTheme:
-    """Basic theme configuration."""
+    """Basic theme configuration with dynamic theme support."""
 
     PRIMARY = "#00ff88"
     BACKGROUND = "#1a1a1a"
@@ -27,6 +27,9 @@ class DataTerminalTheme:
     INFO = "#0088ff"
     CHART_GRID = "#333333"
     CHART_PRIMARY = "#00ff88"
+    
+    # Observer pattern for theme changes
+    _observers = []
 
     FONT_FAMILY = "Arial"
     FONT_SIZE_SMALL = 12
@@ -218,6 +221,44 @@ class DataTerminalTheme:
             "lines.color": cls.CHART_PRIMARY,
             "patch.edgecolor": cls.BORDER,
         }
+    
+    @classmethod
+    def set_active_theme(cls, theme_dict: Dict[str, Any]):
+        """Set the active theme colors dynamically."""
+        # Update color constants
+        cls.BACKGROUND = theme_dict.get("bg", cls.BACKGROUND)
+        cls.CARD_BG = theme_dict.get("card", cls.CARD_BG)
+        cls.PRIMARY = theme_dict.get("primary", cls.PRIMARY)
+        cls.TEXT = theme_dict.get("text", cls.TEXT)
+        cls.TEXT_SECONDARY = theme_dict.get("secondary", cls.TEXT_SECONDARY)
+        cls.SUCCESS = theme_dict.get("accent", cls.SUCCESS)
+        cls.ERROR = theme_dict.get("error", cls.ERROR)
+        cls.CHART_PRIMARY = theme_dict.get("chart_color", cls.CHART_PRIMARY)
+        cls.CHART_GRID = theme_dict.get("chart_bg", cls.CHART_GRID)
+        
+        # Notify observers
+        cls._notify_observers()
+    
+    @classmethod
+    def add_observer(cls, callback):
+        """Add an observer for theme changes."""
+        if callback not in cls._observers:
+            cls._observers.append(callback)
+    
+    @classmethod
+    def remove_observer(cls, callback):
+        """Remove an observer for theme changes."""
+        if callback in cls._observers:
+            cls._observers.remove(callback)
+    
+    @classmethod
+    def _notify_observers(cls):
+        """Notify all observers of theme changes."""
+        for callback in cls._observers:
+            try:
+                callback()
+            except Exception as e:
+                print(f"Error notifying theme observer: {e}")
 
 
 class WeatherTheme:
