@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
 from src.services.enhanced_weather_service import EnhancedWeatherService
+from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.theme import DataTerminalTheme
 from src.utils.loading_manager import LoadingManager
 
