@@ -10,17 +10,17 @@
           "longitude": -0.1257,
           "timezone": null
         },
-        "timestamp": "2025-08-02 11:35:07.907829",
+        "timestamp": "2025-08-02 12:42:36.170386",
         "condition": "WeatherCondition.CLOUDS",
         "description": "Broken Clouds",
-        "temperature": 21.0,
-        "feels_like": 20.4,
-        "humidity": 50,
+        "temperature": 21.8,
+        "feels_like": 21.2,
+        "humidity": 47,
         "pressure": 1018,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 2.6,
-        "wind_direction": 0,
+        "wind_speed": 3.1,
+        "wind_direction": 260,
         "wind_gust": null,
         "cloudiness": 83,
         "sunrise": null,
@@ -41,24 +41,24 @@
           ],
           "base": "stations",
           "main": {
-            "temp": 20.98,
-            "feels_like": 20.44,
-            "temp_min": 19.86,
-            "temp_max": 22.86,
+            "temp": 21.79,
+            "feels_like": 21.25,
+            "temp_min": 20.57,
+            "temp_max": 23.41,
             "pressure": 1018,
-            "humidity": 50,
+            "humidity": 47,
             "sea_level": 1018,
             "grnd_level": 1014
           },
           "visibility": 10000,
           "wind": {
-            "speed": 2.57,
-            "deg": 0
+            "speed": 3.09,
+            "deg": 260
           },
           "clouds": {
             "all": 83
           },
-          "dt": 1754148665,
+          "dt": 1754152109,
           "sys": {
             "type": 2,
             "id": 2075535,
@@ -73,26 +73,26 @@
         },
         "air_quality": null,
         "astronomical": {
-          "sunrise": "2025-08-02 00:25:48",
-          "sunset": "2025-08-02 15:47:36",
+          "sunrise": "2025-08-02 00:25:49",
+          "sunset": "2025-08-02 15:47:37",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.09111920243730864,
+          "moon_phase": 0.9686715527566359,
           "day_length": "15:21:48"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-02 00:25:48",
-        "sunset": "2025-08-02 15:47:36",
+        "sunrise": "2025-08-02 00:25:49",
+        "sunset": "2025-08-02 15:47:37",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.09111920243730864,
+        "moon_phase": 0.9686715527566359,
         "day_length": "15:21:48"
       },
       "alerts": []
     },
-    "timestamp": "2025-08-02T11:35:09.810486",
+    "timestamp": "2025-08-02T12:42:38.172588",
     "ttl": 600
   },
   "forecast_london": {
@@ -104,15 +104,15 @@
         {
           "dt": 1754157600,
           "main": {
-            "temp": 20.59,
-            "feels_like": 19.93,
-            "temp_min": 20.52,
-            "temp_max": 20.59,
+            "temp": 21.54,
+            "feels_like": 20.9,
+            "temp_min": 20.85,
+            "temp_max": 21.54,
             "pressure": 1018,
             "sea_level": 1018,
             "grnd_level": 1013,
-            "humidity": 47,
-            "temp_kf": 0.07
+            "humidity": 44,
+            "temp_kf": 0.69
           },
           "weather": [
             {
@@ -140,15 +140,15 @@
         {
           "dt": 1754168400,
           "main": {
-            "temp": 18.45,
-            "feels_like": 17.76,
-            "temp_min": 17.37,
-            "temp_max": 18.45,
+            "temp": 19.27,
+            "feels_like": 18.58,
+            "temp_min": 17.96,
+            "temp_max": 19.27,
             "pressure": 1018,
             "sea_level": 1018,
             "grnd_level": 1014,
-            "humidity": 54,
-            "temp_kf": 1.08
+            "humidity": 51,
+            "temp_kf": 1.31
           },
           "weather": [
             {
@@ -1571,7 +1571,7 @@
         "sunset": 1754164056
       }
     },
-    "timestamp": "2025-08-02T11:07:07.343122",
+    "timestamp": "2025-08-02T12:32:32.445492",
     "ttl": 3600
   },
   "enhanced_austin": {
@@ -17462,17 +17462,17 @@
           "longitude": -71.3826,
           "timezone": null
         },
-        "timestamp": "2025-08-02 11:36:39.021879",
+        "timestamp": "2025-08-02 12:42:47.709718",
         "condition": "WeatherCondition.CLEAR",
         "description": "Clear Sky",
-        "temperature": 23.1,
-        "feels_like": 22.8,
-        "humidity": 53,
-        "pressure": 1023,
+        "temperature": 24.0,
+        "feels_like": 23.8,
+        "humidity": 50,
+        "pressure": 1022,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 4.6,
-        "wind_direction": 340,
+        "wind_speed": 4.1,
+        "wind_direction": 30,
         "wind_gust": null,
         "cloudiness": 0,
         "sunrise": null,
@@ -17493,24 +17493,24 @@
           ],
           "base": "stations",
           "main": {
-            "temp": 23.09,
-            "feels_like": 22.84,
-            "temp_min": 21.95,
-            "temp_max": 24.58,
-            "pressure": 1023,
-            "humidity": 53,
-            "sea_level": 1023,
-            "grnd_level": 1016
+            "temp": 24.02,
+            "feels_like": 23.78,
+            "temp_min": 22.76,
+            "temp_max": 25.75,
+            "pressure": 1022,
+            "humidity": 50,
+            "sea_level": 1022,
+            "grnd_level": 1015
           },
           "visibility": 10000,
           "wind": {
-            "speed": 4.63,
-            "deg": 340
+            "speed": 4.12,
+            "deg": 30
           },
           "clouds": {
             "all": 0
           },
-          "dt": 1754148998,
+          "dt": 1754152966,
           "sys": {
             "type": 2,
             "id": 2035166,
@@ -17529,7 +17529,7 @@
           "sunset": "2025-08-02 20:02:59",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.9971100983284646,
+          "moon_phase": 0.9132444344761271,
           "day_length": "14:22:32"
         }
       },
@@ -17539,12 +17539,12 @@
         "sunset": "2025-08-02T20:02:59",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.9971100983284646,
+        "moon_phase": 0.9132444344761271,
         "day_length": 51752.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-02T11:36:40.906882",
+    "timestamp": "2025-08-02T12:42:49.669218",
     "ttl": 600
   }
 }

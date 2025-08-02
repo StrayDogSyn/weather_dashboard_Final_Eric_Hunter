@@ -22,6 +22,10 @@ from src.ui.components import (
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
+from src.utils.cache_manager import CacheManager
+from src.utils.startup_optimizer import StartupOptimizer
+from src.utils.component_recycler import ComponentRecycler
+from src.utils.api_optimizer import APIOptimizer
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +44,17 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Setup logging
         self.logger = logging.getLogger(__name__)
 
+        # Initialize performance optimization services first
+        self.cache_manager = CacheManager(
+            max_size_mb=100,  # 100MB cache
+            enable_compression=True,
+            compression_threshold=1024,  # Compress items > 1KB
+            lru_factor=0.8  # Evict when 80% full
+        )
+        self.startup_optimizer = StartupOptimizer()
+        self.component_recycler = ComponentRecycler()
+        self.api_optimizer = APIOptimizer()
+        
         # Initialize services (with fallback for demo mode)
         try:
             self.config_service = config_service or ConfigService()
@@ -1859,13 +1874,29 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             items_label.grid(row=1, column=0, sticky="w", pady=2)
 
     def _update_activity_suggestions(self, weather_data):
-        """Update activity suggestions based on weather."""
+        """Update activity suggestions based on weather with caching."""
         try:
-            # Get new suggestions
-            if self.activity_service:
-                suggestions = self.activity_service.get_activity_suggestions(weather_data)
+            # Create cache key based on weather conditions
+            cache_key = f"activities_{self.current_city}_{weather_data.get('condition', 'unknown')}_{weather_data.get('temperature', 0)}"
+            
+            # Try to get cached suggestions first
+            cached_suggestions = self.cache_manager.get(cache_key)
+            if cached_suggestions:
+                self.logger.debug(f"Using cached activity suggestions for {self.current_city}")
+                suggestions = cached_suggestions
             else:
-                suggestions = self._get_fallback_activities()
+                # Get new suggestions
+                if self.activity_service:
+                    suggestions = self.activity_service.get_activity_suggestions(weather_data)
+                    # Cache the suggestions for 30 minutes
+                    self.cache_manager.set(
+                        cache_key, 
+                        suggestions, 
+                        ttl=1800,  # 30 minutes
+                        tags=["activities", f"city_{self.current_city}"]
+                    )
+                else:
+                    suggestions = self._get_fallback_activities()
 
             # Create cards for suggestions (this method handles clearing
             # existing cards)
@@ -3654,6 +3685,20 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         if hasattr(self, 'status_manager'):
             self.status_manager.cleanup()
         
+        # Cleanup performance optimization services
+        if hasattr(self, 'api_optimizer'):
+            self.api_optimizer.shutdown()
+        
+        if hasattr(self, 'component_recycler'):
+            self.component_recycler.shutdown()
+        
+        if hasattr(self, 'cache_manager'):
+            # Cache manager doesn't have a stop method, just clear it
+            self.cache_manager.clear()
+        
+        if hasattr(self, 'loading_manager'):
+            self.loading_manager.shutdown()
+        
         self.destroy()
     
     def _update_time(self):
@@ -3669,17 +3714,119 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             return
 
     def _initialize_progressive_loading(self):
-        """Initialize progressive loading with UI-first approach."""
+        """Initialize progressive loading with startup optimizer."""
         try:
-            # Step 1: Show UI immediately with placeholder data
-            self._show_initial_ui_state()
-
-            # Step 2: Load critical weather data with short timeout
-            self.after(100, self._load_weather_data_with_timeout)
-
+            # Register components with startup optimizer
+            self._register_startup_components()
+            
+            # Step 1: Show skeleton UI immediately
+            self._show_skeleton_ui()
+            
+            # Step 2: Start progressive loading
+            self.startup_optimizer.start_progressive_loading(
+                on_component_loaded=self._on_component_loaded,
+                on_complete=self._on_startup_complete
+            )
+            
         except Exception as e:
             self.logger.error(f"Progressive loading initialization failed: {e}")
             self._show_error_state("Failed to initialize dashboard")
+    
+    def _register_startup_components(self):
+        """Register components with startup optimizer for progressive loading."""
+        from src.utils.startup_optimizer import ComponentPriority
+        
+        # Critical components (load first)
+        self.startup_optimizer.register_component(
+            "weather_display", ComponentPriority.CRITICAL,
+            lambda: self._load_weather_data_with_timeout(),
+            dependencies=[]
+        )
+        
+        # High priority components
+        self.startup_optimizer.register_component(
+            "forecast_cards", ComponentPriority.HIGH,
+            lambda: self._initialize_forecast_cards(),
+            dependencies=["weather_display"]
+        )
+        
+        # Medium priority components
+        self.startup_optimizer.register_component(
+            "activity_suggestions", ComponentPriority.MEDIUM,
+            lambda: self._initialize_activity_suggestions(),
+            dependencies=["weather_display"]
+        )
+        
+        # Low priority components (load last)
+        self.startup_optimizer.register_component(
+            "background_data", ComponentPriority.LOW,
+            lambda: self._start_background_loading(),
+            dependencies=["weather_display", "forecast_cards"]
+        )
+    
+    def _show_skeleton_ui(self):
+        """Show skeleton UI with loading placeholders."""
+        try:
+            # Show skeleton for main weather display
+            self.city_label.configure(text=self.current_city)
+            self.temp_label.configure(text="--°")
+            self.condition_label.configure(text="Loading...")
+            
+            # Show skeleton for forecast cards
+            if hasattr(self, 'forecast_frame'):
+                for widget in self.forecast_frame.winfo_children():
+                    if hasattr(widget, 'configure'):
+                        widget.configure(text="Loading...")
+            
+            # Update status
+            if hasattr(self, "status_label"):
+                self.status_label.configure(text="Initializing dashboard...")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to show skeleton UI: {e}")
+    
+    def _on_component_loaded(self, component_name, success):
+        """Handle component loading completion."""
+        if success:
+            self.logger.info(f"Component '{component_name}' loaded successfully")
+            if hasattr(self, "status_label"):
+                self.status_label.configure(text=f"Loaded {component_name}...")
+        else:
+            self.logger.warning(f"Component '{component_name}' failed to load")
+    
+    def _on_startup_complete(self):
+        """Handle startup completion."""
+        self.logger.info("Startup optimization complete")
+        if hasattr(self, "status_label"):
+            self.status_label.configure(text="Ready")
+    
+    def _initialize_forecast_cards(self):
+        """Initialize forecast cards with recycled components."""
+        try:
+            # Use component recycler for forecast cards
+            if hasattr(self, 'forecast_frame'):
+                # Get recycled forecast cards or create new ones
+                for i in range(5):  # Typical 5-day forecast
+                    card = self.component_recycler.get_component('forecast_card')
+                    if card:
+                        # Reset and configure the recycled card
+                        card.configure(text=f"Day {i+1}")
+                        card.pack(in_=self.forecast_frame, side="left", padx=5)
+        except Exception as e:
+            self.logger.error(f"Failed to initialize forecast cards: {e}")
+    
+    def _initialize_activity_suggestions(self):
+        """Initialize activity suggestions with caching."""
+        try:
+            # Check cache first
+            cached_activities = self.cache_manager.get(f"activities_{self.current_city}")
+            if cached_activities:
+                self._update_activity_suggestions(cached_activities)
+            else:
+                # Load fresh activity data
+                self._refresh_activity_suggestions()
+        except Exception as e:
+            self.logger.error(f"Failed to initialize activity suggestions: {e}")
 
     def _show_initial_ui_state(self):
         """Show initial UI state with placeholders."""
@@ -3768,12 +3915,44 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.loading_spinner.stop()
 
     def _safe_fetch_weather_data_with_timeout(self):
-        """Safely fetch weather data with timeout and enhanced error handling."""
+        """Safely fetch weather data with timeout and enhanced error handling using API optimizer."""
         if not self.weather_service:
             # Return offline fallback data immediately
             self.logger.warning("No weather service available, using offline data")
             return self._get_offline_weather_data()
 
+        try:
+            # Use API optimizer for enhanced performance
+            from src.utils.api_optimizer import APIRequest, RequestPriority, CacheStrategy
+            
+            # Create optimized API request
+            api_request = APIRequest(
+                url=f"weather/{self.current_city}",
+                method="GET",
+                priority=RequestPriority.HIGH,
+                cache_strategy=CacheStrategy.CACHE_FIRST,
+                timeout=10.0,
+                metadata={"city": self.current_city, "units": self.temp_unit}
+            )
+            
+            # Make optimized request
+            response = self.api_optimizer.make_request(
+                api_request,
+                actual_fetch_func=lambda: self.weather_service.get_weather(self.current_city)
+            )
+            
+            if response and response.get('success'):
+                return response.get('data')
+            else:
+                self.logger.warning("API optimizer returned no data, falling back to direct fetch")
+                return self._direct_fetch_weather_data()
+                
+        except Exception as e:
+            self.logger.error(f"API optimizer fetch failed: {e}")
+            return self._direct_fetch_weather_data()
+    
+    def _direct_fetch_weather_data(self):
+        """Direct weather data fetch as fallback."""
         try:
             # Import custom exceptions for proper handling
             from src.services.enhanced_weather_service import (
@@ -3815,6 +3994,19 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 return result[0]
             else:
                 raise WeatherServiceError("No weather data returned")
+
+        except (RateLimitError, APIKeyError) as e:
+            self.logger.warning(f"API issue for {self.current_city}: {e}")
+            return self._get_cached_or_offline_weather_data()
+        except (NetworkError, ServiceUnavailableError) as e:
+            self.logger.warning(f"Network/service issue for {self.current_city}: {e}")
+            return self._get_cached_or_offline_weather_data()
+        except WeatherServiceError as e:
+            self.logger.error(f"Weather service error for {self.current_city}: {e}")
+            return self._get_cached_or_offline_weather_data()
+        except Exception as e:
+            self.logger.error(f"Unexpected error fetching weather for {self.current_city}: {e}")
+            return self._get_cached_or_offline_weather_data()
 
         except RateLimitError as e:
             self.logger.warning(f"Rate limit exceeded: {e}")

@@ -1,36 +1,189 @@
-"""Cache manager with TTL and size limits.
+"""Enhanced Cache Manager with LRU Eviction and Compression.
 
-Provides thread-safe caching with automatic expiration and size management.
+Provides high-performance thread-safe caching with automatic expiration,
+LRU eviction, compression, and advanced memory management.
 """
 
 import asyncio
+import gzip
 import json
 import logging
+import pickle
 import threading
 import time
+import zlib
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Protocol
+import weakref
+import sys
+
+
+class CompressionType:
+    """Compression types for cache entries."""
+    NONE = "none"
+    GZIP = "gzip"
+    ZLIB = "zlib"
+    PICKLE = "pickle"
+
+
+class CacheStats:
+    """Cache statistics tracking."""
+    def __init__(self):
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
+        self.compressions = 0
+        self.decompressions = 0
+        self.memory_saved = 0
+        self.total_size = 0
+        self.start_time = time.time()
+    
+    @property
+    def hit_rate(self) -> float:
+        """Calculate cache hit rate."""
+        total = self.hits + self.misses
+        return self.hits / total if total > 0 else 0.0
+    
+    @property
+    def compression_ratio(self) -> float:
+        """Calculate compression ratio."""
+        return self.memory_saved / self.total_size if self.total_size > 0 else 0.0
+    
+    def reset(self):
+        """Reset all statistics."""
+        self.__init__()
+
+
+class Serializable(Protocol):
+    """Protocol for serializable objects."""
+    def to_dict(self) -> Dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Serializable': ...
 
 
 class CacheEntry:
-    """Represents a cache entry with metadata."""
+    """Enhanced cache entry with compression and memory tracking."""
     
-    def __init__(self, key: str, value: Any, ttl: Optional[int] = None):
+    def __init__(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        tags: Optional[List[str]] = None,
+        compression: str = CompressionType.NONE,
+        priority: int = 0,
+    ):
         """Initialize cache entry.
         
         Args:
             key: Cache key
             value: Cached value
             ttl: Time to live in seconds
+            tags: Optional tags for categorization
+            compression: Compression type to use
+            priority: Priority for eviction (higher = keep longer)
         """
         self.key = key
-        self.value = value
+        self._raw_value = value
+        self._compressed_value = None
+        self.ttl = ttl
+        self.tags = tags or []
+        self.compression = compression
+        self.priority = priority
         self.created_at = time.time()
         self.accessed_at = self.created_at
         self.access_count = 0
-        self.ttl = ttl
         self.expires_at = self.created_at + ttl if ttl else None
+        self.original_size = self._calculate_size(value)
+        self.compressed_size = 0
+        
+        # Compress if needed
+        if compression != CompressionType.NONE:
+            self._compress_value()
+    
+    def _calculate_size(self, obj: Any) -> int:
+        """Calculate approximate memory size of object."""
+        try:
+            if isinstance(obj, (str, bytes)):
+                return len(obj)
+            elif isinstance(obj, (list, tuple)):
+                return sum(self._calculate_size(item) for item in obj)
+            elif isinstance(obj, dict):
+                return sum(self._calculate_size(k) + self._calculate_size(v) for k, v in obj.items())
+            else:
+                return sys.getsizeof(obj)
+        except:
+            return sys.getsizeof(obj)
+    
+    def _compress_value(self) -> None:
+        """Compress the stored value."""
+        try:
+            if self.compression == CompressionType.GZIP:
+                serialized = pickle.dumps(self._raw_value)
+                self._compressed_value = gzip.compress(serialized)
+            elif self.compression == CompressionType.ZLIB:
+                serialized = pickle.dumps(self._raw_value)
+                self._compressed_value = zlib.compress(serialized)
+            elif self.compression == CompressionType.PICKLE:
+                self._compressed_value = pickle.dumps(self._raw_value)
+            
+            if self._compressed_value:
+                self.compressed_size = len(self._compressed_value)
+                # Clear raw value to save memory if compression is effective
+                if self.compressed_size < self.original_size * 0.8:
+                    self._raw_value = None
+        except Exception:
+            # Fallback to no compression
+            self.compression = CompressionType.NONE
+            self._compressed_value = None
+    
+    def _decompress_value(self) -> Any:
+        """Decompress and return the stored value."""
+        if self._raw_value is not None:
+            return self._raw_value
+        
+        if self._compressed_value is None:
+            return None
+        
+        try:
+            if self.compression == CompressionType.GZIP:
+                decompressed = gzip.decompress(self._compressed_value)
+                return pickle.loads(decompressed)
+            elif self.compression == CompressionType.ZLIB:
+                decompressed = zlib.decompress(self._compressed_value)
+                return pickle.loads(decompressed)
+            elif self.compression == CompressionType.PICKLE:
+                return pickle.loads(self._compressed_value)
+        except Exception:
+            return None
+        
+        return self._raw_value
+    
+    @property
+    def value(self) -> Any:
+        """Get the cached value (decompressing if needed)."""
+        if self._raw_value is not None:
+            return self._raw_value
+        return self._decompress_value()
+    
+    @property
+    def memory_size(self) -> int:
+        """Get current memory usage of this entry."""
+        size = 0
+        if self._raw_value is not None:
+            size += self.original_size
+        if self._compressed_value is not None:
+            size += self.compressed_size
+        return size + sys.getsizeof(self.key) + 200  # Approximate overhead
+    
+    @property
+    def compression_ratio(self) -> float:
+        """Get compression ratio (0.0 = no compression, 1.0 = perfect compression)."""
+        if self.compressed_size == 0 or self.original_size == 0:
+            return 0.0
+        return 1.0 - (self.compressed_size / self.original_size)
     
     def is_expired(self) -> bool:
         """Check if entry is expired.
@@ -84,15 +237,18 @@ class CacheEntry:
 
 
 class CacheManager:
-    """Thread-safe cache manager with TTL and size limits."""
+    """Enhanced thread-safe cache manager with LRU eviction and compression."""
     
     def __init__(self, 
                  max_size: int = 100 * 1024 * 1024,  # 100MB
                  max_entries: int = 10000,
                  default_ttl: int = 3600,  # 1 hour
                  cleanup_interval: int = 300,  # 5 minutes
-                 persistence_file: Optional[Path] = None):
-        """Initialize cache manager.
+                 persistence_file: Optional[Path] = None,
+                 enable_compression: bool = True,
+                 compression_threshold: int = 1024,  # Compress items > 1KB
+                 lru_factor: float = 0.1):  # Evict 10% when full
+        """Initialize enhanced cache manager.
         
         Args:
             max_size: Maximum cache size in bytes
@@ -100,8 +256,12 @@ class CacheManager:
             default_ttl: Default TTL in seconds
             cleanup_interval: Cleanup interval in seconds
             persistence_file: Optional file for cache persistence
+            enable_compression: Enable automatic compression
+            compression_threshold: Minimum size for compression
+            lru_factor: Fraction of cache to evict when full
         """
-        self._cache: Dict[str, CacheEntry] = {}
+        # Use OrderedDict for LRU functionality
+        self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self._lock = threading.RLock()
         self._logger = logging.getLogger(__name__)
         
@@ -111,15 +271,23 @@ class CacheManager:
         self._default_ttl = default_ttl
         self._cleanup_interval = cleanup_interval
         self._persistence_file = persistence_file
+        self._enable_compression = enable_compression
+        self._compression_threshold = compression_threshold
+        self._lru_factor = lru_factor
         
-        # Statistics
-        self._hits = 0
-        self._misses = 0
-        self._evictions = 0
+        # Enhanced statistics
+        self._stats = CacheStats()
+        
+        # Memory tracking
+        self._current_size = 0
+        self._size_lock = threading.Lock()
         
         # Cleanup task
         self._cleanup_task = None
         self._running = False
+        
+        # Weak references for cleanup
+        self._cleanup_refs: List[weakref.ref] = []
         
         # Load persisted cache if available
         if self._persistence_file:
@@ -169,8 +337,62 @@ class CacheManager:
         
         self._logger.info("Cache manager stopped")
     
+    def _determine_compression(self, value: Any) -> str:
+        """Determine appropriate compression type for value."""
+        if not self._enable_compression:
+            return CompressionType.NONE
+        
+        try:
+            size = sys.getsizeof(value)
+            if size < self._compression_threshold:
+                return CompressionType.NONE
+            
+            # Choose compression based on data type and size
+            if isinstance(value, (dict, list)) and size > 10240:  # 10KB
+                return CompressionType.ZLIB
+            elif isinstance(value, str) and size > 5120:  # 5KB
+                return CompressionType.GZIP
+            elif size > self._compression_threshold:
+                return CompressionType.PICKLE
+        except:
+            pass
+        
+        return CompressionType.NONE
+    
+    def _evict_lru_entries(self) -> int:
+        """Evict least recently used entries."""
+        if not self._cache:
+            return 0
+        
+        # Calculate how many entries to evict
+        target_count = max(1, int(len(self._cache) * self._lru_factor))
+        evicted = 0
+        
+        # Evict from the beginning (oldest)
+        keys_to_remove = list(self._cache.keys())[:target_count]
+        
+        for key in keys_to_remove:
+            if key in self._cache:
+                entry = self._cache[key]
+                self._current_size -= entry.memory_size
+                del self._cache[key]
+                evicted += 1
+                self._stats.evictions += 1
+        
+        return evicted
+    
+    def _ensure_capacity(self, new_entry_size: int) -> None:
+        """Ensure cache has capacity for new entry."""
+        # Check entry count limit
+        while len(self._cache) >= self._max_entries:
+            self._evict_lru_entries()
+        
+        # Check size limit
+        while (self._current_size + new_entry_size) > self._max_size and self._cache:
+            self._evict_lru_entries()
+    
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache.
+        """Get value from cache with LRU update.
         
         Args:
             key: Cache key
@@ -182,25 +404,36 @@ class CacheManager:
             entry = self._cache.get(key)
             
             if entry is None:
-                self._misses += 1
+                self._stats.misses += 1
                 return None
             
             if entry.is_expired():
+                self._current_size -= entry.memory_size
                 del self._cache[key]
-                self._misses += 1
+                self._stats.misses += 1
                 return None
             
+            # Move to end for LRU (most recently used)
+            self._cache.move_to_end(key)
             entry.touch()
-            self._hits += 1
+            self._stats.hits += 1
+            
+            # Handle decompression stats
+            if entry.compression != CompressionType.NONE:
+                self._stats.decompressions += 1
+            
             return entry.value
     
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
-        """Set value in cache.
+    def set(self, key: str, value: Any, ttl: Optional[int] = None, 
+            tags: Optional[List[str]] = None, priority: int = 0) -> bool:
+        """Set value in cache with enhanced features.
         
         Args:
             key: Cache key
             value: Value to cache
             ttl: Time to live in seconds (uses default if None)
+            tags: Optional tags for categorization
+            priority: Priority for eviction (higher = keep longer)
             
         Returns:
             bool: True if value was cached
@@ -209,19 +442,139 @@ class CacheManager:
             ttl = self._default_ttl
         
         with self._lock:
-            # Create new entry
-            entry = CacheEntry(key, value, ttl)
+            # Determine compression type
+            compression = self._determine_compression(value)
             
-            # Check if we need to make space
-            if not self._make_space_for_entry(entry):
-                self._logger.warning(f"Failed to cache entry: {key} (size limit exceeded)")
-                return False
+            # Create new entry with compression
+            entry = CacheEntry(key, value, ttl, tags, compression, priority)
             
-            # Add to cache
+            # Remove existing entry if present
+            if key in self._cache:
+                old_entry = self._cache[key]
+                self._current_size -= old_entry.memory_size
+                del self._cache[key]
+            
+            # Ensure we have capacity
+            self._ensure_capacity(entry.memory_size)
+            
+            # Add to cache (at end for LRU)
             self._cache[key] = entry
+            self._current_size += entry.memory_size
+            
+            # Update compression stats
+            if compression != CompressionType.NONE:
+                self._stats.compressions += 1
+                self._stats.memory_saved += max(0, entry.original_size - entry.compressed_size)
+            
+            self._stats.total_size = self._current_size
             
             return True
     
+    def get_stats(self) -> Dict[str, Any]:
+        """Get comprehensive cache statistics."""
+        with self._lock:
+            return {
+                'hits': self._stats.hits,
+                'misses': self._stats.misses,
+                'hit_rate': self._stats.hit_rate,
+                'evictions': self._stats.evictions,
+                'compressions': self._stats.compressions,
+                'decompressions': self._stats.decompressions,
+                'compression_ratio': self._stats.compression_ratio,
+                'memory_saved': self._stats.memory_saved,
+                'current_size': self._current_size,
+                'max_size': self._max_size,
+                'entry_count': len(self._cache),
+                'max_entries': self._max_entries,
+                'uptime': time.time() - self._stats.start_time,
+                'size_utilization': self._current_size / self._max_size,
+                'entry_utilization': len(self._cache) / self._max_entries
+            }
+    
+    def get_by_tags(self, tags: List[str]) -> Dict[str, Any]:
+        """Get all entries matching any of the given tags."""
+        with self._lock:
+            result = {}
+            for key, entry in self._cache.items():
+                if not entry.is_expired() and any(tag in entry.tags for tag in tags):
+                    entry.touch()
+                    self._cache.move_to_end(key)
+                    result[key] = entry.value
+            return result
+    
+    def clear_by_tags(self, tags: List[str]) -> int:
+        """Clear all entries matching any of the given tags."""
+        with self._lock:
+            keys_to_remove = []
+            for key, entry in self._cache.items():
+                if any(tag in entry.tags for tag in tags):
+                    keys_to_remove.append(key)
+            
+            for key in keys_to_remove:
+                if key in self._cache:
+                    entry = self._cache[key]
+                    self._current_size -= entry.memory_size
+                    del self._cache[key]
+            
+            return len(keys_to_remove)
+    
+    def bulk_set(self, items: Dict[str, Any], ttl: Optional[int] = None, 
+                 tags: Optional[List[str]] = None) -> int:
+        """Set multiple items in cache efficiently."""
+        success_count = 0
+        for key, value in items.items():
+            if self.set(key, value, ttl, tags):
+                success_count += 1
+        return success_count
+    
+    def bulk_get(self, keys: List[str]) -> Dict[str, Any]:
+        """Get multiple items from cache efficiently."""
+        result = {}
+        for key in keys:
+            value = self.get(key)
+            if value is not None:
+                result[key] = value
+        return result
+    
+    def optimize_memory(self) -> Dict[str, int]:
+        """Optimize memory usage by recompressing and cleaning up."""
+        with self._lock:
+            original_size = self._current_size
+            recompressed = 0
+            cleaned = 0
+            
+            # Clean expired entries
+            expired_keys = []
+            for key, entry in self._cache.items():
+                if entry.is_expired():
+                    expired_keys.append(key)
+            
+            for key in expired_keys:
+                if key in self._cache:
+                    entry = self._cache[key]
+                    self._current_size -= entry.memory_size
+                    del self._cache[key]
+                    cleaned += 1
+            
+            # Recompress entries that might benefit
+            for entry in self._cache.values():
+                if (entry.compression == CompressionType.NONE and 
+                    entry.original_size > self._compression_threshold):
+                    old_size = entry.memory_size
+                    entry.compression = self._determine_compression(entry.value)
+                    if entry.compression != CompressionType.NONE:
+                        entry._compress_value()
+                        self._current_size += entry.memory_size - old_size
+                        recompressed += 1
+            
+            return {
+                'original_size': original_size,
+                'new_size': self._current_size,
+                'saved_bytes': original_size - self._current_size,
+                'recompressed_entries': recompressed,
+                'cleaned_entries': cleaned
+            }
+
     def delete(self, key: str) -> bool:
         """Delete entry from cache.
         
