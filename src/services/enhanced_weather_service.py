@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from ..models.weather_models import Location, WeatherCondition, WeatherData
+from ..models.weather_models import ForecastData, Location, WeatherCondition, WeatherData
 from .config_service import ConfigService
 
 
@@ -1025,6 +1025,35 @@ class EnhancedWeatherService:
         except Exception as e:
             self.logger.error(f"Failed to get forecast data for {location}: {e}")
             return None
+
+    def get_forecast(self, location: str) -> ForecastData:
+        """Get 5-day forecast data."""
+        cache_key = f"forecast_{location.lower()}"
+        
+        # Check cache
+        if cache_key in self._cache and self._is_cache_valid(self._cache[cache_key]):
+            self.logger.debug(f"📋 Using cached forecast for {location}")
+            return ForecastData.from_openweather_forecast(self._cache[cache_key]['data'])
+        
+        try:
+            # Fetch forecast data
+            data = self._make_request('forecast', {'q': location})
+            
+            if not data:
+                raise Exception("No forecast data received")
+            
+            # Cache the result
+            self._cache[cache_key] = {
+                'data': data,
+                'timestamp': datetime.now().isoformat()
+            }
+            self._save_cache()
+            
+            return ForecastData.from_openweather_forecast(data)
+            
+        except Exception as e:
+            self.logger.error(f"Forecast fetch failed: {e}")
+            raise
 
     def clear_cache(self) -> None:
         """Clear enhanced weather cache."""
