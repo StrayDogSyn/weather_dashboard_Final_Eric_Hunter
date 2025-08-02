@@ -32,6 +32,9 @@ class APIConfig:
     # Maps API Key
     google_maps_api_key: str = ""
 
+    # GitHub API Key
+    github_token: str = ""
+
     # Spotify API Keys removed
 
     request_timeout: int = 30
@@ -203,6 +206,14 @@ class AppConfig:
             print(
                 f"Debug - AppConfig: Loaded GOOGLE_MAPS_API_KEY: "
                 f"{'[SET]' if maps_key else '[EMPTY]'}"
+            )
+
+        # GitHub Token
+        if github_token := os.getenv("GITHUB_TOKEN"):
+            self.api.github_token = github_token
+            print(
+                f"Debug - AppConfig: Loaded GITHUB_TOKEN: "
+                f"{'[SET]' if github_token else '[EMPTY]'}"
             )
 
         if timeout := os.getenv("API_TIMEOUT"):

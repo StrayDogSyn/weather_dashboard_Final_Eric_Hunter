@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
 from src.services.enhanced_weather_service import EnhancedWeatherService
+from src.services.github_team_service import GitHubTeamService
 from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.components.theme_preview_card import ThemePreviewCard
+from src.ui.components.city_comparison_panel import CityComparisonPanel
+from src.ui.components.ml_comparison_panel import MLComparisonPanel
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.loading_manager import LoadingManager
@@ -35,12 +38,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.config_service = config_service or ConfigService()
             self.weather_service = EnhancedWeatherService(self.config_service)
             self.activity_service = ActivityService(self.config_service)
+            github_token = self.config_service.get_setting('api.github_token') if self.config_service else None
+            self.github_service = GitHubTeamService(github_token=github_token)
             self.loading_manager = LoadingManager()
         except Exception as e:
             self.logger.warning(f"Running in demo mode without API keys: {e}")
             self.config_service = None
             self.weather_service = None
             self.activity_service = None
+            self.github_service = GitHubTeamService()  # GitHub service can work without API keys
             self.loading_manager = LoadingManager()  # Still initialize for offline mode
 
         # Initialize theme manager and register as observer
@@ -203,18 +209,21 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Create tabs
         self.weather_tab = self.tabview.add("Weather")
-        self.journal_tab = self.tabview.add("Journal")
+        self.comparison_tab = self.tabview.add("🏙️ Team Compare")
+        self.ml_comparison_tab = self.tabview.add("🧠 AI Analysis")
         self.activities_tab = self.tabview.add("Activities")
         self.maps_tab = self.tabview.add("Maps")
-        self.compare_tab = self.tabview.add("Compare Cities")
         self.settings_tab = self.tabview.add("Settings")
 
         # Configure tab grids
         self.weather_tab.grid_columnconfigure(0, weight=1)
         self.weather_tab.grid_rowconfigure(0, weight=1)
 
-        self.journal_tab.grid_columnconfigure(0, weight=1)
-        self.journal_tab.grid_rowconfigure(0, weight=1)
+        self.comparison_tab.grid_columnconfigure(0, weight=1)
+        self.comparison_tab.grid_rowconfigure(0, weight=1)
+
+        self.ml_comparison_tab.grid_columnconfigure(0, weight=1)
+        self.ml_comparison_tab.grid_rowconfigure(0, weight=1)
 
         self.activities_tab.grid_columnconfigure(0, weight=1)
         self.activities_tab.grid_rowconfigure(0, weight=1)
@@ -222,18 +231,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.maps_tab.grid_columnconfigure(0, weight=1)
         self.maps_tab.grid_rowconfigure(0, weight=1)
 
-        self.compare_tab.grid_columnconfigure(0, weight=1)
-        self.compare_tab.grid_rowconfigure(0, weight=1)
-
         self.settings_tab.grid_columnconfigure(0, weight=1)
         self.settings_tab.grid_rowconfigure(0, weight=1)
 
         # Create tab content
         self._create_weather_tab()
-        self._create_journal_tab()
+        self._create_comparison_tab()
+        self._create_ml_comparison_tab()
         self._create_activities_tab()
         self._create_maps_tab()
-        self._create_compare_tab()
         self._create_settings_tab()
 
     def _create_weather_tab(self):
@@ -891,142 +897,33 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     except ValueError:
                         pass
 
-    def _create_journal_tab(self):
-        """Create journal tab."""
-        self._create_journal_tab_content()
+    def _create_comparison_tab(self):
+        """Create team collaboration and city comparison tab."""
+        self._create_comparison_tab_content()
 
-    def _create_journal_tab_content(self):
-        """Create actual journal functionality."""
-        # Replace placeholder with real implementation
-
-        # Journal entry form
-        entry_frame = ctk.CTkFrame(
-            self.journal_tab,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=DataTerminalTheme.RADIUS_MEDIUM,
+    def _create_comparison_tab_content(self):
+        """Create the team collaboration and city comparison functionality."""
+        # Create the city comparison panel
+        self.city_comparison_panel = CityComparisonPanel(
+            self.comparison_tab,
+            weather_service=self.weather_service,
+            github_service=self.github_service
         )
-        entry_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.city_comparison_panel.pack(fill="both", expand=True)
 
-        # Text editor
-        self.journal_text = ctk.CTkTextbox(
-            entry_frame,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            text_color=DataTerminalTheme.TEXT,
-            border_color=DataTerminalTheme.BORDER,
-            border_width=1,
-            corner_radius=DataTerminalTheme.RADIUS_SMALL,
-            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM),
-            height=200,
+    def _create_ml_comparison_tab(self):
+        """Create ML-powered comparison and analysis tab."""
+        self._create_ml_comparison_tab_content()
+
+    def _create_ml_comparison_tab_content(self):
+        """Create the ML-powered comparison and analysis functionality."""
+        # Create the ML comparison panel
+        self.ml_comparison_panel = MLComparisonPanel(
+            self.ml_comparison_tab,
+            weather_service=self.weather_service,
+            github_service=self.github_service
         )
-        self.journal_text.pack(fill="both", expand=True, padx=20, pady=(20, 10))
-
-        # Controls frame
-        controls_frame = ctk.CTkFrame(entry_frame, fg_color="transparent")
-        controls_frame.pack(fill="x", padx=20, pady=(0, 20))
-
-        # Mood selector
-        self.mood_var = ctk.StringVar(value="😊 Happy")
-        moods = ["😊 Happy", "😐 Neutral", "😔 Sad", "😴 Tired", "😎 Energized"]
-
-        self.mood_menu = ctk.CTkOptionMenu(
-            controls_frame,
-            values=moods,
-            variable=self.mood_var,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            button_color=DataTerminalTheme.PRIMARY,
-            button_hover_color=DataTerminalTheme.HOVER,
-            text_color=DataTerminalTheme.TEXT,
-            dropdown_fg_color=DataTerminalTheme.CARD_BG,
-            dropdown_text_color=DataTerminalTheme.TEXT,
-            corner_radius=DataTerminalTheme.RADIUS_MEDIUM,
-        )
-        self.mood_menu.pack(side="left", padx=(0, 10))
-
-        # Save button
-        self.save_journal_btn = ctk.CTkButton(
-            controls_frame,
-            text="Save Entry",
-            command=self._save_journal_entry,
-            fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.SUCCESS,
-            text_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=DataTerminalTheme.RADIUS_MEDIUM,
-            font=(DataTerminalTheme.FONT_FAMILY, DataTerminalTheme.FONT_SIZE_MEDIUM, "bold"),
-        )
-        self.save_journal_btn.pack(side="right")
-
-    def _save_journal_entry(self):
-        """Save the current journal entry."""
-        try:
-            # Get the text content
-            entry_text = self.journal_text.get("1.0", "end-1c")
-
-            # Get the selected mood
-            mood = self.mood_var.get()
-
-            # Basic validation
-            if not entry_text.strip():
-                # Show error message - entry is empty
-                return
-
-            # Here you would typically save to database or file
-            # For now, just clear the text and show success
-            self.journal_text.delete("1.0", "end")
-
-            # Reset mood to default
-            self.mood_var.set("😊 Happy")
-
-            # You could add a success message here
-            print(f"Journal entry saved with mood: {mood}")
-
-        except Exception as e:
-            print(f"Error saving journal entry: {e}")
-
-    def _create_sample_journal_entries(self):
-        """Create sample journal entries."""
-        entries = [
-            ("Today", "Sunny day perfect for hiking", "😊"),
-            ("Yesterday", "Rainy mood matches the weather", "😔"),
-            ("Mon", "Beautiful sunrise this morning", "😎"),
-            ("Sun", "Foggy and mysterious", "😐"),
-            ("Sat", "Perfect beach weather!", "😊"),
-        ]
-
-        for date, preview, mood in entries:
-            entry_card = ctk.CTkFrame(
-                self.journal_listbox, fg_color=DataTerminalTheme.CARD_BG, corner_radius=8, height=80
-            )
-            entry_card.pack(fill="x", pady=5)
-            entry_card.pack_propagate(False)
-
-            # Content
-            content_frame = ctk.CTkFrame(entry_card, fg_color="transparent")
-            content_frame.pack(fill="both", expand=True, padx=15, pady=10)
-
-            # Date and mood
-            header = ctk.CTkFrame(content_frame, fg_color="transparent")
-            header.pack(fill="x")
-
-            date_label = ctk.CTkLabel(
-                header,
-                text=date,
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.PRIMARY,
-            )
-            date_label.pack(side="left")
-
-            mood_label = ctk.CTkLabel(header, text=mood, font=(DataTerminalTheme.FONT_FAMILY, 16))
-            mood_label.pack(side="right")
-
-            # Preview
-            preview_label = ctk.CTkLabel(
-                content_frame,
-                text=preview,
-                font=(DataTerminalTheme.FONT_FAMILY, 11),
-                text_color=DataTerminalTheme.TEXT_SECONDARY,
-                anchor="w",
-            )
-            preview_label.pack(fill="x", pady=(5, 0))
+        self.ml_comparison_panel.pack(fill="both", expand=True)
 
     def _create_activities_tab(self):
         """Create activities tab content."""
@@ -2501,136 +2398,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         )
         self.map_display_label.pack(expand=True, pady=50)
 
-    def _create_compare_tab(self):
-        """Create Compare Cities tab."""
-        self._create_compare_tab_content()
 
-    def _create_compare_tab_content(self):
-        """Create Compare Cities tab content."""
-        # Main container
-        compare_container = ctk.CTkScrollableFrame(
-            self.compare_tab, fg_color=DataTerminalTheme.BACKGROUND
-        )
-        compare_container.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Header
-        header_frame = ctk.CTkFrame(
-            compare_container,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        header_frame.pack(fill="x", pady=(0, 20))
-
-        title_label = ctk.CTkLabel(
-            header_frame,
-            text="🌍 Compare Cities",
-            font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
-            text_color=DataTerminalTheme.ACCENT,
-        )
-        title_label.pack(pady=20)
-
-        # City selection controls
-        controls_frame = ctk.CTkFrame(
-            compare_container,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        controls_frame.pack(fill="x", pady=(0, 20))
-
-        controls_title = ctk.CTkLabel(
-            controls_frame,
-            text="Select Cities to Compare",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.TEXT,
-        )
-        controls_title.pack(pady=(15, 10))
-
-        # City input fields
-        cities_input_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        cities_input_frame.pack(fill="x", padx=20, pady=10)
-
-        # City 1
-        city1_frame = ctk.CTkFrame(cities_input_frame, fg_color="transparent")
-        city1_frame.pack(fill="x", pady=5)
-
-        ctk.CTkLabel(
-            city1_frame,
-            text="City 1:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT,
-            width=60,
-        ).pack(side="left", padx=(0, 10))
-
-        self.compare_city1_entry = ctk.CTkEntry(
-            city1_frame,
-            placeholder_text="Enter first city...",
-            width=200,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            text_color=DataTerminalTheme.TEXT,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        self.compare_city1_entry.pack(side="left", padx=(0, 10))
-
-        # City 2
-        city2_frame = ctk.CTkFrame(cities_input_frame, fg_color="transparent")
-        city2_frame.pack(fill="x", pady=5)
-
-        ctk.CTkLabel(
-            city2_frame,
-            text="City 2:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT,
-            width=60,
-        ).pack(side="left", padx=(0, 10))
-
-        self.compare_city2_entry = ctk.CTkEntry(
-            city2_frame,
-            placeholder_text="Enter second city...",
-            width=200,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            text_color=DataTerminalTheme.TEXT,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        self.compare_city2_entry.pack(side="left", padx=(0, 10))
-
-        # Compare button
-        compare_btn = ctk.CTkButton(
-            controls_frame,
-            text="🔍 Compare Weather",
-            command=self._compare_cities,
-            fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.SUCCESS,
-            text_color=DataTerminalTheme.BACKGROUND,
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-        )
-        compare_btn.pack(pady=15)
-
-        # Comparison results area
-        self.comparison_frame = ctk.CTkFrame(
-            compare_container,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        self.comparison_frame.pack(fill="both", expand=True)
-
-        # Initial placeholder
-        self.comparison_placeholder = ctk.CTkLabel(
-            self.comparison_frame,
-            text=(
-                "🌤️\n\nEnter two cities above and click 'Compare Weather'\n"
-                "to see side-by-side weather comparison"
-            ),
-            font=(DataTerminalTheme.FONT_FAMILY, 16),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-            justify="center",
-        )
-        self.comparison_placeholder.pack(expand=True, pady=50)
 
     def _update_map_display(self, map_type):
         """Update map display based on selected type."""
@@ -2656,158 +2424,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 text="🗺️\n\nPlease enter a location\nto display weather map"
             )
 
-    def _compare_cities(self):
-        """Compare weather between two cities."""
-        city1 = self.compare_city1_entry.get().strip()
-        city2 = self.compare_city2_entry.get().strip()
 
-        if not city1 or not city2:
-            # Show error message
-            self.comparison_placeholder.configure(
-                text=("⚠️\n\nPlease enter both cities\n" "to compare their weather"),
-                text_color="#FF6B6B",
-            )
-            return
-
-        # Clear placeholder
-        self.comparison_placeholder.pack_forget()
-
-        # Create comparison layout
-        comparison_content = ctk.CTkFrame(self.comparison_frame, fg_color="transparent")
-        comparison_content.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Configure grid for side-by-side comparison
-        comparison_content.grid_columnconfigure(0, weight=1)
-        comparison_content.grid_columnconfigure(1, weight=1)
-        comparison_content.grid_rowconfigure(0, weight=1)
-
-        # City 1 card
-        city1_card = ctk.CTkFrame(
-            comparison_content,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        city1_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-
-        city1_title = ctk.CTkLabel(
-            city1_card,
-            text=f"🏙️ {city1}",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.ACCENT,
-        )
-        city1_title.pack(pady=(20, 10))
-
-        # Mock weather data for city 1
-        city1_temp = ctk.CTkLabel(
-            city1_card,
-            text="22°C",
-            font=(DataTerminalTheme.FONT_FAMILY, 36, "bold"),
-            text_color=DataTerminalTheme.TEXT,
-        )
-        city1_temp.pack(pady=5)
-
-        city1_desc = ctk.CTkLabel(
-            city1_card,
-            text="Partly Cloudy",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        city1_desc.pack(pady=5)
-
-        # City 1 details
-        city1_details = ctk.CTkFrame(city1_card, fg_color="transparent")
-        city1_details.pack(fill="x", padx=20, pady=20)
-
-        details1 = [
-            ("Humidity", "65%"),
-            ("Wind", "12 km/h"),
-            ("Pressure", "1013 hPa"),
-            ("Feels like", "24°C"),
-        ]
-
-        for label, value in details1:
-            detail_frame = ctk.CTkFrame(city1_details, fg_color="transparent")
-            detail_frame.pack(fill="x", pady=2)
-
-            ctk.CTkLabel(
-                detail_frame,
-                text=f"{label}:",
-                font=(DataTerminalTheme.FONT_FAMILY, 12),
-                text_color=DataTerminalTheme.TEXT_SECONDARY,
-            ).pack(side="left")
-
-            ctk.CTkLabel(
-                detail_frame,
-                text=value,
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.TEXT,
-            ).pack(side="right")
-
-        # City 2 card
-        city2_card = ctk.CTkFrame(
-            comparison_content,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        city2_card.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
-
-        city2_title = ctk.CTkLabel(
-            city2_card,
-            text=f"🏙️ {city2}",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.ACCENT,
-        )
-        city2_title.pack(pady=(20, 10))
-
-        # Mock weather data for city 2
-        city2_temp = ctk.CTkLabel(
-            city2_card,
-            text="18°C",
-            font=(DataTerminalTheme.FONT_FAMILY, 36, "bold"),
-            text_color=DataTerminalTheme.TEXT,
-        )
-        city2_temp.pack(pady=5)
-
-        city2_desc = ctk.CTkLabel(
-            city2_card,
-            text="Light Rain",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        city2_desc.pack(pady=5)
-
-        # City 2 details
-        city2_details = ctk.CTkFrame(city2_card, fg_color="transparent")
-        city2_details.pack(fill="x", padx=20, pady=20)
-
-        details2 = [
-            ("Humidity", "78%"),
-            ("Wind", "8 km/h"),
-            ("Pressure", "1008 hPa"),
-            ("Feels like", "16°C"),
-        ]
-
-        for label, value in details2:
-            detail_frame = ctk.CTkFrame(city2_details, fg_color="transparent")
-            detail_frame.pack(fill="x", pady=2)
-
-            ctk.CTkLabel(
-                detail_frame,
-                text=f"{label}:",
-                font=(DataTerminalTheme.FONT_FAMILY, 12),
-                text_color=DataTerminalTheme.TEXT_SECONDARY,
-            ).pack(side="left")
-
-            ctk.CTkLabel(
-                detail_frame,
-                text=value,
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.TEXT,
-            ).pack(side="right")
 
     def center_window(self):
         """Center the window on screen."""

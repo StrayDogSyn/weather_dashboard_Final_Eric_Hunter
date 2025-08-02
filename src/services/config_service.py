@@ -300,6 +300,7 @@ class ConfigService:
             "gemini_api_key": self._config.api.gemini_api_key or "",
             "openai_api_key": self._config.api.openai_api_key or "",
             "google_maps_api_key": self._config.api.google_maps_api_key or "",
+            "github_token": self._config.api.github_token or "",
         }
 
     def reload_config(self) -> bool:
