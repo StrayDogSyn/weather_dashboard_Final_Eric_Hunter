@@ -92,14 +92,27 @@ class CityComparisonColumn(ctk.CTkFrame):
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
         header_frame.pack(fill="x", padx=15, pady=(15, 10))
         
-        # City name
+        # City name with enhanced team indicator
         city_name = self.city_data.get("city_name", "Unknown City")
+        display_text = f"🏙️ {city_name}"
+        
         self.city_label = ctk.CTkLabel(
             header_frame,
-            text=f"🏙️ {city_name}",
+            text=display_text,
             font=("JetBrains Mono", 18, "bold")
         )
         self.city_label.pack()
+        
+        # Add team member badge if applicable
+        if self.is_team_member:
+            member_name = self.city_data.get("member_name", "Team Member")
+            team_badge = ctk.CTkLabel(
+                header_frame,
+                text=f"🏢 TEAM MEMBER ({member_name})",
+                font=("JetBrains Mono", 10, "bold"),
+                text_color="#4CAF50"
+            )
+            team_badge.pack(pady=(2, 0))
         
         # Team member info (if applicable)
         if self.is_team_member:
@@ -217,6 +230,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         self.comparison_columns = []  # List of CityComparisonColumn widgets
         self.city_pills = []  # List of CityPill widgets
         self.team_cities_data = {}  # Dictionary to store team cities data
+        self.selected_dropdown_cities = [None, None, None, None]  # Track dropdown selections
         
         self._setup_ui()
         self._apply_theme()
@@ -381,6 +395,35 @@ class CityComparisonPanel(ctk.CTkFrame):
         self.city4_dropdown.pack(side="left", padx=(0, 10))
         self.city4_dropdown.set("Select a city...")
         
+        # Quick add city frame
+        quick_add_frame = ctk.CTkFrame(selection_frame, fg_color="transparent")
+        quick_add_frame.pack(fill="x", pady=(10, 0))
+        
+        quick_add_label = ctk.CTkLabel(
+            quick_add_frame,
+            text="Quick Add City:",
+            font=("JetBrains Mono", 12, "bold")
+        )
+        quick_add_label.pack(side="left", padx=(0, 10))
+        
+        self.quick_city_entry = ctk.CTkEntry(
+            quick_add_frame,
+            placeholder_text="Enter city name...",
+            font=("JetBrains Mono", 12),
+            width=200
+        )
+        self.quick_city_entry.pack(side="left", padx=(0, 5))
+        self.quick_city_entry.bind("<Return>", lambda e: self._quick_add_city())
+        
+        quick_add_btn = ctk.CTkButton(
+            quick_add_frame,
+            text="➕ Add",
+            command=self._quick_add_city,
+            font=("JetBrains Mono", 12),
+            width=60
+        )
+        quick_add_btn.pack(side="left", padx=(0, 10))
+        
         # Control buttons
         control_buttons_frame = ctk.CTkFrame(selection_frame, fg_color="transparent")
         control_buttons_frame.pack(fill="x", pady=(10, 0))
@@ -394,6 +437,15 @@ class CityComparisonPanel(ctk.CTkFrame):
         )
         self.compare_btn.pack(side="left", padx=(0, 10))
         
+        self.insights_btn = ctk.CTkButton(
+            control_buttons_frame,
+            text="📊 Show Insights",
+            command=self._show_comparison_insights,
+            font=("JetBrains Mono", 12, "bold"),
+            width=150
+        )
+        self.insights_btn.pack(side="left", padx=(0, 10))
+        
         self.clear_btn = ctk.CTkButton(
             control_buttons_frame,
             text="🗑️ Clear All",
@@ -405,7 +457,15 @@ class CityComparisonPanel(ctk.CTkFrame):
         
         # Store dropdown references
         self.city_dropdowns = [self.city1_dropdown, self.city2_dropdown, self.city3_dropdown, self.city4_dropdown]
-        self.selected_dropdown_cities = [None, None, None, None]  # Track selections by dropdown index
+        
+        # Status label
+        self.status_label = ctk.CTkLabel(
+            controls_frame,
+            text="Ready to compare cities",
+            font=("JetBrains Mono", 11),
+            text_color=("#888888", "#AAAAAA")
+        )
+        self.status_label.pack(pady=(10, 0))
         
         # City pills container
         self.pills_frame = ctk.CTkFrame(selection_frame, fg_color="transparent")
@@ -441,8 +501,11 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_cities = self.github_service.force_refresh()
             
             if team_cities:
-                # Extract unique city names for dropdowns
-                city_names = list(set([team_city.city_name for team_city in team_cities]))
+                # Extract unique city names for dropdowns, filtering out empty/invalid entries
+                city_names = list(set([
+                    team_city.city_name.strip() for team_city in team_cities 
+                    if team_city.city_name and team_city.city_name.strip() and team_city.city_name.strip() != "N/A"
+                ]))
                 city_names.sort()  # Sort alphabetically
                 
                 # Add "Select a city..." as first option
@@ -517,44 +580,368 @@ class CityComparisonPanel(ctk.CTkFrame):
         logger.info(f"Selected {city_name} in dropdown {dropdown_index}")
     
     def _compare_selected_cities(self):
-        """Compare the selected cities from dropdowns."""
-        # Get selected cities (filter out None values)
-        selected_cities = [city for city in self.selected_dropdown_cities if city is not None]
+         """Compare the selected cities from dropdowns."""
+         selected_cities = []
+         
+         # Update status
+         self.status_label.configure(text="Collecting selected cities...")
+         
+         # Collect selected cities from dropdowns
+         for dropdown in self.city_dropdowns:
+             city = dropdown.get()
+             if city and city not in ["Select a city...", "No team data available", "Error loading data"]:
+                 selected_cities.append(city)
+         
+         if len(selected_cities) < 1:
+             self.status_label.configure(text="⚠️ Please select at least 1 city to compare")
+             logger.warning("Please select at least 1 city to compare")
+             return
         
-        if len(selected_cities) < 2:
-            logger.warning("Please select at least 2 cities to compare")
-            return
-        
-        # Clear existing comparison columns
+        # Clear existing comparison display
         self._clear_comparison_display()
         
         # Add comparison columns for selected cities
         for city_name in selected_cities:
-            if city_name in getattr(self, 'team_cities_data', {}):
-                # Use the first team member's data for this city
-                city_data = self.team_cities_data[city_name][0]
-                self._add_comparison_column(city_data, is_team_member=True)
-            else:
-                # Fallback to mock data if team data not available
-                self._fetch_and_add_city(city_name, is_team_member=False)
+            # Check if this city is from team data
+            is_team_member = city_name in self.team_cities_data
+            self._fetch_and_add_city(city_name, is_team_member=is_team_member)
         
         logger.info(f"Comparing {len(selected_cities)} cities: {', '.join(selected_cities)}")
     
-    def _clear_all_selections(self):
-        """Clear all dropdown selections and comparison display."""
-        # Reset all dropdowns
-        for dropdown in self.city_dropdowns:
-            dropdown.set("Select a city...")
+    def _show_comparison_insights(self):
+        """Show insights and statistics about the compared cities."""
+        if not self.comparison_columns:
+            logger.warning("No cities to analyze. Please compare some cities first.")
+            return
         
-        # Clear selection tracking
-        self.selected_dropdown_cities = [None, None, None, None]
+        # Collect weather data from all compared cities
+        temperatures = []
+        humidities = []
+        wind_speeds = []
+        pressures = []
+        city_names = []
+        team_cities = []
         
-        # Clear comparison display
-        self._clear_comparison_display()
+        for column in self.comparison_columns:
+            city_data = column.city_data
+            weather_data = city_data.get("weather_data", {})
+            
+            city_names.append(city_data.get("city_name", "Unknown"))
+            temperatures.append(weather_data.get("temperature", 0))
+            humidities.append(weather_data.get("humidity", 0))
+            wind_speeds.append(weather_data.get("wind_speed", 0))
+            pressures.append(weather_data.get("pressure", 0))
+            
+            if column.is_team_member:
+                team_cities.append(city_data.get("city_name", "Unknown"))
         
-        logger.info("Cleared all selections")
+        # Calculate insights
+        insights = []
+        
+        if temperatures:
+            hottest_city = city_names[temperatures.index(max(temperatures))]
+            coldest_city = city_names[temperatures.index(min(temperatures))]
+            avg_temp = sum(temperatures) / len(temperatures)
+            temp_range = max(temperatures) - min(temperatures)
+            
+            insights.append(f"🌡️ Temperature Analysis:")
+            insights.append(f"   • Hottest: {hottest_city} ({max(temperatures)}°C)")
+            insights.append(f"   • Coldest: {coldest_city} ({min(temperatures)}°C)")
+            insights.append(f"   • Average: {avg_temp:.1f}°C")
+            insights.append(f"   • Temperature Range: {temp_range:.1f}°C")
+            
+            # Temperature recommendations
+            if temp_range > 15:
+                insights.append(f"   ⚠️ Large temperature variation - pack layers!")
+            elif avg_temp > 25:
+                insights.append(f"   ☀️ Generally warm weather across cities")
+            elif avg_temp < 10:
+                insights.append(f"   🧥 Generally cool weather - dress warmly")
+            insights.append("")
+        
+        if humidities:
+            most_humid = city_names[humidities.index(max(humidities))]
+            least_humid = city_names[humidities.index(min(humidities))]
+            avg_humidity = sum(humidities) / len(humidities)
+            
+            insights.append(f"💧 Humidity Analysis:")
+            insights.append(f"   • Most humid: {most_humid} ({max(humidities)}%)")
+            insights.append(f"   • Least humid: {least_humid} ({min(humidities)}%)")
+            insights.append(f"   • Average humidity: {avg_humidity:.1f}%")
+            
+            # Humidity recommendations
+            if avg_humidity > 70:
+                insights.append(f"   💦 High humidity - expect muggy conditions")
+            elif avg_humidity < 30:
+                insights.append(f"   🏜️ Low humidity - stay hydrated")
+            insights.append("")
+        
+        if wind_speeds:
+            windiest_city = city_names[wind_speeds.index(max(wind_speeds))]
+            calmest_city = city_names[wind_speeds.index(min(wind_speeds))]
+            avg_wind = sum(wind_speeds) / len(wind_speeds)
+            
+            insights.append(f"💨 Wind Analysis:")
+            insights.append(f"   • Windiest: {windiest_city} ({max(wind_speeds)} km/h)")
+            insights.append(f"   • Calmest: {calmest_city} ({min(wind_speeds)} km/h)")
+            insights.append(f"   • Average wind speed: {avg_wind:.1f} km/h")
+            
+            # Wind recommendations
+            if max(wind_speeds) > 25:
+                insights.append(f"   🌪️ Strong winds in {windiest_city} - secure loose items")
+            elif avg_wind < 5:
+                insights.append(f"   🍃 Generally calm conditions")
+            insights.append("")
+        
+        if pressures:
+            highest_pressure = max(pressures)
+            lowest_pressure = min(pressures)
+            high_pressure_city = city_names[pressures.index(highest_pressure)]
+            low_pressure_city = city_names[pressures.index(lowest_pressure)]
+            
+            insights.append(f"🌀 Atmospheric Pressure:")
+            insights.append(f"   • Highest: {high_pressure_city} ({highest_pressure} hPa)")
+            insights.append(f"   • Lowest: {low_pressure_city} ({lowest_pressure} hPa)")
+            
+            if highest_pressure > 1020:
+                insights.append(f"   ☀️ High pressure in {high_pressure_city} - clear skies likely")
+            if lowest_pressure < 1000:
+                insights.append(f"   🌧️ Low pressure in {low_pressure_city} - possible storms")
+            insights.append("")
+        
+        # Team collaboration insights
+        if team_cities:
+            insights.append(f"👥 Team Collaboration Insights:")
+            insights.append(f"   • {len(team_cities)} team cities out of {len(city_names)} compared")
+            insights.append(f"   • Team cities: {', '.join(team_cities)}")
+            
+            # Find best weather for team meetups
+            if team_cities and len(team_cities) > 1:
+                team_temps = [temperatures[city_names.index(city)] for city in team_cities if city in city_names]
+                if team_temps:
+                    best_temp_city = team_cities[team_temps.index(max(team_temps))]
+                    insights.append(f"   🏢 Best weather for team meetup: {best_temp_city}")
+        else:
+            insights.append(f"👥 No team cities in current comparison")
+            insights.append(f"   • Consider adding team member locations for collaboration insights")
+        
+        # Overall recommendations
+        insights.append("")
+        insights.append(f"📋 Travel Recommendations:")
+        if temperatures:
+            if temp_range > 20:
+                insights.append(f"   • Pack for varied climates - temperature varies by {temp_range:.1f}°C")
+            best_weather_city = city_names[temperatures.index(max(temperatures))] if avg_temp < 20 else city_names[temperatures.index(min(temperatures))]
+            insights.append(f"   • Most comfortable weather: {best_weather_city}")
+        
+        # Create insights dialog
+        insights_window = ctk.CTkToplevel(self)
+        insights_window.title("Weather Comparison Insights")
+        insights_window.geometry("500x400")
+        insights_window.transient(self)
+        insights_window.grab_set()
+        
+        # Center the window
+        insights_window.update_idletasks()
+        x = (insights_window.winfo_screenwidth() // 2) - (500 // 2)
+        y = (insights_window.winfo_screenheight() // 2) - (400 // 2)
+        insights_window.geometry(f"500x400+{x}+{y}")
+        
+        # Insights content
+        insights_frame = ctk.CTkScrollableFrame(insights_window)
+        insights_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        title_label = ctk.CTkLabel(
+            insights_frame,
+            text="📊 Weather Comparison Insights",
+            font=("JetBrains Mono", 18, "bold")
+        )
+        title_label.pack(pady=(0, 20))
+        
+        insights_text = ctk.CTkTextbox(
+            insights_frame,
+            height=250,
+            font=("JetBrains Mono", 12)
+        )
+        insights_text.pack(fill="both", expand=True)
+        
+        # Insert insights
+        insights_content = "\n".join(insights)
+        insights_text.insert("1.0", insights_content)
+        insights_text.configure(state="disabled")
+        
+        # Button frame
+        button_frame = ctk.CTkFrame(insights_window)
+        button_frame.pack(pady=10, padx=20, fill="x")
+        
+        # Export button
+        export_button = ctk.CTkButton(
+            button_frame,
+            text="📊 Export Data",
+            command=lambda: self._export_comparison_data(insights_content),
+            font=("JetBrains Mono", 12),
+            width=120
+        )
+        export_button.pack(side="left", padx=(0, 10))
+        
+        # Close button
+        close_button = ctk.CTkButton(
+            button_frame,
+            text="Close",
+            command=insights_window.destroy,
+            font=("JetBrains Mono", 12),
+            width=120
+        )
+        close_button.pack(side="right")
+        
+        logger.info("Displayed comparison insights")
     
-    def _clear_comparison_display(self):
+    def _export_comparison_data(self, insights_content: str):
+        """Export comparison data to a file."""
+        try:
+            from tkinter import filedialog
+            import json
+            from datetime import datetime
+            
+            # Prepare export data
+            export_data = {
+                "export_timestamp": datetime.now().isoformat(),
+                "comparison_summary": insights_content,
+                "cities_data": []
+            }
+            
+            # Add detailed city data
+            for column in self.comparison_columns:
+                city_data = column.city_data
+                export_data["cities_data"].append({
+                    "city_name": city_data.get("city_name", "Unknown"),
+                    "is_team_member": column.is_team_member,
+                    "weather_data": city_data.get("weather_data", {}),
+                    "member_name": city_data.get("member_name", None)
+                })
+            
+            # Ask user for save location
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("Text files", "*.txt"), ("All files", "*.*")],
+                title="Export Comparison Data"
+            )
+            
+            if filename:
+                if filename.endswith('.json'):
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        json.dump(export_data, f, indent=2, ensure_ascii=False)
+                else:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(f"Weather Comparison Report\n")
+                        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                        f.write(insights_content)
+                        f.write("\n\n=== Detailed City Data ===\n")
+                        for city in export_data["cities_data"]:
+                            f.write(f"\n{city['city_name']}:\n")
+                            if city['is_team_member']:
+                                f.write(f"  Team Member: {city.get('member_name', 'Unknown')}\n")
+                            weather = city['weather_data']
+                            f.write(f"  Temperature: {weather.get('temperature', 'N/A')}°C\n")
+                            f.write(f"  Humidity: {weather.get('humidity', 'N/A')}%\n")
+                            f.write(f"  Wind Speed: {weather.get('wind_speed', 'N/A')} km/h\n")
+                            f.write(f"  Description: {weather.get('description', 'N/A')}\n")
+                
+                logger.info(f"Comparison data exported to {filename}")
+                
+        except Exception as e:
+            logger.error(f"Failed to export comparison data: {e}")
+    
+    def _clear_all_selections(self):
+         """Clear all city selections and comparison data."""
+         # Reset dropdowns
+         for dropdown in self.city_dropdowns:
+             dropdown.set("Select a city...")
+         
+         # Clear selected cities tracking
+         self.selected_dropdown_cities = [None, None, None, None]
+         
+         # Clear quick entry field
+         if hasattr(self, 'quick_city_entry'):
+             self.quick_city_entry.delete(0, "end")
+         
+         # Clear comparison display
+         self._clear_comparison_display()
+         
+         # Reset any error states
+         self.comparison_data = []
+         
+         # Update status
+         if hasattr(self, 'status_label'):
+             self.status_label.configure(text="Ready to compare cities")
+         
+         logger.info("Cleared all selections and reset interface")
+    
+    def _quick_add_city(self):
+        """Add a city directly from the quick entry field."""
+        city_name = self.quick_city_entry.get().strip()
+        
+        if not city_name:
+            logger.warning("Please enter a city name")
+            return
+        
+        if len(self.comparison_columns) >= 4:
+            logger.warning("Maximum 4 cities can be compared at once")
+            return
+        
+        # Check if city is already being compared
+        existing_cities = [col.city_data.get("city_name", "") for col in self.comparison_columns]
+        if city_name in existing_cities:
+            logger.warning(f"City {city_name} is already being compared")
+            return
+        
+        # Clear the entry field
+        self.quick_city_entry.delete(0, "end")
+        
+        # Check if this is a team city
+        is_team_member = city_name in self.team_cities_data
+        
+        # Add the city to comparison
+        self._fetch_and_add_city(city_name, is_team_member=is_team_member)
+        
+        logger.info(f"Quick added city: {city_name}")
+     
+     def _fetch_and_add_city(self, city_name, is_team_member=False):
+         """Fetch weather data for a city and add it to comparison."""
+         try:
+             # Get weather data
+             weather_data = self.weather_service.get_current_weather(city_name)
+             
+             if not weather_data:
+                 logger.error(f"Could not fetch weather data for {city_name}")
+                 return
+             
+             # Get team member info if applicable
+             member_name = None
+             if is_team_member and city_name in self.team_cities_data:
+                 for member_data in self.team_cities_data[city_name]:
+                     member_name = member_data.get('name', 'Unknown')
+                     break  # Use first member found
+             
+             # Create city data structure
+             city_data = {
+                 'city_name': city_name,
+                 'temperature': weather_data.get('temperature', 0),
+                 'humidity': weather_data.get('humidity', 0),
+                 'wind_speed': weather_data.get('wind_speed', 0),
+                 'pressure': weather_data.get('pressure', 0),
+                 'description': weather_data.get('description', 'N/A'),
+                 'is_team_member': is_team_member,
+                 'member_name': member_name
+             }
+             
+             # Add to comparison display
+             self._add_city_to_comparison(city_data)
+             
+         except Exception as e:
+             logger.error(f"Error fetching data for {city_name}: {e}")
+     
+     def _clear_comparison_display(self):
         """Clear the comparison display area."""
         # Remove all comparison columns
         for column in self.comparison_columns:
@@ -575,40 +962,38 @@ class CityComparisonPanel(ctk.CTkFrame):
     def _fetch_and_add_city(self, city_name: str, is_team_member: bool = False):
         """Fetch weather data for a city and add comparison column."""
         try:
+            # Initialize base city data
+            city_data = {
+                "city_name": city_name,
+                "weather_data": {}
+            }
+            
+            # Add team member information if available
+            if is_team_member and city_name in self.team_cities_data:
+                team_data = self.team_cities_data[city_name]
+                city_data["member_name"] = team_data.get("member_name", "Unknown Member")
+                city_data["last_updated"] = team_data.get("last_updated", "")
+                city_data["activity_status"] = team_data.get("activity_status", "Unknown")
+            
             # Try to get real weather data if weather service is available
             if self.weather_service:
                 try:
-                    weather_data = self.weather_service.get_weather(city_name)
-                    city_data = {
-                        "city_name": city_name,
-                        "weather_data": {
-                            "temperature": weather_data.get("temperature", 0),
-                            "description": weather_data.get("description", "Unknown"),
-                            "humidity": weather_data.get("humidity", 0),
-                            "wind_speed": weather_data.get("wind_speed", 0),
-                            "pressure": weather_data.get("pressure", 0),
-                            "feels_like": weather_data.get("feels_like", 0)
-                        }
+                    # Use get_current_weather which returns a dictionary
+                    weather_response = self.weather_service.get_current_weather(city_name)
+                    current_data = weather_response.get("current", {})
+                    
+                    city_data["weather_data"] = {
+                        "temperature": current_data.get("temp_c", 0),
+                        "description": current_data.get("condition", {}).get("text", "Unknown"),
+                        "humidity": current_data.get("humidity", 0),
+                        "wind_speed": current_data.get("wind_kph", 0) / 3.6,  # Convert km/h to m/s
+                        "pressure": current_data.get("pressure_mb", 0),
+                        "feels_like": current_data.get("feelslike_c", 0)
                     }
                 except Exception as weather_error:
-                    logger.warning(f"Failed to fetch real weather data for {city_name}, using mock data: {weather_error}")
+                    logger.error(f"Failed to fetch weather data for {city_name}: {weather_error}")
                     # Fall back to mock data
-                    city_data = {
-                        "city_name": city_name,
-                        "weather_data": {
-                            "temperature": 22,
-                            "description": "Partly Cloudy",
-                            "humidity": 65,
-                            "wind_speed": 12,
-                            "pressure": 1013,
-                            "feels_like": 24
-                        }
-                    }
-            else:
-                # Use mock data if no weather service
-                city_data = {
-                    "city_name": city_name,
-                    "weather_data": {
+                    city_data["weather_data"] = {
                         "temperature": 22,
                         "description": "Partly Cloudy",
                         "humidity": 65,
@@ -616,6 +1001,15 @@ class CityComparisonPanel(ctk.CTkFrame):
                         "pressure": 1013,
                         "feels_like": 24
                     }
+            else:
+                # Use mock data if no weather service
+                city_data["weather_data"] = {
+                    "temperature": 22,
+                    "description": "Partly Cloudy",
+                    "humidity": 65,
+                    "wind_speed": 12,
+                    "pressure": 1013,
+                    "feels_like": 24
                 }
             
             self._add_comparison_column(city_data, is_team_member)
@@ -646,6 +1040,92 @@ class CityComparisonPanel(ctk.CTkFrame):
         self.comparison_container.grid_rowconfigure(row_index, weight=1)
         
         self.comparison_columns.append(column)
+        
+        # Update rankings after adding column
+        self._update_weather_rankings()
+    
+    def _update_weather_rankings(self):
+        """Update weather rankings for all comparison columns."""
+        if len(self.comparison_columns) < 2:
+            return
+        
+        try:
+            # Collect weather data for ranking
+            temperatures = []
+            humidities = []
+            wind_speeds = []
+            pressures = []
+            
+            for column in self.comparison_columns:
+                weather_data = column.city_data.get("weather_data", {})
+                temperatures.append(weather_data.get("temperature", 0))
+                humidities.append(weather_data.get("humidity", 0))
+                wind_speeds.append(weather_data.get("wind_speed", 0))
+                pressures.append(weather_data.get("pressure", 0))
+            
+            # Add ranking indicators to each column
+            for i, column in enumerate(self.comparison_columns):
+                rankings = []
+                
+                # Temperature ranking (higher is better for comfort)
+                if temperatures[i] == max(temperatures):
+                    rankings.append("🌡️ Warmest")
+                elif temperatures[i] == min(temperatures):
+                    rankings.append("❄️ Coolest")
+                
+                # Humidity ranking (moderate is better)
+                if humidities[i] == min(humidities):
+                    rankings.append("🏜️ Driest")
+                elif humidities[i] == max(humidities):
+                    rankings.append("💧 Most Humid")
+                
+                # Wind ranking (calmer is generally better)
+                if wind_speeds[i] == min(wind_speeds):
+                    rankings.append("🍃 Calmest")
+                elif wind_speeds[i] == max(wind_speeds):
+                    rankings.append("💨 Windiest")
+                
+                # Pressure ranking (higher is generally better)
+                if pressures[i] == max(pressures):
+                    rankings.append("☀️ High Pressure")
+                elif pressures[i] == min(pressures):
+                    rankings.append("🌧️ Low Pressure")
+                
+                # Update column with rankings
+                self._add_rankings_to_column(column, rankings)
+                
+        except Exception as e:
+            logger.error(f"Failed to update weather rankings: {e}")
+    
+    def _add_rankings_to_column(self, column: CityComparisonColumn, rankings: List[str]):
+        """Add ranking indicators to a comparison column."""
+        try:
+            # Remove existing ranking frame if it exists
+            if hasattr(column, 'ranking_frame'):
+                column.ranking_frame.destroy()
+            
+            if rankings:
+                # Create ranking frame
+                column.ranking_frame = ctk.CTkFrame(column)
+                column.ranking_frame.pack(fill="x", padx=10, pady=(0, 10))
+                
+                ranking_title = ctk.CTkLabel(
+                    column.ranking_frame,
+                    text="🏆 Rankings",
+                    font=("JetBrains Mono", 12, "bold")
+                )
+                ranking_title.pack(pady=(5, 2))
+                
+                for ranking in rankings:
+                    ranking_label = ctk.CTkLabel(
+                        column.ranking_frame,
+                        text=ranking,
+                        font=("JetBrains Mono", 10)
+                    )
+                    ranking_label.pack(pady=1)
+                
+        except Exception as e:
+            logger.error(f"Failed to add rankings to column: {e}")
     
     def update_theme(self):
         """Update theme for all components."""
