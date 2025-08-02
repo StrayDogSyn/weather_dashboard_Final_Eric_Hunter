@@ -1,15 +1,16 @@
 """GitHub Team Service for fetching team weather data."""
 
-import json
 import csv
 import io
-import requests
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
+import json
 import logging
 import os
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TeamCityData:
     """Data class for team member city weather data."""
+
     member_name: str
     city_name: str
     country: str
@@ -40,7 +42,7 @@ class GitHubTeamService:
         self.cache_file = Path("data/team_cache.json")
 
         # GitHub token for API access
-        self.github_token = github_token or os.getenv('GITHUB_TOKEN')
+        self.github_token = github_token or os.getenv("GITHUB_TOKEN")
 
         # Ensure data directory exists
         self.cache_file.parent.mkdir(exist_ok=True)
@@ -61,7 +63,7 @@ class GitHubTeamService:
             # Set up headers for GitHub API if token is available
             headers = {}
             if self.github_token:
-                headers['Authorization'] = f'token {self.github_token}'
+                headers["Authorization"] = f"token {self.github_token}"
 
             response = requests.get(self.CSV_DATA_URL, headers=headers, timeout=10)
             response.raise_for_status()
@@ -94,15 +96,17 @@ class GitHubTeamService:
 
         for city in team_cities:
             try:
-                last_updated = datetime.fromisoformat(city.last_updated.replace('Z', '+00:00'))
-                activity_feed.append({
-                    "member": city.member_name,
-                    "city": city.city_name,
-                    "action": "updated weather data",
-                    "timestamp": last_updated,
-                    "weather": city.weather_data.get("description", "Unknown"),
-                    "temperature": city.weather_data.get("temperature", "N/A")
-                })
+                last_updated = datetime.fromisoformat(city.last_updated.replace("Z", "+00:00"))
+                activity_feed.append(
+                    {
+                        "member": city.member_name,
+                        "city": city.city_name,
+                        "action": "updated weather data",
+                        "timestamp": last_updated,
+                        "weather": city.weather_data.get("description", "Unknown"),
+                        "temperature": city.weather_data.get("temperature", "N/A"),
+                    }
+                )
             except (ValueError, AttributeError) as e:
                 logger.warning(f"Invalid timestamp for {city.member_name}: {e}")
                 continue
@@ -126,9 +130,9 @@ class GitHubTeamService:
             for row in csv_reader:
                 try:
                     # Extract member name and city from CSV
-                    member_name = row.get('member_name', 'Unknown Member')
-                    city_name = row.get('city', 'Unknown City')
-                    country = row.get('country', 'Unknown Country')
+                    member_name = row.get("member_name", "Unknown Member")
+                    city_name = row.get("city", "Unknown City")
+                    country = row.get("country", "Unknown Country")
 
                     # Create unique key for this member-city combination
                     unique_key = f"{member_name}_{city_name}"
@@ -138,19 +142,23 @@ class GitHubTeamService:
 
                     # Parse weather data from CSV columns
                     weather_data = {
-                        'temperature': self._safe_float(row.get('temperature', 0)),
-                        'humidity': self._safe_float(row.get('humidity', 0)),
-                        'wind_speed': self._safe_float(row.get('wind_speed', 0)),
-                        'description': row.get('weather_description', row.get('description', 'Unknown')),
-                        'main': row.get('weather_main', 'Unknown'),
-                        'pressure': self._safe_float(row.get('pressure', 0)),
-                        'feels_like': self._safe_float(row.get('feels_like', 0)),
-                        'visibility': self._safe_float(row.get('visibility', 0)),
-                        'wind_direction': self._safe_float(row.get('wind_direction', 0))
+                        "temperature": self._safe_float(row.get("temperature", 0)),
+                        "humidity": self._safe_float(row.get("humidity", 0)),
+                        "wind_speed": self._safe_float(row.get("wind_speed", 0)),
+                        "description": row.get(
+                            "weather_description", row.get("description", "Unknown")
+                        ),
+                        "main": row.get("weather_main", "Unknown"),
+                        "pressure": self._safe_float(row.get("pressure", 0)),
+                        "feels_like": self._safe_float(row.get("feels_like", 0)),
+                        "visibility": self._safe_float(row.get("visibility", 0)),
+                        "wind_direction": self._safe_float(row.get("wind_direction", 0)),
                     }
 
                     # Parse timestamp
-                    timestamp = row.get('timestamp', row.get('datetime', datetime.now().isoformat()))
+                    timestamp = row.get(
+                        "timestamp", row.get("datetime", datetime.now().isoformat())
+                    )
 
                     # Create TeamCityData object
                     team_city = TeamCityData(
@@ -160,7 +168,7 @@ class GitHubTeamService:
                         last_updated=timestamp,
                         weather_data=weather_data,
                         avatar_url=None,  # Not available in CSV
-                        github_username=member_name.lower().replace(' ', '_')  # Generate from name
+                        github_username=member_name.lower().replace(" ", "_"),  # Generate from name
                     )
 
                     team_cities.append(team_city)
@@ -179,13 +187,15 @@ class GitHubTeamService:
     def _safe_float(self, value: Any) -> float:
         """Safely convert value to float, return 0.0 if conversion fails."""
         try:
-            if value is None or value == '':
+            if value is None or value == "":
                 return 0.0
             return float(value)
         except (ValueError, TypeError):
             return 0.0
 
-    def contribute_data(self, city_data: Dict[str, Any], github_token: Optional[str] = None) -> bool:
+    def contribute_data(
+        self, city_data: Dict[str, Any], github_token: Optional[str] = None
+    ) -> bool:
         """Add your city to team data (requires GitHub token for actual contribution)."""
         # For now, this is a placeholder that would create a pull request
         # In a real implementation, this would use GitHub API to create a PR
@@ -194,8 +204,8 @@ class GitHubTeamService:
         if github_token:
             # Create headers for GitHub API
             headers = {
-                'Authorization': f'token {github_token}',
-                'Accept': 'application/vnd.github.v3+json'
+                "Authorization": f"token {github_token}",
+                "Accept": "application/vnd.github.v3+json",
             }
 
             # Get the current file content
@@ -208,21 +218,18 @@ class GitHubTeamService:
             branch_name = f"weather-update-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
             main_branch = requests.get(
                 "https://api.github.com/repos/StrayDogSyn/New_Team_Dashboard/git/refs/heads/main",
-                headers=headers
+                headers=headers,
             ).json()
 
             # Create new branch reference
             requests.post(
                 "https://api.github.com/repos/StrayDogSyn/New_Team_Dashboard/git/refs",
                 headers=headers,
-                json={
-                    "ref": f"refs/heads/{branch_name}",
-                    "sha": main_branch['object']['sha']
-                }
+                json={"ref": f"refs/heads/{branch_name}", "sha": main_branch["object"]["sha"]},
             ).raise_for_status()
 
             # Update file content
-            new_content = self._update_csv_content(current_content['content'], city_data)
+            new_content = self._update_csv_content(current_content["content"], city_data)
 
             # Create commit
             requests.put(
@@ -231,9 +238,9 @@ class GitHubTeamService:
                 json={
                     "message": f"Update weather data for {city_data.get('city', 'Unknown')}",
                     "content": new_content,
-                    "sha": current_content['sha'],
-                    "branch": branch_name
-                }
+                    "sha": current_content["sha"],
+                    "branch": branch_name,
+                },
             ).raise_for_status()
 
             # Create pull request
@@ -244,14 +251,15 @@ class GitHubTeamService:
                     "title": f"Update weather data for {city_data.get('city', 'Unknown')}",
                     "body": "Automated weather data update",
                     "head": branch_name,
-                    "base": "main"
-                }
+                    "base": "main",
+                },
             )
             pr_response.raise_for_status()
 
-            logger.info(f"Created PR #{pr_response.json()['number']} for {city_data.get('city', 'Unknown')}")
+            logger.info(
+                f"Created PR #{pr_response.json()['number']} for {city_data.get('city', 'Unknown')}"
+            )
             return True
-            pass
 
         return False  # Not implemented yet
 
@@ -276,7 +284,7 @@ class GitHubTeamService:
                 last_updated=city_data.get("last_updated", datetime.now().isoformat()),
                 weather_data=city_data.get("weather_data", {}),
                 avatar_url=city_data.get("avatar_url"),
-                github_username=city_data.get("github_username")
+                github_username=city_data.get("github_username"),
             )
             team_cities.append(team_city)
 
@@ -294,17 +302,17 @@ class GitHubTeamService:
                         "last_updated": city.last_updated,
                         "weather_data": city.weather_data,
                         "avatar_url": city.avatar_url,
-                        "github_username": city.github_username
+                        "github_username": city.github_username,
                     }
                     for city in team_cities
                 ],
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
             self.team_data_cache = cache_data
 
             # Save to file
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, indent=2, ensure_ascii=False)
 
             logger.info(f"Saved team cache with {len(team_cities)} cities")
@@ -316,7 +324,7 @@ class GitHubTeamService:
         """Load cached data from file."""
         try:
             if self.cache_file.exists():
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                with open(self.cache_file, "r", encoding="utf-8") as f:
                     self.team_data_cache = json.load(f)
 
                 # Check if cache timestamp is valid
@@ -343,5 +351,5 @@ class GitHubTeamService:
             "last_sync": self.last_sync.isoformat() if self.last_sync else None,
             "cache_valid": self._is_cache_valid(),
             "cached_cities_count": len(self.team_data_cache.get("cities", [])),
-            "cache_file_exists": self.cache_file.exists()
+            "cache_file_exists": self.cache_file.exists(),
         }
