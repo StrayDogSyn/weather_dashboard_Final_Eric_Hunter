@@ -205,6 +205,10 @@ class LoadingManager:
         self._active_tasks.clear()
         self.logger.info("LoadingManager cleanup completed")
     
+    def shutdown(self):
+        """Shutdown the LoadingManager."""
+        self.cleanup()
+    
     def __del__(self):
         """Cleanup when the object is destroyed."""
         self.cleanup()
