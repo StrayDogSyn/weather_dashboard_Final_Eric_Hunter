@@ -4,16 +4,17 @@ Reusable component for displaying current weather information.
 """
 
 import customtkinter as ctk
-from src.ui.theme import DataTerminalTheme
+
 from src.ui.components import MicroInteractions
+from src.ui.theme import DataTerminalTheme
 
 
 class CurrentWeatherCard(ctk.CTkFrame):
     """Reusable current weather card component."""
-    
+
     def __init__(self, parent, temp_unit="C", on_temp_toggle=None, **kwargs):
         """Initialize current weather card.
-        
+
         Args:
             parent: Parent widget
             temp_unit: Temperature unit (C or F)
@@ -26,21 +27,21 @@ class CurrentWeatherCard(ctk.CTkFrame):
             corner_radius=12,
             border_width=1,
             border_color=DataTerminalTheme.BORDER,
-            **kwargs
+            **kwargs,
         )
-        
+
         self.temp_unit = temp_unit
         self.on_temp_toggle = on_temp_toggle
         self.micro_interactions = MicroInteractions()
-        
+
         # UI components
         self.city_label = None
         self.temp_label = None
         self.condition_label = None
         self.temp_toggle_btn = None
-        
+
         self._create_ui()
-        
+
     def _create_ui(self):
         """Create the weather card UI components."""
         # Weather icon and city
@@ -69,10 +70,10 @@ class CurrentWeatherCard(ctk.CTkFrame):
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         self.condition_label.pack(pady=(0, 20))
-        
+
         # Temperature conversion toggle button
         self._create_temperature_toggle()
-        
+
     def _create_temperature_toggle(self):
         """Create temperature unit toggle button."""
         toggle_frame = ctk.CTkFrame(
@@ -103,56 +104,56 @@ class CurrentWeatherCard(ctk.CTkFrame):
             command=self._on_temp_toggle_clicked,
         )
         self.temp_toggle_btn.pack(side="left", padx=(0, 12), pady=8)
-        
+
         # Add micro-interactions to temperature toggle button
         self.micro_interactions.add_hover_effect(self.temp_toggle_btn)
         self.micro_interactions.add_click_effect(self.temp_toggle_btn)
-        
+
     def _on_temp_toggle_clicked(self):
         """Handle temperature toggle button click."""
         if self.on_temp_toggle:
             self.on_temp_toggle()
-            
+
     def update_weather_data(self, weather_data):
         """Update the weather card with new data.
-        
+
         Args:
             weather_data: Dictionary containing weather information
         """
         if not weather_data:
             return
-            
+
         # Update city
-        city = weather_data.get('city', 'Unknown Location')
+        city = weather_data.get("city", "Unknown Location")
         self.city_label.configure(text=city)
-        
+
         # Update temperature
-        temp = weather_data.get('temperature', '--')
-        if temp != '--':
+        temp = weather_data.get("temperature", "--")
+        if temp != "--":
             temp_text = f"{temp}°{self.temp_unit}"
         else:
             temp_text = f"--°{self.temp_unit}"
         self.temp_label.configure(text=temp_text)
-        
+
         # Update condition
-        condition = weather_data.get('condition', '--')
+        condition = weather_data.get("condition", "--")
         self.condition_label.configure(text=condition)
-        
+
     def update_temperature_unit(self, new_unit):
         """Update the temperature unit display.
-        
+
         Args:
             new_unit: New temperature unit (C or F)
         """
         self.temp_unit = new_unit
         self.temp_toggle_btn.configure(text=f"°{new_unit}")
-        
+
         # Update temperature display if we have current data
         current_temp_text = self.temp_label.cget("text")
         if current_temp_text and current_temp_text != f"--°{new_unit}":
             # Extract temperature value and update unit
             try:
-                temp_value = current_temp_text.split('°')[0]
+                temp_value = current_temp_text.split("°")[0]
                 self.temp_label.configure(text=f"{temp_value}°{new_unit}")
             except (IndexError, ValueError):
                 pass

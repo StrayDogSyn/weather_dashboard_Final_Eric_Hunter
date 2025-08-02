@@ -1,10 +1,11 @@
 import customtkinter as ctk
+
 from src.ui.theme import DataTerminalTheme
 
 
 class ActivitiesTabManager:
     """Manages activities tab functionality and AI-powered activity suggestions."""
-    
+
     def __init__(self, parent, activity_service, cache_manager, logger):
         self.parent = parent
         self.activity_service = activity_service
@@ -12,7 +13,7 @@ class ActivitiesTabManager:
         self.logger = logger
         self.current_weather_data = None
         self.current_city = "Unknown"
-        
+
     def create_activities_tab(self, activities_tab):
         """Create activities tab content."""
         self.activities_tab = activities_tab
@@ -216,10 +217,10 @@ class ActivitiesTabManager:
         """Update activity suggestions based on weather with caching."""
         try:
             self.current_weather_data = weather_data
-            
+
             # Create cache key based on weather conditions
             cache_key = f"activities_{self.current_city}_{weather_data.get('condition', 'unknown')}_{weather_data.get('temperature', 0)}"
-            
+
             # Try to get cached suggestions first
             cached_suggestions = self.cache_manager.get(cache_key)
             if cached_suggestions:
@@ -231,10 +232,10 @@ class ActivitiesTabManager:
                     suggestions = self.activity_service.get_activity_suggestions(weather_data)
                     # Cache the suggestions for 30 minutes
                     self.cache_manager.set(
-                        cache_key, 
-                        suggestions, 
+                        cache_key,
+                        suggestions,
                         ttl=1800,  # 30 minutes
-                        tags=["activities", f"city_{self.current_city}"]
+                        tags=["activities", f"city_{self.current_city}"],
                     )
                 else:
                     suggestions = self._get_fallback_activities()

@@ -1,11 +1,11 @@
 import customtkinter as ctk
+
 from src.ui.theme import DataTerminalTheme
-from src.ui.theme_manager import theme_manager
 
 
 class SettingsTabManager:
     """Manages settings tab functionality and UI components."""
-    
+
     def __init__(self, parent, config_service, weather_service):
         self.parent = parent
         self.config_service = config_service
@@ -13,7 +13,7 @@ class SettingsTabManager:
         self.api_entries = {}
         self.usage_labels = {}
         self.units_var = ctk.StringVar(value="Celsius")
-        
+
     def create_settings_tab(self, settings_tab):
         """Create settings tab."""
         self.settings_tab = settings_tab
@@ -173,7 +173,7 @@ class SettingsTabManager:
                 font=(DataTerminalTheme.FONT_FAMILY, 12),
             )
             label.grid(row=1, column=i, sticky="w", padx=10, pady=5)
-            
+
             value_label = ctk.CTkLabel(
                 usage_frame,
                 text=value,
@@ -181,7 +181,7 @@ class SettingsTabManager:
                 text_color=DataTerminalTheme.SUCCESS,
             )
             value_label.grid(row=2, column=i, sticky="w", padx=10, pady=(0, 10))
-            
+
             self.usage_labels[label_text] = value_label
 
         # Action buttons frame
@@ -257,15 +257,12 @@ class SettingsTabManager:
         theme_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=15, pady=6)
 
         # Theme preview grid
-        self.theme_grid = ctk.CTkFrame(
-            appearance_frame,
-            fg_color="transparent"
-        )
+        self.theme_grid = ctk.CTkFrame(appearance_frame, fg_color="transparent")
         self.theme_grid.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))
         self.theme_grid.grid_columnconfigure(0, weight=1)
         self.theme_grid.grid_columnconfigure(1, weight=1)
         self.theme_grid.grid_columnconfigure(2, weight=1)
-        
+
         # Create theme preview cards
         self._create_theme_selector()
 
@@ -295,7 +292,7 @@ class SettingsTabManager:
             ("Ocean Blue", "#4fc3f7", "#1a237e"),
             ("Sunset Orange", "#ff7043", "#bf360c"),
         ]
-        
+
         for i, (name, primary, bg) in enumerate(themes):
             theme_btn = ctk.CTkButton(
                 self.theme_grid,
@@ -464,44 +461,40 @@ class SettingsTabManager:
     def _save_api_keys(self):
         """Save API keys to configuration."""
         # Implementation for saving API keys
-        pass
 
     def _test_api_key(self, key_name):
         """Test API key validity."""
         # Implementation for testing API keys
-        pass
 
     def _encrypt_api_keys(self):
         """Encrypt stored API keys."""
         # Implementation for encrypting API keys
-        pass
 
     def _setup_key_rotation(self):
         """Setup API key rotation reminders."""
         # Implementation for key rotation setup
-        pass
 
     def _change_theme(self, theme_name):
         """Change application theme."""
-        if hasattr(self.parent, 'apply_theme'):
+        if hasattr(self.parent, "apply_theme"):
             self.parent.apply_theme(theme_name)
 
     def _change_units(self, unit):
         """Change temperature units."""
-        if hasattr(self.parent, '_change_units'):
+        if hasattr(self.parent, "_change_units"):
             self.parent._change_units(unit)
 
     def _clear_cache(self):
         """Clear application cache."""
-        if hasattr(self.parent, '_clear_cache'):
+        if hasattr(self.parent, "_clear_cache"):
             self.parent._clear_cache()
 
     def _export_data(self):
         """Export application data."""
-        if hasattr(self.parent, '_export_data'):
+        if hasattr(self.parent, "_export_data"):
             self.parent._export_data()
 
     def _toggle_auto_refresh(self):
         """Toggle auto-refresh functionality."""
-        if hasattr(self.parent, '_toggle_auto_refresh'):
+        if hasattr(self.parent, "_toggle_auto_refresh"):
             self.parent._toggle_auto_refresh()

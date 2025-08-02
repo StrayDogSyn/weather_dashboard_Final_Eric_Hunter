@@ -197,22 +197,33 @@ class EnhancedSearchBar(ctk.CTkFrame):
             try:
                 # Import custom exceptions for proper error handling
                 from src.services.enhanced_weather_service import (
-                    WeatherServiceError, RateLimitError, APIKeyError, 
-                    NetworkError, ServiceUnavailableError
+                    APIKeyError,
+                    NetworkError,
+                    RateLimitError,
+                    ServiceUnavailableError,
+                    WeatherServiceError,
                 )
-                
+
                 results = self.weather_service.search_locations_advanced(query)
                 self.after(0, self.handle_search_results, results)
-                
+
             except RateLimitError as e:
                 print(f"Rate limit exceeded: {e}")
-                self.after(0, self.handle_search_error, "Search rate limit exceeded. Please wait a moment.")
+                self.after(
+                    0, self.handle_search_error, "Search rate limit exceeded. Please wait a moment."
+                )
             except APIKeyError as e:
                 print(f"API key error: {e}")
-                self.after(0, self.handle_search_error, "API configuration error. Please check settings.")
+                self.after(
+                    0, self.handle_search_error, "API configuration error. Please check settings."
+                )
             except NetworkError as e:
                 print(f"Network error: {e}")
-                self.after(0, self.handle_search_error, "Network connection error. Please check your internet.")
+                self.after(
+                    0,
+                    self.handle_search_error,
+                    "Network connection error. Please check your internet.",
+                )
             except ServiceUnavailableError as e:
                 print(f"Service unavailable: {e}")
                 self.after(0, self.handle_search_error, "Search service temporarily unavailable.")
@@ -221,7 +232,9 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 self.after(0, self.handle_search_error, "Search service error. Please try again.")
             except Exception as e:
                 print(f"Unexpected search error: {e}")
-                self.after(0, self.handle_search_error, "An unexpected error occurred during search.")
+                self.after(
+                    0, self.handle_search_error, "An unexpected error occurred during search."
+                )
             finally:
                 self.is_searching = False
                 self.after(0, self.hide_loading)
@@ -438,10 +451,12 @@ class EnhancedSearchBar(ctk.CTkFrame):
             try:
                 # Import custom exceptions for proper error handling
                 from src.services.enhanced_weather_service import (
-                    WeatherServiceError, RateLimitError, APIKeyError, 
-                    NetworkError, ServiceUnavailableError
+                    APIKeyError,
+                    NetworkError,
+                    RateLimitError,
+                    ServiceUnavailableError,
                 )
-                
+
                 location = self.geocoding_service.get_current_location()
                 if location:
                     # Convert to LocationResult format if needed
@@ -462,7 +477,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
                         self.after(0, self.handle_geolocation_result, location_result)
                 else:
                     self.after(0, self.handle_geolocation_error, "Location not found")
-                    
+
             except RateLimitError as e:
                 print(f"Geolocation rate limit: {e}")
                 self.after(0, self.handle_geolocation_error, "Rate limit exceeded")
@@ -497,10 +512,10 @@ class EnhancedSearchBar(ctk.CTkFrame):
     def handle_geolocation_error(self, error_message: str = "Location error"):
         """Handle geolocation error with user feedback."""
         self.geo_button.configure(text="❌")
-        
+
         # Show error tooltip or status
         print(f"Geolocation error: {error_message}")
-        
+
         # Reset button after 3 seconds
         self.after(3000, lambda: self.geo_button.configure(text="📍"))
 

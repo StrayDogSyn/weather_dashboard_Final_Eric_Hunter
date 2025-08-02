@@ -1,19 +1,19 @@
 """City Comparison Panel for team collaboration and multi-city weather comparison."""
 
-import customtkinter as ctk
-import tkinter as tk
-from typing import List, Dict, Any, Callable, Optional
-from datetime import datetime, timedelta
+import csv
+import json
 import logging
 import threading
-import json
-import csv
-from dataclasses import dataclass
+import tkinter as tk
+from datetime import datetime
 from tkinter import filedialog, messagebox
+from typing import Any, Callable, Dict, List
 
-from ..theme_manager import ThemeManager
-from ...services.github_team_service import GitHubTeamService, TeamCityData
+import customtkinter as ctk
+
 from ...services.enhanced_weather_service import EnhancedWeatherService
+from ...services.github_team_service import GitHubTeamService
+from ..theme_manager import ThemeManager
 from .error_handler import ErrorHandler
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,7 @@ class CityPill(ctk.CTkFrame):
 
         # City name label
         self.city_label = ctk.CTkLabel(
-            self,
-            text=self.city_name,
-            font=("JetBrains Mono", 12, "bold")
+            self, text=self.city_name, font=("JetBrains Mono", 12, "bold")
         )
         self.city_label.pack(side="left", padx=(15, 5), pady=8)
 
@@ -52,7 +50,7 @@ class CityPill(ctk.CTkFrame):
                 height=24,
                 corner_radius=12,
                 command=self.on_remove,
-                font=("JetBrains Mono", 14, "bold")
+                font=("JetBrains Mono", 14, "bold"),
             )
             self.remove_btn.pack(side="right", padx=(0, 10), pady=8)
 
@@ -63,18 +61,16 @@ class CityPill(ctk.CTkFrame):
         self.configure(
             fg_color=theme.get("card_bg", "#2b2b2b"),
             border_width=1,
-            border_color=theme.get("border", "#404040")
+            border_color=theme.get("border", "#404040"),
         )
 
-        self.city_label.configure(
-            text_color=theme.get("text", "#ffffff")
-        )
+        self.city_label.configure(text_color=theme.get("text", "#ffffff"))
 
-        if hasattr(self, 'remove_btn'):
+        if hasattr(self, "remove_btn"):
             self.remove_btn.configure(
                 fg_color=theme.get("error", "#ff6b6b"),
                 hover_color=theme.get("error_hover", "#ff5252"),
-                text_color=theme.get("background", "#1a1a1a")
+                text_color=theme.get("background", "#1a1a1a"),
             )
 
 
@@ -103,9 +99,7 @@ class CityComparisonColumn(ctk.CTkFrame):
         display_text = f"🏙️ {city_name}"
 
         self.city_label = ctk.CTkLabel(
-            header_frame,
-            text=display_text,
-            font=("JetBrains Mono", 18, "bold")
+            header_frame, text=display_text, font=("JetBrains Mono", 18, "bold")
         )
         self.city_label.pack()
 
@@ -116,7 +110,7 @@ class CityComparisonColumn(ctk.CTkFrame):
                 header_frame,
                 text=f"🏢 TEAM MEMBER ({member_name})",
                 font=("JetBrains Mono", 10, "bold"),
-                text_color="#4CAF50"
+                text_color="#4CAF50",
             )
             team_badge.pack(pady=(2, 0))
 
@@ -124,9 +118,7 @@ class CityComparisonColumn(ctk.CTkFrame):
         if self.is_team_member:
             member_name = self.city_data.get("member_name", "Unknown Member")
             self.member_label = ctk.CTkLabel(
-                header_frame,
-                text=f"👤 {member_name}",
-                font=("JetBrains Mono", 12)
+                header_frame, text=f"👤 {member_name}", font=("JetBrains Mono", 12)
             )
             self.member_label.pack(pady=(5, 0))
 
@@ -134,12 +126,10 @@ class CityComparisonColumn(ctk.CTkFrame):
             last_updated = self.city_data.get("last_updated", "")
             if last_updated:
                 try:
-                    dt = datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
                     time_str = dt.strftime("%H:%M %d/%m")
                     self.updated_label = ctk.CTkLabel(
-                        header_frame,
-                        text=f"🕒 {time_str}",
-                        font=("JetBrains Mono", 10)
+                        header_frame, text=f"🕒 {time_str}", font=("JetBrains Mono", 10)
                     )
                     self.updated_label.pack()
                 except ValueError:
@@ -153,17 +143,13 @@ class CityComparisonColumn(ctk.CTkFrame):
         self.temp_label = ctk.CTkLabel(
             self,
             text=f"{temperature}°C" if isinstance(temperature, (int, float)) else str(temperature),
-            font=("JetBrains Mono", 36, "bold")
+            font=("JetBrains Mono", 36, "bold"),
         )
         self.temp_label.pack(pady=10)
 
         # Weather description
         description = weather_data.get("description", "No data")
-        self.desc_label = ctk.CTkLabel(
-            self,
-            text=description,
-            font=("JetBrains Mono", 14)
-        )
+        self.desc_label = ctk.CTkLabel(self, text=description, font=("JetBrains Mono", 14))
         self.desc_label.pack(pady=(0, 15))
 
         # Metrics frame
@@ -172,27 +158,35 @@ class CityComparisonColumn(ctk.CTkFrame):
 
         # Weather metrics
         metrics = {
-            "Humidity": f"{weather_data.get('humidity', 'N/A')}%" if weather_data.get('humidity') else "N/A",
-            "Wind": f"{weather_data.get('wind_speed', 'N/A')} km/h" if weather_data.get('wind_speed') else "N/A",
-            "Pressure": f"{weather_data.get('pressure', 'N/A')} hPa" if weather_data.get('pressure') else "N/A",
-            "Feels Like": f"{weather_data.get('feels_like', 'N/A')}°C" if weather_data.get('feels_like') else "N/A"
+            "Humidity": (
+                f"{weather_data.get('humidity', 'N/A')}%" if weather_data.get("humidity") else "N/A"
+            ),
+            "Wind": (
+                f"{weather_data.get('wind_speed', 'N/A')} km/h"
+                if weather_data.get("wind_speed")
+                else "N/A"
+            ),
+            "Pressure": (
+                f"{weather_data.get('pressure', 'N/A')} hPa"
+                if weather_data.get("pressure")
+                else "N/A"
+            ),
+            "Feels Like": (
+                f"{weather_data.get('feels_like', 'N/A')}°C"
+                if weather_data.get("feels_like")
+                else "N/A"
+            ),
         }
 
         for label, value in metrics.items():
             metric_frame = ctk.CTkFrame(metrics_frame, fg_color="transparent")
             metric_frame.pack(fill="x", pady=2)
 
-            metric_label = ctk.CTkLabel(
-                metric_frame,
-                text=f"{label}:",
-                font=("JetBrains Mono", 12)
-            )
+            metric_label = ctk.CTkLabel(metric_frame, text=f"{label}:", font=("JetBrains Mono", 12))
             metric_label.pack(side="left")
 
             metric_value = ctk.CTkLabel(
-                metric_frame,
-                text=value,
-                font=("JetBrains Mono", 12, "bold")
+                metric_frame, text=value, font=("JetBrains Mono", 12, "bold")
             )
             metric_value.pack(side="right")
 
@@ -203,16 +197,16 @@ class CityComparisonColumn(ctk.CTkFrame):
         self.configure(
             fg_color=theme.get("card_bg", "#2b2b2b"),
             border_width=1,
-            border_color=theme.get("border", "#404040")
+            border_color=theme.get("border", "#404040"),
         )
 
         # Apply theme to labels
         self.city_label.configure(text_color=theme.get("accent", "#00ff88"))
 
-        if hasattr(self, 'member_label'):
+        if hasattr(self, "member_label"):
             self.member_label.configure(text_color=theme.get("text_secondary", "#888888"))
 
-        if hasattr(self, 'updated_label'):
+        if hasattr(self, "updated_label"):
             self.updated_label.configure(text_color=theme.get("text_secondary", "#888888"))
 
         self.temp_label.configure(text_color=theme.get("text", "#ffffff"))
@@ -226,7 +220,13 @@ class CityComparisonColumn(ctk.CTkFrame):
 class CityComparisonPanel(ctk.CTkFrame):
     """Main panel for city comparison with team collaboration features."""
 
-    def __init__(self, parent, weather_service: EnhancedWeatherService = None, github_service: GitHubTeamService = None, **kwargs):
+    def __init__(
+        self,
+        parent,
+        weather_service: EnhancedWeatherService = None,
+        github_service: GitHubTeamService = None,
+        **kwargs,
+    ):
         super().__init__(parent, **kwargs)
         self.weather_service = weather_service
         self.github_service = github_service or GitHubTeamService()
@@ -274,9 +274,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         header_frame.pack(fill="x", padx=20, pady=(20, 10))
 
         title_label = ctk.CTkLabel(
-            header_frame,
-            text="🌍 Team Weather Comparison",
-            font=("JetBrains Mono", 24, "bold")
+            header_frame, text="🌍 Team Weather Comparison", font=("JetBrains Mono", 24, "bold")
         )
         title_label.pack(pady=20)
 
@@ -289,9 +287,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         team_controls.pack(fill="x", padx=15, pady=15)
 
         team_label = ctk.CTkLabel(
-            team_controls,
-            text="Team Collaboration",
-            font=("JetBrains Mono", 16, "bold")
+            team_controls, text="Team Collaboration", font=("JetBrains Mono", 16, "bold")
         )
         team_label.pack(anchor="w", pady=(0, 10))
 
@@ -303,7 +299,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_buttons,
             text="🔄 Sync Team Data",
             command=self._sync_team_data,
-            font=("JetBrains Mono", 12, "bold")
+            font=("JetBrains Mono", 12, "bold"),
         )
         self.sync_btn.pack(side="left", padx=(0, 10))
 
@@ -311,7 +307,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_buttons,
             text="📤 Share My City",
             command=self._show_share_dialog,
-            font=("JetBrains Mono", 12, "bold")
+            font=("JetBrains Mono", 12, "bold"),
         )
         self.share_btn.pack(side="left", padx=(0, 10))
 
@@ -319,7 +315,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_buttons,
             text="📋 Activity Feed",
             command=self._show_activity_feed,
-            font=("JetBrains Mono", 12, "bold")
+            font=("JetBrains Mono", 12, "bold"),
         )
         self.activity_btn.pack(side="left", padx=(0, 10))
 
@@ -330,7 +326,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="Auto-refresh (15min)",
             variable=self.auto_refresh_var,
             command=self._toggle_auto_refresh,
-            font=("JetBrains Mono", 10)
+            font=("JetBrains Mono", 10),
         )
         self.auto_refresh_checkbox.pack(side="left", padx=(10, 0))
 
@@ -339,7 +335,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_controls,
             text="Last sync: Never",
             font=("JetBrains Mono", 10),
-            text_color=("#666666", "#999999")
+            text_color=("#666666", "#999999"),
         )
         self.last_sync_label.pack(anchor="w", pady=(5, 0))
 
@@ -350,7 +346,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         selection_label = ctk.CTkLabel(
             selection_frame,
             text="Select Cities from Team Data (Max 4)",
-            font=("JetBrains Mono", 16, "bold")
+            font=("JetBrains Mono", 16, "bold"),
         )
         selection_label.pack(anchor="w", pady=(0, 10))
 
@@ -363,10 +359,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         city1_frame.pack(fill="x", pady=2)
 
         ctk.CTkLabel(
-            city1_frame,
-            text="City 1:",
-            font=("JetBrains Mono", 12, "bold"),
-            width=60
+            city1_frame, text="City 1:", font=("JetBrains Mono", 12, "bold"), width=60
         ).pack(side="left", padx=(0, 10))
 
         self.city1_dropdown = ctk.CTkComboBox(
@@ -374,7 +367,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             values=["Select a city..."],
             width=200,
             font=("JetBrains Mono", 12),
-            command=lambda choice: self._on_city_selected(choice, 1)
+            command=lambda choice: self._on_city_selected(choice, 1),
         )
         self.city1_dropdown.pack(side="left", padx=(0, 10))
         self.city1_dropdown.set("Select a city...")
@@ -384,10 +377,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         city2_frame.pack(fill="x", pady=2)
 
         ctk.CTkLabel(
-            city2_frame,
-            text="City 2:",
-            font=("JetBrains Mono", 12, "bold"),
-            width=60
+            city2_frame, text="City 2:", font=("JetBrains Mono", 12, "bold"), width=60
         ).pack(side="left", padx=(0, 10))
 
         self.city2_dropdown = ctk.CTkComboBox(
@@ -395,7 +385,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             values=["Select a city..."],
             width=200,
             font=("JetBrains Mono", 12),
-            command=lambda choice: self._on_city_selected(choice, 2)
+            command=lambda choice: self._on_city_selected(choice, 2),
         )
         self.city2_dropdown.pack(side="left", padx=(0, 10))
         self.city2_dropdown.set("Select a city...")
@@ -405,10 +395,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         city3_frame.pack(fill="x", pady=2)
 
         ctk.CTkLabel(
-            city3_frame,
-            text="City 3:",
-            font=("JetBrains Mono", 12, "bold"),
-            width=60
+            city3_frame, text="City 3:", font=("JetBrains Mono", 12, "bold"), width=60
         ).pack(side="left", padx=(0, 10))
 
         self.city3_dropdown = ctk.CTkComboBox(
@@ -416,7 +403,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             values=["Select a city..."],
             width=200,
             font=("JetBrains Mono", 12),
-            command=lambda choice: self._on_city_selected(choice, 3)
+            command=lambda choice: self._on_city_selected(choice, 3),
         )
         self.city3_dropdown.pack(side="left", padx=(0, 10))
         self.city3_dropdown.set("Select a city...")
@@ -426,10 +413,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         city4_frame.pack(fill="x", pady=2)
 
         ctk.CTkLabel(
-            city4_frame,
-            text="City 4:",
-            font=("JetBrains Mono", 12, "bold"),
-            width=60
+            city4_frame, text="City 4:", font=("JetBrains Mono", 12, "bold"), width=60
         ).pack(side="left", padx=(0, 10))
 
         self.city4_dropdown = ctk.CTkComboBox(
@@ -437,7 +421,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             values=["Select a city..."],
             width=200,
             font=("JetBrains Mono", 12),
-            command=lambda choice: self._on_city_selected(choice, 4)
+            command=lambda choice: self._on_city_selected(choice, 4),
         )
         self.city4_dropdown.pack(side="left", padx=(0, 10))
         self.city4_dropdown.set("Select a city...")
@@ -447,9 +431,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         quick_add_frame.pack(fill="x", pady=(10, 0))
 
         quick_add_label = ctk.CTkLabel(
-            quick_add_frame,
-            text="Quick Add City:",
-            font=("JetBrains Mono", 12, "bold")
+            quick_add_frame, text="Quick Add City:", font=("JetBrains Mono", 12, "bold")
         )
         quick_add_label.pack(side="left", padx=(0, 10))
 
@@ -457,7 +439,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             quick_add_frame,
             placeholder_text="Enter city name...",
             font=("JetBrains Mono", 12),
-            width=200
+            width=200,
         )
         self.quick_city_entry.pack(side="left", padx=(0, 5))
         self.quick_city_entry.bind("<Return>", lambda e: self._quick_add_city())
@@ -467,7 +449,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="➕ Add",
             command=self._quick_add_city,
             font=("JetBrains Mono", 12),
-            width=60
+            width=60,
         )
         quick_add_btn.pack(side="left", padx=(0, 10))
 
@@ -480,7 +462,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="🔍 Compare Selected Cities",
             command=self._compare_selected_cities,
             font=("JetBrains Mono", 14, "bold"),
-            width=200
+            width=200,
         )
         self.compare_btn.pack(side="left", padx=(0, 10))
 
@@ -489,7 +471,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="📊 Show Insights",
             command=self._show_comparison_insights,
             font=("JetBrains Mono", 12, "bold"),
-            width=150
+            width=150,
         )
         self.insights_btn.pack(side="left", padx=(0, 10))
 
@@ -498,7 +480,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="🗑️ Clear All",
             command=self._clear_all_selections,
             font=("JetBrains Mono", 12, "bold"),
-            width=120
+            width=120,
         )
         self.clear_btn.pack(side="left", padx=(0, 10))
 
@@ -508,7 +490,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="📊 Export Data",
             command=self._export_comparison_data,
             font=("JetBrains Mono", 12, "bold"),
-            width=120
+            width=120,
         )
         self.export_btn.pack(side="left")
 
@@ -516,11 +498,9 @@ class CityComparisonPanel(ctk.CTkFrame):
         sorting_frame = ctk.CTkFrame(selection_frame, fg_color="transparent")
         sorting_frame.pack(fill="x", pady=(10, 0))
 
-        ctk.CTkLabel(
-            sorting_frame,
-            text="Sort by:",
-            font=("JetBrains Mono", 10, "bold")
-        ).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(sorting_frame, text="Sort by:", font=("JetBrains Mono", 10, "bold")).pack(
+            side="left", padx=(0, 5)
+        )
 
         self.sort_var = tk.StringVar(value="temperature")
         self.sort_dropdown = ctk.CTkOptionMenu(
@@ -529,7 +509,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             variable=self.sort_var,
             command=self._on_sort_changed,
             font=("JetBrains Mono", 10),
-            width=120
+            width=120,
         )
         self.sort_dropdown.pack(side="left", padx=(0, 10))
 
@@ -539,15 +519,13 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="Ascending",
             variable=self.sort_order_var,
             command=self._on_sort_changed,
-            font=("JetBrains Mono", 10)
+            font=("JetBrains Mono", 10),
         )
         self.sort_order_checkbox.pack(side="left", padx=(0, 20))
 
         # Weather similarity threshold
         ctk.CTkLabel(
-            sorting_frame,
-            text="Similarity threshold:",
-            font=("JetBrains Mono", 10, "bold")
+            sorting_frame, text="Similarity threshold:", font=("JetBrains Mono", 10, "bold")
         ).pack(side="left", padx=(0, 5))
 
         self.similarity_slider = ctk.CTkSlider(
@@ -556,27 +534,28 @@ class CityComparisonPanel(ctk.CTkFrame):
             to=1.0,
             number_of_steps=10,
             command=self._on_similarity_changed,
-            width=100
+            width=100,
         )
         self.similarity_slider.set(0.8)
         self.similarity_slider.pack(side="left", padx=(0, 5))
 
-        self.similarity_label = ctk.CTkLabel(
-            sorting_frame,
-            text="80%",
-            font=("JetBrains Mono", 10)
-        )
+        self.similarity_label = ctk.CTkLabel(sorting_frame, text="80%", font=("JetBrains Mono", 10))
         self.similarity_label.pack(side="left")
 
         # Store dropdown references
-        self.city_dropdowns = [self.city1_dropdown, self.city2_dropdown, self.city3_dropdown, self.city4_dropdown]
+        self.city_dropdowns = [
+            self.city1_dropdown,
+            self.city2_dropdown,
+            self.city3_dropdown,
+            self.city4_dropdown,
+        ]
 
         # Status label
         self.status_label = ctk.CTkLabel(
             controls_frame,
             text="Ready to compare cities",
             font=("JetBrains Mono", 11),
-            text_color=("#888888", "#AAAAAA")
+            text_color=("#888888", "#AAAAAA"),
         )
         self.status_label.pack(pady=(10, 0))
 
@@ -593,7 +572,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             self.comparison_container,
             text="🌤️\n\nSync team data first, then select cities from dropdowns\nto start comparing weather data from your team",
             font=("JetBrains Mono", 16),
-            justify="center"
+            justify="center",
         )
         self.placeholder_label.pack(expand=True, pady=50)
 
@@ -601,9 +580,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Apply current theme to the panel."""
         theme = self.theme_manager.get_current_theme()
 
-        self.configure(
-            fg_color=theme.get("background", "#1a1a1a")
-        )
+        self.configure(fg_color=theme.get("background", "#1a1a1a"))
 
     def _sync_team_data(self):
         """Sync team data from GitHub with enhanced validation and error handling."""
@@ -634,9 +611,9 @@ class CityComparisonPanel(ctk.CTkFrame):
 
                 if validated_cities:
                     # Extract unique city names for dropdowns
-                    city_names = list(set([
-                        city_data["city_name"] for city_data in validated_cities
-                    ]))
+                    city_names = list(
+                        set([city_data["city_name"] for city_data in validated_cities])
+                    )
                     city_names.sort()  # Sort alphabetically
 
                     # Add "Select a city..." as first option
@@ -666,9 +643,13 @@ class CityComparisonPanel(ctk.CTkFrame):
                     self.last_sync_label.configure(text=f"Last sync: {sync_time_str}")
 
                     # Add to activity feed
-                    self._add_activity_item(f"Synced {len(validated_cities)} team cities ({len(city_names)} unique)")
+                    self._add_activity_item(
+                        f"Synced {len(validated_cities)} team cities ({len(city_names)} unique)"
+                    )
 
-                    logger.info(f"Synced {len(validated_cities)} team cities, {len(city_names)} unique cities")
+                    logger.info(
+                        f"Synced {len(validated_cities)} team cities, {len(city_names)} unique cities"
+                    )
                 else:
                     self._handle_no_valid_data()
             else:
@@ -687,38 +668,40 @@ class CityComparisonPanel(ctk.CTkFrame):
         for team_city in team_cities:
             try:
                 # Validate city name
-                if not hasattr(team_city, 'city_name') or not team_city.city_name:
+                if not hasattr(team_city, "city_name") or not team_city.city_name:
                     continue
 
                 city_name = team_city.city_name.strip()
-                if not city_name or city_name.lower() in ['n/a', 'none', 'null', '']:
+                if not city_name or city_name.lower() in ["n/a", "none", "null", ""]:
                     continue
 
                 # Validate member name
                 member_name = "Unknown"
-                if hasattr(team_city, 'member_name') and team_city.member_name:
+                if hasattr(team_city, "member_name") and team_city.member_name:
                     member_name = team_city.member_name.strip()
 
                 # Validate timestamp
                 last_updated = datetime.now().isoformat()
-                if hasattr(team_city, 'last_updated') and team_city.last_updated:
+                if hasattr(team_city, "last_updated") and team_city.last_updated:
                     try:
                         # Try to parse the timestamp
-                        parsed_time = datetime.fromisoformat(team_city.last_updated.replace('Z', '+00:00'))
+                        parsed_time = datetime.fromisoformat(
+                            team_city.last_updated.replace("Z", "+00:00")
+                        )
                         last_updated = team_city.last_updated
                     except (ValueError, AttributeError):
                         logger.warning(f"Invalid timestamp for {city_name}, using current time")
 
                 # Extract weather data if available
                 weather_data = None
-                if hasattr(team_city, 'weather_data') and team_city.weather_data:
+                if hasattr(team_city, "weather_data") and team_city.weather_data:
                     weather_data = team_city.weather_data
 
                 validated_city = {
                     "city_name": city_name,
                     "member_name": member_name,
                     "last_updated": last_updated,
-                    "weather_data": weather_data
+                    "weather_data": weather_data,
                 }
 
                 validated_cities.append(validated_city)
@@ -756,9 +739,7 @@ class CityComparisonPanel(ctk.CTkFrame):
 
         # Show error using new error handler
         self.error_handler.show_api_error(
-            "Team Sync Error",
-            f"Failed to sync team data: {error_message}",
-            "sync_error"
+            "Team Sync Error", f"Failed to sync team data: {error_message}", "sync_error"
         )
 
     def _show_share_dialog(self):
@@ -783,9 +764,7 @@ class CityComparisonPanel(ctk.CTkFrame):
 
             # Title
             title_label = ctk.CTkLabel(
-                main_frame,
-                text="📤 Share Your City Weather",
-                font=("JetBrains Mono", 18, "bold")
+                main_frame, text="📤 Share Your City Weather", font=("JetBrains Mono", 18, "bold")
             )
             title_label.pack(pady=(0, 20))
 
@@ -793,17 +772,15 @@ class CityComparisonPanel(ctk.CTkFrame):
             city_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
             city_frame.pack(fill="x", pady=(0, 10))
 
-            ctk.CTkLabel(
-                city_frame,
-                text="City Name:",
-                font=("JetBrains Mono", 12, "bold")
-            ).pack(anchor="w")
+            ctk.CTkLabel(city_frame, text="City Name:", font=("JetBrains Mono", 12, "bold")).pack(
+                anchor="w"
+            )
 
             city_entry = ctk.CTkEntry(
                 city_frame,
                 placeholder_text="Enter your city name...",
                 font=("JetBrains Mono", 12),
-                height=35
+                height=35,
             )
             city_entry.pack(fill="x", pady=(5, 0))
 
@@ -811,26 +788,20 @@ class CityComparisonPanel(ctk.CTkFrame):
             member_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
             member_frame.pack(fill="x", pady=(0, 10))
 
-            ctk.CTkLabel(
-                member_frame,
-                text="Your Name:",
-                font=("JetBrains Mono", 12, "bold")
-            ).pack(anchor="w")
+            ctk.CTkLabel(member_frame, text="Your Name:", font=("JetBrains Mono", 12, "bold")).pack(
+                anchor="w"
+            )
 
             member_entry = ctk.CTkEntry(
                 member_frame,
                 placeholder_text="Enter your name...",
                 font=("JetBrains Mono", 12),
-                height=35
+                height=35,
             )
             member_entry.pack(fill="x", pady=(5, 0))
 
             # Status label
-            status_label = ctk.CTkLabel(
-                main_frame,
-                text="",
-                font=("JetBrains Mono", 10)
-            )
+            status_label = ctk.CTkLabel(main_frame, text="", font=("JetBrains Mono", 10))
             status_label.pack(pady=(10, 0))
 
             # Buttons frame
@@ -842,7 +813,9 @@ class CityComparisonPanel(ctk.CTkFrame):
                 member_name = member_entry.get().strip()
 
                 if not city_name or not member_name:
-                    status_label.configure(text="Please fill in both city name and your name", text_color="red")
+                    status_label.configure(
+                        text="Please fill in both city name and your name", text_color="red"
+                    )
                     return
 
                 try:
@@ -858,20 +831,29 @@ class CityComparisonPanel(ctk.CTkFrame):
                                 "city_name": city_name,
                                 "member_name": member_name,
                                 "last_updated": datetime.now().isoformat(),
-                                "weather_data": weather_data
+                                "weather_data": weather_data,
                             }
 
                             # Add to GitHub service (this would normally push to GitHub)
                             # For now, we'll simulate the sharing process
-                            status_label.configure(text="Sharing data to team...", text_color="blue")
+                            status_label.configure(
+                                text="Sharing data to team...", text_color="blue"
+                            )
                             share_window.update()
 
                             # Simulate API call delay
-                            self.after(1000, lambda: self._complete_share(share_window, status_label, team_data))
+                            self.after(
+                                1000,
+                                lambda: self._complete_share(share_window, status_label, team_data),
+                            )
                         else:
-                            status_label.configure(text="Could not fetch weather data for this city", text_color="red")
+                            status_label.configure(
+                                text="Could not fetch weather data for this city", text_color="red"
+                            )
                     else:
-                        status_label.configure(text="Weather service not available", text_color="red")
+                        status_label.configure(
+                            text="Weather service not available", text_color="red"
+                        )
 
                 except Exception as e:
                     status_label.configure(text=f"Error: {str(e)}", text_color="red")
@@ -882,7 +864,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 text="📤 Share City",
                 command=share_city,
                 font=("JetBrains Mono", 12, "bold"),
-                height=35
+                height=35,
             )
             share_btn.pack(side="left", padx=(0, 10))
 
@@ -892,7 +874,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 text="Cancel",
                 command=share_window.destroy,
                 font=("JetBrains Mono", 12),
-                height=35
+                height=35,
             )
             cancel_btn.pack(side="left")
 
@@ -943,9 +925,7 @@ class CityComparisonPanel(ctk.CTkFrame):
 
             # Title
             title_label = ctk.CTkLabel(
-                main_frame,
-                text="📋 Team Activity Feed",
-                font=("JetBrains Mono", 18, "bold")
+                main_frame, text="📋 Team Activity Feed", font=("JetBrains Mono", 18, "bold")
             )
             title_label.pack(pady=(0, 20))
 
@@ -966,18 +946,18 @@ class CityComparisonPanel(ctk.CTkFrame):
                     # Timestamp
                     timestamp_label = ctk.CTkLabel(
                         activity_item,
-                        text=activity.get('timestamp', ''),
+                        text=activity.get("timestamp", ""),
                         font=("JetBrains Mono", 9),
-                        text_color=("#666666", "#999999")
+                        text_color=("#666666", "#999999"),
                     )
                     timestamp_label.pack(anchor="w", padx=10, pady=(5, 0))
 
                     # Activity text
                     activity_label = ctk.CTkLabel(
                         activity_item,
-                        text=activity.get('message', ''),
+                        text=activity.get("message", ""),
                         font=("JetBrains Mono", 11),
-                        wraplength=500
+                        wraplength=500,
                     )
                     activity_label.pack(anchor="w", padx=10, pady=(0, 5))
             else:
@@ -986,7 +966,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                     scrollable_frame,
                     text="No recent activity",
                     font=("JetBrains Mono", 12),
-                    text_color=("#666666", "#999999")
+                    text_color=("#666666", "#999999"),
                 )
                 no_activity_label.pack(pady=50)
 
@@ -999,7 +979,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 buttons_frame,
                 text="🔄 Refresh",
                 command=lambda: self._refresh_activity_feed(scrollable_frame),
-                font=("JetBrains Mono", 12, "bold")
+                font=("JetBrains Mono", 12, "bold"),
             )
             refresh_btn.pack(side="left", padx=(0, 10))
 
@@ -1008,7 +988,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 buttons_frame,
                 text="🗑️ Clear All",
                 command=lambda: self._clear_activity_feed(scrollable_frame),
-                font=("JetBrains Mono", 12)
+                font=("JetBrains Mono", 12),
             )
             clear_btn.pack(side="left", padx=(0, 10))
 
@@ -1017,27 +997,27 @@ class CityComparisonPanel(ctk.CTkFrame):
                 buttons_frame,
                 text="Close",
                 command=activity_window.destroy,
-                font=("JetBrains Mono", 12)
+                font=("JetBrains Mono", 12),
             )
             close_btn.pack(side="right")
 
         except Exception as e:
-             logger.error(f"Error showing activity feed: {e}")
-             messagebox.showerror("Error", f"Could not open activity feed: {e}")
+            logger.error(f"Error showing activity feed: {e}")
+            messagebox.showerror("Error", f"Could not open activity feed: {e}")
 
     def _add_activity_item(self, message: str):
         """Add an item to the activity feed."""
         try:
             activity_item = {
-                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'message': message
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": message,
             }
 
             self.activity_feed.append(activity_item)
 
             # Keep only the most recent items
             if len(self.activity_feed) > self.max_activity_items:
-                self.activity_feed = self.activity_feed[-self.max_activity_items:]
+                self.activity_feed = self.activity_feed[-self.max_activity_items :]
 
             logger.info(f"Added activity: {message}")
 
@@ -1060,18 +1040,18 @@ class CityComparisonPanel(ctk.CTkFrame):
                     # Timestamp
                     timestamp_label = ctk.CTkLabel(
                         activity_item,
-                        text=activity.get('timestamp', ''),
+                        text=activity.get("timestamp", ""),
                         font=("JetBrains Mono", 9),
-                        text_color=("#666666", "#999999")
+                        text_color=("#666666", "#999999"),
                     )
                     timestamp_label.pack(anchor="w", padx=10, pady=(5, 0))
 
                     # Activity text
                     activity_label = ctk.CTkLabel(
                         activity_item,
-                        text=activity.get('message', ''),
+                        text=activity.get("message", ""),
                         font=("JetBrains Mono", 11),
-                        wraplength=500
+                        wraplength=500,
                     )
                     activity_label.pack(anchor="w", padx=10, pady=(0, 5))
             else:
@@ -1080,7 +1060,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                     scrollable_frame,
                     text="No recent activity",
                     font=("JetBrains Mono", 12),
-                    text_color=("#666666", "#999999")
+                    text_color=("#666666", "#999999"),
                 )
                 no_activity_label.pack(pady=50)
 
@@ -1181,7 +1161,9 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Handle weather similarity threshold change."""
         try:
             self.similarity_threshold = float(value)
-            self.similarity_label.configure(text=f"Weather Similarity: {self.similarity_threshold:.1f}°C")
+            self.similarity_label.configure(
+                text=f"Weather Similarity: {self.similarity_threshold:.1f}°C"
+            )
             self._update_comparison_display()
             logger.info(f"Similarity threshold: {self.similarity_threshold}°C")
 
@@ -1218,7 +1200,11 @@ class CityComparisonPanel(ctk.CTkFrame):
         # Collect selected cities from dropdowns
         for dropdown in self.city_dropdowns:
             city = dropdown.get()
-            if city and city not in ["Select a city...", "No team data available", "Error loading data"]:
+            if city and city not in [
+                "Select a city...",
+                "No team data available",
+                "Error loading data",
+            ]:
                 selected_cities.append(city)
 
         if len(selected_cities) < 1:
@@ -1262,18 +1248,20 @@ class CityComparisonPanel(ctk.CTkFrame):
                 elif self.sort_by == "City Name":
                     sort_value = city_data.get("city_name", "")
 
-                city_data_list.append({
-                    'data': city_data,
-                    'column': column,
-                    'sort_value': sort_value,
-                    'is_team_member': column.is_team_member
-                })
+                city_data_list.append(
+                    {
+                        "data": city_data,
+                        "column": column,
+                        "sort_value": sort_value,
+                        "is_team_member": column.is_team_member,
+                    }
+                )
 
             # Sort the data
             if self.sort_by == "City Name":
-                city_data_list.sort(key=lambda x: x['sort_value'], reverse=not self.sort_ascending)
+                city_data_list.sort(key=lambda x: x["sort_value"], reverse=not self.sort_ascending)
             else:
-                city_data_list.sort(key=lambda x: x['sort_value'], reverse=not self.sort_ascending)
+                city_data_list.sort(key=lambda x: x["sort_value"], reverse=not self.sort_ascending)
 
             # Clear existing display
             for column in self.comparison_columns:
@@ -1281,7 +1269,7 @@ class CityComparisonPanel(ctk.CTkFrame):
 
             # Re-add columns in sorted order
             for i, item in enumerate(city_data_list):
-                column = item['column']
+                column = item["column"]
                 col_index = i % 2
                 row_index = i // 2
 
@@ -1317,7 +1305,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 temp1 = column1.city_data.get("weather_data", {}).get("temperature", 0)
                 similar_group = [i]
 
-                for j, column2 in enumerate(self.comparison_columns[i+1:], i+1):
+                for j, column2 in enumerate(self.comparison_columns[i + 1 :], i + 1):
                     if j in processed:
                         continue
 
@@ -1341,18 +1329,17 @@ class CityComparisonPanel(ctk.CTkFrame):
                     if column_idx < len(self.comparison_columns):
                         column = self.comparison_columns[column_idx]
                         # Add similarity indicator
-                        if not hasattr(column, 'similarity_indicator'):
+                        if not hasattr(column, "similarity_indicator"):
                             column.similarity_indicator = ctk.CTkLabel(
                                 column,
                                 text=f"🌡️ Similar Weather Group {group_idx + 1}",
                                 font=("JetBrains Mono", 10, "bold"),
-                                text_color=color
+                                text_color=color,
                             )
                             column.similarity_indicator.pack(pady=(0, 5))
                         else:
                             column.similarity_indicator.configure(
-                                text=f"🌡️ Similar Weather Group {group_idx + 1}",
-                                text_color=color
+                                text=f"🌡️ Similar Weather Group {group_idx + 1}", text_color=color
                             )
 
         except Exception as e:
@@ -1470,29 +1457,43 @@ class CityComparisonPanel(ctk.CTkFrame):
         insights.append(f"🌡️ Weather Similarity Analysis:")
         similar_pairs = self._find_similar_weather_pairs()
         if similar_pairs:
-            insights.append(f"   • Found {len(similar_pairs)} similar weather pairs (within {self.similarity_threshold}°C):")
+            insights.append(
+                f"   • Found {len(similar_pairs)} similar weather pairs (within {self.similarity_threshold}°C):"
+            )
             for pair in similar_pairs:
-                insights.append(f"     - {pair['city1']} & {pair['city2']}: {pair['temp_diff']:.1f}°C difference")
+                insights.append(
+                    f"     - {pair['city1']} & {pair['city2']}: {pair['temp_diff']:.1f}°C difference"
+                )
         else:
-            insights.append(f"   • No cities with similar weather (threshold: {self.similarity_threshold}°C)")
+            insights.append(
+                f"   • No cities with similar weather (threshold: {self.similarity_threshold}°C)"
+            )
         insights.append("")
 
         # Team collaboration insights
         if team_cities:
             insights.append(f"👥 Team Collaboration Insights:")
-            insights.append(f"   • {len(team_cities)} team cities out of {len(city_names)} compared")
+            insights.append(
+                f"   • {len(team_cities)} team cities out of {len(city_names)} compared"
+            )
             insights.append(f"   • Team cities: {', '.join(team_cities)}")
 
             # Advanced team meetup recommendations
-            meetup_recommendations = self._generate_meetup_recommendations(team_cities, city_names, temperatures, humidities, wind_speeds)
+            meetup_recommendations = self._generate_meetup_recommendations(
+                team_cities, city_names, temperatures, humidities, wind_speeds
+            )
             if meetup_recommendations:
                 insights.append(f"   🏢 Meetup Recommendations:")
                 for rec in meetup_recommendations:
                     insights.append(f"     {rec}")
-            
+
             # Team weather diversity
             if len(team_cities) > 1:
-                team_temps = [temperatures[city_names.index(city)] for city in team_cities if city in city_names]
+                team_temps = [
+                    temperatures[city_names.index(city)]
+                    for city in team_cities
+                    if city in city_names
+                ]
                 team_temp_range = max(team_temps) - min(team_temps) if team_temps else 0
                 insights.append(f"   📊 Team weather diversity: {team_temp_range:.1f}°C range")
                 if team_temp_range > 15:
@@ -1501,7 +1502,9 @@ class CityComparisonPanel(ctk.CTkFrame):
                     insights.append(f"     ✅ Low diversity - great for in-person meetups")
         else:
             insights.append(f"👥 No team cities in current comparison")
-            insights.append(f"   • Consider adding team member locations for collaboration insights")
+            insights.append(
+                f"   • Consider adding team member locations for collaboration insights"
+            )
 
         # Advanced travel recommendations
         insights.append("")
@@ -1511,22 +1514,30 @@ class CityComparisonPanel(ctk.CTkFrame):
             comfort_scores = self._calculate_comfort_scores()
             if comfort_scores:
                 best_comfort_city = max(comfort_scores, key=comfort_scores.get)
-                insights.append(f"   🌟 Most comfortable overall: {best_comfort_city} (score: {comfort_scores[best_comfort_city]:.1f}/10)")
-            
+                insights.append(
+                    f"   🌟 Most comfortable overall: {best_comfort_city} (score: {comfort_scores[best_comfort_city]:.1f}/10)"
+                )
+
             # Seasonal recommendations
             seasonal_advice = self._get_seasonal_advice(avg_temp, avg_humidity)
             if seasonal_advice:
                 insights.append(f"   🗓️ Seasonal advice: {seasonal_advice}")
-            
+
             # Packing recommendations
-            packing_advice = self._get_packing_advice(temp_range, max(humidities) if humidities else 0, max(wind_speeds) if wind_speeds else 0)
+            packing_advice = self._get_packing_advice(
+                temp_range,
+                max(humidities) if humidities else 0,
+                max(wind_speeds) if wind_speeds else 0,
+            )
             if packing_advice:
                 insights.append(f"   🎒 Packing suggestions:")
                 for advice in packing_advice:
                     insights.append(f"     • {advice}")
-            
+
             # Activity recommendations
-            activity_recommendations = self._get_activity_recommendations(avg_temp, avg_humidity, max(wind_speeds) if wind_speeds else 0)
+            activity_recommendations = self._get_activity_recommendations(
+                avg_temp, avg_humidity, max(wind_speeds) if wind_speeds else 0
+            )
             if activity_recommendations:
                 insights.append(f"   🎯 Recommended activities:")
                 for activity in activity_recommendations:
@@ -1556,15 +1567,11 @@ class CityComparisonPanel(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             insights_frame,
             text="📊 Weather Comparison Insights",
-            font=("JetBrains Mono", 18, "bold")
+            font=("JetBrains Mono", 18, "bold"),
         )
         title_label.pack(pady=(0, 20))
 
-        insights_text = ctk.CTkTextbox(
-            insights_frame,
-            height=250,
-            font=("JetBrains Mono", 12)
-        )
+        insights_text = ctk.CTkTextbox(insights_frame, height=250, font=("JetBrains Mono", 12))
         insights_text.pack(fill="both", expand=True)
 
         # Insert insights
@@ -1582,7 +1589,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="📊 Export Data",
             command=lambda: self._export_comparison_data(insights_content),
             font=("JetBrains Mono", 12),
-            width=120
+            width=120,
         )
         export_button.pack(side="left", padx=(0, 10))
 
@@ -1592,7 +1599,7 @@ class CityComparisonPanel(ctk.CTkFrame):
             text="Close",
             command=insights_window.destroy,
             font=("JetBrains Mono", 12),
-            width=120
+            width=120,
         )
         close_button.pack(side="right")
 
@@ -1606,111 +1613,127 @@ class CityComparisonPanel(ctk.CTkFrame):
                 "export_timestamp": datetime.now().isoformat(),
                 "comparison_summary": insights_content,
                 "cities_data": [],
-                "statistics": self._calculate_comparison_statistics()
+                "statistics": self._calculate_comparison_statistics(),
             }
-            
+
             # Add detailed city data
             for column in self.comparison_columns:
                 city_data = column.city_data
                 weather_data = city_data.get("weather_data", {})
-                
-                export_data["cities_data"].append({
-                    "city_name": city_data.get("city_name", "Unknown"),
-                    "is_team_member": column.is_team_member,
-                    "member_name": city_data.get("member_name", None),
-                    "temperature": weather_data.get("temperature", 0),
-                    "humidity": weather_data.get("humidity", 0),
-                    "wind_speed": weather_data.get("wind_speed", 0),
-                    "pressure": weather_data.get("pressure", 0),
-                    "description": weather_data.get("description", "N/A"),
-                    "feels_like": weather_data.get("feels_like", 0),
-                    "visibility": weather_data.get("visibility", 0),
-                    "uv_index": weather_data.get("uv_index", 0),
-                    "last_updated": weather_data.get("last_updated", "N/A")
-                })
-            
+
+                export_data["cities_data"].append(
+                    {
+                        "city_name": city_data.get("city_name", "Unknown"),
+                        "is_team_member": column.is_team_member,
+                        "member_name": city_data.get("member_name", None),
+                        "temperature": weather_data.get("temperature", 0),
+                        "humidity": weather_data.get("humidity", 0),
+                        "wind_speed": weather_data.get("wind_speed", 0),
+                        "pressure": weather_data.get("pressure", 0),
+                        "description": weather_data.get("description", "N/A"),
+                        "feels_like": weather_data.get("feels_like", 0),
+                        "visibility": weather_data.get("visibility", 0),
+                        "uv_index": weather_data.get("uv_index", 0),
+                        "last_updated": weather_data.get("last_updated", "N/A"),
+                    }
+                )
+
             # Ask user for save location and format
             filename = filedialog.asksaveasfilename(
                 defaultextension=".json",
                 filetypes=[
-                    ("JSON files", "*.json"), 
+                    ("JSON files", "*.json"),
                     ("CSV files", "*.csv"),
-                    ("Text files", "*.txt"), 
-                    ("All files", "*.*")
+                    ("Text files", "*.txt"),
+                    ("All files", "*.*"),
                 ],
-                title="Export Comparison Data"
+                title="Export Comparison Data",
             )
-            
+
             if filename:
-                if filename.endswith('.json'):
+                if filename.endswith(".json"):
                     self._export_to_json(filename, export_data)
-                elif filename.endswith('.csv'):
+                elif filename.endswith(".csv"):
                     self._export_to_csv(filename, export_data)
                 else:
                     self._export_to_text(filename, export_data, insights_content)
-                
+
                 messagebox.showinfo("Export Complete", f"Data exported successfully to {filename}")
                 logger.info(f"Comparison data exported to {filename}")
-                
+
         except Exception as e:
             logger.error(f"Failed to export comparison data: {e}")
             messagebox.showerror("Export Error", f"Failed to export data: {str(e)}")
-    
+
     def _export_to_json(self, filename: str, export_data: dict):
         """Export data to JSON format."""
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(export_data, f, indent=2, ensure_ascii=False)
-    
+
     def _export_to_csv(self, filename: str, export_data: dict):
         """Export data to CSV format."""
-        with open(filename, 'w', newline='', encoding='utf-8') as f:
+        with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            
+
             # Write header
-            writer.writerow([
-                'City Name', 'Is Team Member', 'Member Name', 'Temperature (°C)',
-                'Humidity (%)', 'Wind Speed (km/h)', 'Pressure (hPa)', 
-                'Description', 'Feels Like (°C)', 'Visibility (km)', 
-                'UV Index', 'Last Updated'
-            ])
-            
+            writer.writerow(
+                [
+                    "City Name",
+                    "Is Team Member",
+                    "Member Name",
+                    "Temperature (°C)",
+                    "Humidity (%)",
+                    "Wind Speed (km/h)",
+                    "Pressure (hPa)",
+                    "Description",
+                    "Feels Like (°C)",
+                    "Visibility (km)",
+                    "UV Index",
+                    "Last Updated",
+                ]
+            )
+
             # Write city data
-            for city in export_data['cities_data']:
-                writer.writerow([
-                    city['city_name'],
-                    'Yes' if city['is_team_member'] else 'No',
-                    city['member_name'] or 'N/A',
-                    city['temperature'],
-                    city['humidity'],
-                    city['wind_speed'],
-                    city['pressure'],
-                    city['description'],
-                    city['feels_like'],
-                    city['visibility'],
-                    city['uv_index'],
-                    city['last_updated']
-                ])
-            
+            for city in export_data["cities_data"]:
+                writer.writerow(
+                    [
+                        city["city_name"],
+                        "Yes" if city["is_team_member"] else "No",
+                        city["member_name"] or "N/A",
+                        city["temperature"],
+                        city["humidity"],
+                        city["wind_speed"],
+                        city["pressure"],
+                        city["description"],
+                        city["feels_like"],
+                        city["visibility"],
+                        city["uv_index"],
+                        city["last_updated"],
+                    ]
+                )
+
             # Add statistics section
             writer.writerow([])  # Empty row
-            writer.writerow(['Statistics'])
-            stats = export_data['statistics']
+            writer.writerow(["Statistics"])
+            stats = export_data["statistics"]
             for key, value in stats.items():
-                writer.writerow([key.replace('_', ' ').title(), value])
-    
+                writer.writerow([key.replace("_", " ").title(), value])
+
     def _export_to_text(self, filename: str, export_data: dict, insights_content: str):
         """Export data to text format."""
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(f"Weather Comparison Report\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             f.write(insights_content)
             f.write("\n\n=== Detailed City Data ===\n")
-            
+
             for city in export_data["cities_data"]:
                 f.write(f"\n{city['city_name']}:\n")
-                if city['is_team_member']:
+                if city["is_team_member"]:
                     f.write(f"  Team Member: {city.get('member_name', 'Unknown')}\n")
-                f.write(f"  Temperature: {city['temperature']}°C (feels like {city['feels_like']}°C)\n")
+                f.write(
+                    f"  Temperature: {city['temperature']}°C (feels like {city['feels_like']}°C)\n"
+                )
                 f.write(f"  Humidity: {city['humidity']}%\n")
                 f.write(f"  Wind Speed: {city['wind_speed']} km/h\n")
                 f.write(f"  Pressure: {city['pressure']} hPa\n")
@@ -1718,81 +1741,92 @@ class CityComparisonPanel(ctk.CTkFrame):
                 f.write(f"  UV Index: {city['uv_index']}\n")
                 f.write(f"  Description: {city['description']}\n")
                 f.write(f"  Last Updated: {city['last_updated']}\n")
-            
+
             # Add statistics
             f.write("\n\n=== Statistics ===\n")
-            stats = export_data['statistics']
+            stats = export_data["statistics"]
             for key, value in stats.items():
                 f.write(f"{key.replace('_', ' ').title()}: {value}\n")
-    
+
     def _calculate_comparison_statistics(self) -> dict:
         """Calculate comprehensive statistics for the compared cities."""
         if not self.comparison_columns:
             return {}
-        
+
         temperatures = []
         humidities = []
         wind_speeds = []
         pressures = []
         team_member_count = 0
-        
+
         for column in self.comparison_columns:
             weather_data = column.city_data.get("weather_data", {})
             temperatures.append(weather_data.get("temperature", 0))
             humidities.append(weather_data.get("humidity", 0))
             wind_speeds.append(weather_data.get("wind_speed", 0))
             pressures.append(weather_data.get("pressure", 0))
-            
+
             if column.is_team_member:
                 team_member_count += 1
-        
+
         stats = {
             "total_cities": len(self.comparison_columns),
             "team_member_cities": team_member_count,
-            "avg_temperature": round(sum(temperatures) / len(temperatures), 1) if temperatures else 0,
+            "avg_temperature": (
+                round(sum(temperatures) / len(temperatures), 1) if temperatures else 0
+            ),
             "min_temperature": min(temperatures) if temperatures else 0,
             "max_temperature": max(temperatures) if temperatures else 0,
-            "temperature_range": round(max(temperatures) - min(temperatures), 1) if temperatures else 0,
+            "temperature_range": (
+                round(max(temperatures) - min(temperatures), 1) if temperatures else 0
+            ),
             "avg_humidity": round(sum(humidities) / len(humidities), 1) if humidities else 0,
             "avg_wind_speed": round(sum(wind_speeds) / len(wind_speeds), 1) if wind_speeds else 0,
             "avg_pressure": round(sum(pressures) / len(pressures), 1) if pressures else 0,
             "weather_similarity_threshold": self.similarity_threshold,
             "sort_criteria": self.sort_by,
-            "sort_ascending": self.sort_ascending
+            "sort_ascending": self.sort_ascending,
         }
-        
+
         return stats
-    
+
     def _find_similar_weather_pairs(self) -> List[Dict[str, Any]]:
         """Find pairs of cities with similar weather conditions."""
         similar_pairs = []
-        
+
         for i, column1 in enumerate(self.comparison_columns):
-            for j, column2 in enumerate(self.comparison_columns[i+1:], i+1):
+            for j, column2 in enumerate(self.comparison_columns[i + 1 :], i + 1):
                 temp1 = column1.city_data.get("weather_data", {}).get("temperature", 0)
                 temp2 = column2.city_data.get("weather_data", {}).get("temperature", 0)
                 temp_diff = abs(temp1 - temp2)
-                
+
                 if temp_diff <= self.similarity_threshold:
-                    similar_pairs.append({
-                        'city1': column1.city_data.get("city_name", "Unknown"),
-                        'city2': column2.city_data.get("city_name", "Unknown"),
-                        'temp_diff': temp_diff,
-                        'temp1': temp1,
-                        'temp2': temp2
-                    })
-        
+                    similar_pairs.append(
+                        {
+                            "city1": column1.city_data.get("city_name", "Unknown"),
+                            "city2": column2.city_data.get("city_name", "Unknown"),
+                            "temp_diff": temp_diff,
+                            "temp1": temp1,
+                            "temp2": temp2,
+                        }
+                    )
+
         return similar_pairs
-    
-    def _generate_meetup_recommendations(self, team_cities: List[str], city_names: List[str], 
-                                       temperatures: List[float], humidities: List[float], 
-                                       wind_speeds: List[float]) -> List[str]:
+
+    def _generate_meetup_recommendations(
+        self,
+        team_cities: List[str],
+        city_names: List[str],
+        temperatures: List[float],
+        humidities: List[float],
+        wind_speeds: List[float],
+    ) -> List[str]:
         """Generate intelligent meetup recommendations for team cities."""
         recommendations = []
-        
+
         if len(team_cities) < 2:
             return recommendations
-        
+
         # Find team city with best overall weather
         team_weather_scores = {}
         for city in team_cities:
@@ -1802,72 +1836,86 @@ class CityComparisonPanel(ctk.CTkFrame):
                 temp_score = max(0, 10 - abs(temperatures[idx] - 22))  # Ideal temp ~22°C
                 humidity_score = max(0, 10 - abs(humidities[idx] - 50) / 5)  # Ideal humidity ~50%
                 wind_score = max(0, 10 - wind_speeds[idx] / 3)  # Lower wind is better
-                
+
                 overall_score = (temp_score + humidity_score + wind_score) / 3
                 team_weather_scores[city] = overall_score
-        
+
         if team_weather_scores:
             best_city = max(team_weather_scores, key=team_weather_scores.get)
             best_score = team_weather_scores[best_city]
-            recommendations.append(f"🌟 Best location: {best_city} (weather score: {best_score:.1f}/10)")
-            
+            recommendations.append(
+                f"🌟 Best location: {best_city} (weather score: {best_score:.1f}/10)"
+            )
+
             # Additional recommendations based on weather conditions
             best_idx = city_names.index(best_city)
             temp = temperatures[best_idx]
             humidity = humidities[best_idx]
             wind = wind_speeds[best_idx]
-            
+
             if temp > 25:
-                recommendations.append(f"☀️ Warm weather in {best_city} - consider indoor venues with AC")
+                recommendations.append(
+                    f"☀️ Warm weather in {best_city} - consider indoor venues with AC"
+                )
             elif temp < 10:
-                recommendations.append(f"🧥 Cool weather in {best_city} - indoor venues recommended")
+                recommendations.append(
+                    f"🧥 Cool weather in {best_city} - indoor venues recommended"
+                )
             else:
-                recommendations.append(f"🌤️ Pleasant weather in {best_city} - outdoor activities possible")
-            
+                recommendations.append(
+                    f"🌤️ Pleasant weather in {best_city} - outdoor activities possible"
+                )
+
             if humidity > 70:
-                recommendations.append(f"💧 High humidity - stay hydrated and avoid strenuous outdoor activities")
-            
+                recommendations.append(
+                    f"💧 High humidity - stay hydrated and avoid strenuous outdoor activities"
+                )
+
             if wind > 20:
                 recommendations.append(f"💨 Windy conditions - secure outdoor setups")
-        
+
         return recommendations
-    
+
     def _calculate_comfort_scores(self) -> Dict[str, float]:
         """Calculate comfort scores for each city based on multiple weather factors."""
         comfort_scores = {}
-        
+
         for column in self.comparison_columns:
             city_name = column.city_data.get("city_name", "Unknown")
             weather_data = column.city_data.get("weather_data", {})
-            
+
             temp = weather_data.get("temperature", 0)
             humidity = weather_data.get("humidity", 0)
             wind_speed = weather_data.get("wind_speed", 0)
             pressure = weather_data.get("pressure", 1013)
-            
+
             # Temperature comfort (ideal range: 18-24°C)
             temp_comfort = max(0, 10 - abs(temp - 21) * 0.5)
-            
+
             # Humidity comfort (ideal range: 40-60%)
             humidity_comfort = max(0, 10 - abs(humidity - 50) * 0.2)
-            
+
             # Wind comfort (ideal: 5-15 km/h)
             if 5 <= wind_speed <= 15:
                 wind_comfort = 10
             else:
                 wind_comfort = max(0, 10 - abs(wind_speed - 10) * 0.3)
-            
+
             # Pressure comfort (ideal: 1013-1020 hPa)
             pressure_comfort = max(0, 10 - abs(pressure - 1016.5) * 0.1)
-            
+
             # Overall comfort score
-            overall_comfort = (temp_comfort * 0.4 + humidity_comfort * 0.3 + 
-                             wind_comfort * 0.2 + pressure_comfort * 0.1)
-            
+            overall_comfort = (
+                temp_comfort * 0.4
+                + humidity_comfort * 0.3
+                + wind_comfort * 0.2
+                + pressure_comfort * 0.1
+            )
+
             comfort_scores[city_name] = round(overall_comfort, 1)
-        
+
         return comfort_scores
-    
+
     def _get_seasonal_advice(self, avg_temp: float, avg_humidity: float) -> str:
         """Get seasonal advice based on average conditions."""
         if avg_temp > 30:
@@ -1880,36 +1928,40 @@ class CityComparisonPanel(ctk.CTkFrame):
             return "Cool winter weather - warm clothing essential"
         else:
             return "Cold winter conditions - heavy winter gear required"
-    
-    def _get_packing_advice(self, temp_range: float, max_humidity: float, max_wind: float) -> List[str]:
+
+    def _get_packing_advice(
+        self, temp_range: float, max_humidity: float, max_wind: float
+    ) -> List[str]:
         """Get packing advice based on weather conditions."""
         advice = []
-        
+
         if temp_range > 15:
             advice.append("Pack layers for varying temperatures")
             advice.append("Include both warm and cool weather clothing")
         elif temp_range > 10:
             advice.append("Pack versatile clothing for moderate temperature variation")
-        
+
         if max_humidity > 70:
             advice.append("Bring moisture-wicking fabrics")
             advice.append("Pack extra changes of clothes")
-        
+
         if max_wind > 25:
             advice.append("Bring windproof jacket or coat")
             advice.append("Secure loose items and accessories")
         elif max_wind > 15:
             advice.append("Light windbreaker recommended")
-        
+
         if not advice:
             advice.append("Standard clothing appropriate for conditions")
-        
+
         return advice
-    
-    def _get_activity_recommendations(self, avg_temp: float, avg_humidity: float, max_wind: float) -> List[str]:
+
+    def _get_activity_recommendations(
+        self, avg_temp: float, avg_humidity: float, max_wind: float
+    ) -> List[str]:
         """Get activity recommendations based on weather conditions."""
         activities = []
-        
+
         if 18 <= avg_temp <= 25 and avg_humidity < 70 and max_wind < 20:
             activities.append("Perfect for outdoor sightseeing and walking tours")
             activities.append("Great weather for outdoor dining")
@@ -1928,33 +1980,33 @@ class CityComparisonPanel(ctk.CTkFrame):
         else:
             activities.append("Mixed indoor and outdoor activities suitable")
             activities.append("Flexible planning recommended")
-        
+
         return activities
 
     def _clear_all_selections(self):
-         """Clear all city selections and comparison data."""
-         # Reset dropdowns
-         for dropdown in self.city_dropdowns:
-             dropdown.set("Select a city...")
+        """Clear all city selections and comparison data."""
+        # Reset dropdowns
+        for dropdown in self.city_dropdowns:
+            dropdown.set("Select a city...")
 
-         # Clear selected cities tracking
-         self.selected_dropdown_cities = [None, None, None, None]
+        # Clear selected cities tracking
+        self.selected_dropdown_cities = [None, None, None, None]
 
-         # Clear quick entry field
-         if hasattr(self, 'quick_city_entry'):
-             self.quick_city_entry.delete(0, "end")
+        # Clear quick entry field
+        if hasattr(self, "quick_city_entry"):
+            self.quick_city_entry.delete(0, "end")
 
-         # Clear comparison display
-         self._clear_comparison_display()
+        # Clear comparison display
+        self._clear_comparison_display()
 
-         # Reset any error states
-         self.comparison_data = []
+        # Reset any error states
+        self.comparison_data = []
 
-         # Update status
-         if hasattr(self, 'status_label'):
-             self.status_label.configure(text="Ready to compare cities")
+        # Update status
+        if hasattr(self, "status_label"):
+            self.status_label.configure(text="Ready to compare cities")
 
-         logger.info("Cleared all selections and reset interface")
+        logger.info("Cleared all selections and reset interface")
 
     def _quick_add_city(self):
         """Add a city directly from the quick entry field."""
@@ -1963,41 +2015,32 @@ class CityComparisonPanel(ctk.CTkFrame):
         # Validate input using error handler
         if not city_name:
             self.error_handler.show_validation_error(
-                self.quick_city_entry,
-                "Please enter a city name"
+                self.quick_city_entry, "Please enter a city name"
             )
             return
-        
+
         if len(city_name) < 2:
             self.error_handler.show_validation_error(
-                self.quick_city_entry,
-                "City name must be at least 2 characters long"
+                self.quick_city_entry, "City name must be at least 2 characters long"
             )
             return
-            
+
         if len(city_name) > 50:
             self.error_handler.show_validation_error(
-                self.quick_city_entry,
-                "City name is too long (max 50 characters)"
+                self.quick_city_entry, "City name is too long (max 50 characters)"
             )
             return
 
         if len(self.comparison_columns) >= 4:
-            self.error_handler.show_toast(
-                "Maximum 4 cities can be compared at once",
-                "warning"
-            )
+            self.error_handler.show_toast("Maximum 4 cities can be compared at once", "warning")
             return
 
         # Check if city is already being compared
         existing_cities = [col.city_data.get("city_name", "") for col in self.comparison_columns]
         if city_name in existing_cities:
-            self.error_handler.show_toast(
-                f"City {city_name} is already being compared",
-                "warning"
-            )
+            self.error_handler.show_toast(f"City {city_name} is already being compared", "warning")
             return
-            
+
         # Clear any previous validation errors
         self.error_handler.clear_validation_error(self.quick_city_entry)
 
@@ -2028,16 +2071,11 @@ class CityComparisonPanel(ctk.CTkFrame):
         # Show placeholder
         self.placeholder_label.pack(expand=True, pady=50)
 
-
-
     def _fetch_and_add_city(self, city_name: str, is_team_member: bool = False):
         """Fetch weather data for a city and add comparison column."""
         try:
             # Initialize base city data
-            city_data = {
-                "city_name": city_name,
-                "weather_data": {}
-            }
+            city_data = {"city_name": city_name, "weather_data": {}}
 
             # Add team member information if available
             if is_team_member and city_name in self.team_cities_data:
@@ -2046,7 +2084,11 @@ class CityComparisonPanel(ctk.CTkFrame):
                     city_data["member_name"] = team_data.get("member_name", "Unknown Member")
                     city_data["last_updated"] = team_data.get("last_updated", "")
                     city_data["activity_status"] = team_data.get("activity_status", "Unknown")
-                elif isinstance(team_data, list) and len(team_data) > 0 and isinstance(team_data[0], dict):
+                elif (
+                    isinstance(team_data, list)
+                    and len(team_data) > 0
+                    and isinstance(team_data[0], dict)
+                ):
                     # Handle case where team_data is a list of dictionaries
                     first_member = team_data[0]
                     city_data["member_name"] = first_member.get("member_name", "Unknown Member")
@@ -2068,7 +2110,9 @@ class CityComparisonPanel(ctk.CTkFrame):
                     if isinstance(weather_response, dict):
                         current_data = weather_response.get("current", {})
                     elif isinstance(weather_response, list) and len(weather_response) > 0:
-                        current_data = weather_response[0] if isinstance(weather_response[0], dict) else {}
+                        current_data = (
+                            weather_response[0] if isinstance(weather_response[0], dict) else {}
+                        )
                     else:
                         current_data = {}
 
@@ -2077,13 +2121,19 @@ class CityComparisonPanel(ctk.CTkFrame):
                         current_data = {}
 
                     # Safely extract condition text
-                    condition_data = current_data.get("condition", {}) if isinstance(current_data, dict) else {}
+                    condition_data = (
+                        current_data.get("condition", {}) if isinstance(current_data, dict) else {}
+                    )
                     if isinstance(condition_data, dict):
                         description = condition_data.get("text", "Unknown")
                     elif isinstance(condition_data, list) and len(condition_data) > 0:
                         # Handle case where condition might be a list
                         first_condition = condition_data[0]
-                        description = first_condition.get("text", "Unknown") if isinstance(first_condition, dict) else "Unknown"
+                        description = (
+                            first_condition.get("text", "Unknown")
+                            if isinstance(first_condition, dict)
+                            else "Unknown"
+                        )
                     else:
                         description = "Unknown"
 
@@ -2093,9 +2143,11 @@ class CityComparisonPanel(ctk.CTkFrame):
                             "temperature": current_data.get("temp_c", 0),
                             "description": description,
                             "humidity": current_data.get("humidity", 0),
-                            "wind_speed": current_data.get("wind_kph", 0),  # Keep in km/h as expected by UI
+                            "wind_speed": current_data.get(
+                                "wind_kph", 0
+                            ),  # Keep in km/h as expected by UI
                             "pressure": current_data.get("pressure_mb", 0),
-                            "feels_like": current_data.get("feelslike_c", 0)
+                            "feels_like": current_data.get("feelslike_c", 0),
                         }
                     else:
                         # Fallback to default values if current_data is not a dict
@@ -2105,7 +2157,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                             "humidity": 0,
                             "wind_speed": 0,
                             "pressure": 1013,
-                            "feels_like": 0
+                            "feels_like": 0,
                         }
                 except Exception as weather_error:
                     # Handle weather service errors using new error handler
@@ -2113,7 +2165,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                         weather_error,
                         context=f"fetching weather data for {city_name}",
                         show_user_message=True,
-                        fallback_action=lambda: None
+                        fallback_action=lambda: None,
                     )
 
                     # Fall back to mock data
@@ -2123,7 +2175,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                         "humidity": 65,
                         "wind_speed": 12,
                         "pressure": 1013,
-                        "feels_like": 24
+                        "feels_like": 24,
                     }
             else:
                 # Use mock data if no weather service
@@ -2133,7 +2185,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                     "humidity": 65,
                     "wind_speed": 12,
                     "pressure": 1013,
-                    "feels_like": 24
+                    "feels_like": 24,
                 }
 
             self._add_comparison_column(city_data, is_team_member)
@@ -2148,9 +2200,7 @@ class CityComparisonPanel(ctk.CTkFrame):
 
         # Create comparison column
         column = CityComparisonColumn(
-            self.comparison_container,
-            city_data=city_data,
-            is_team_member=is_team_member
+            self.comparison_container, city_data=city_data, is_team_member=is_team_member
         )
 
         # Calculate grid position
@@ -2225,7 +2275,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Add ranking indicators to a comparison column."""
         try:
             # Remove existing ranking frame if it exists
-            if hasattr(column, 'ranking_frame'):
+            if hasattr(column, "ranking_frame"):
                 column.ranking_frame.destroy()
 
             if rankings:
@@ -2234,17 +2284,13 @@ class CityComparisonPanel(ctk.CTkFrame):
                 column.ranking_frame.pack(fill="x", padx=10, pady=(0, 10))
 
                 ranking_title = ctk.CTkLabel(
-                    column.ranking_frame,
-                    text="🏆 Rankings",
-                    font=("JetBrains Mono", 12, "bold")
+                    column.ranking_frame, text="🏆 Rankings", font=("JetBrains Mono", 12, "bold")
                 )
                 ranking_title.pack(pady=(5, 2))
 
                 for ranking in rankings:
                     ranking_label = ctk.CTkLabel(
-                        column.ranking_frame,
-                        text=ranking,
-                        font=("JetBrains Mono", 10)
+                        column.ranking_frame, text=ranking, font=("JetBrains Mono", 10)
                     )
                     ranking_label.pack(pady=1)
 
@@ -2267,9 +2313,9 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Clean up when destroying the panel."""
         # Unregister from theme updates
         self.theme_manager.remove_observer(self.update_theme)
-        
+
         # Clean up error handler
-        if hasattr(self, 'error_handler'):
+        if hasattr(self, "error_handler"):
             self.error_handler.cleanup()
-            
+
         super().destroy()

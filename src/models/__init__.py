@@ -6,38 +6,34 @@ This package contains domain models organized by category:
 - user: User preference and settings models
 """
 
-# Import weather models
-from .weather import (
-    safe_divide,
-    WeatherCondition,
-    WeatherData,
-    ForecastEntry,
-    DailyForecast,
-    ForecastData,
-    AlertSeverity,
-    AlertType,
-    WeatherAlert
-)
-
 # Import location models
-from .location import (
-    Location,
-    LocationResult,
-    LocationSearchQuery
-)
+from .location import Location, LocationResult, LocationSearchQuery
 
 # Import user models
 from .user import (
-    TemperatureUnit,
-    WindSpeedUnit,
-    PressureUnit,
-    DistanceUnit,
-    TimeFormat,
-    Theme,
-    UnitPreferences,
-    NotificationPreferences,
     DisplayPreferences,
-    UserPreferences
+    DistanceUnit,
+    NotificationPreferences,
+    PressureUnit,
+    TemperatureUnit,
+    Theme,
+    TimeFormat,
+    UnitPreferences,
+    UserPreferences,
+    WindSpeedUnit,
+)
+
+# Import weather models
+from .weather import (
+    AlertSeverity,
+    AlertType,
+    DailyForecast,
+    ForecastData,
+    ForecastEntry,
+    WeatherAlert,
+    WeatherCondition,
+    WeatherData,
+    safe_divide,
 )
 
 __version__ = "1.0.0"
@@ -54,12 +50,10 @@ __all__ = [
     "AlertSeverity",
     "AlertType",
     "WeatherAlert",
-    
     # Location Models
     "Location",
     "LocationResult",
     "LocationSearchQuery",
-    
     # User Models
     "TemperatureUnit",
     "WindSpeedUnit",
@@ -70,5 +64,5 @@ __all__ = [
     "UnitPreferences",
     "NotificationPreferences",
     "DisplayPreferences",
-    "UserPreferences"
+    "UserPreferences",
 ]

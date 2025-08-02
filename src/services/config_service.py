@@ -47,7 +47,7 @@ class ConfigService:
 
     def _sync_weather_config(self) -> None:
         """Synchronize weather configuration with API configuration.
-        
+
         Ensures that weather.api_key and weather.base_url are always
         in sync with the main API configuration.
         """
@@ -55,13 +55,13 @@ class ConfigService:
             # Sync API key from main API config to weather config
             if self._config.api.openweather_api_key:
                 self._config.weather.api_key = self._config.api.openweather_api_key
-            
+
             # Sync base URL from main API config to weather config
             if self._config.api.openweather_base_url:
                 self._config.weather.base_url = self._config.api.openweather_base_url
-                
+
             self._logger.debug("Weather configuration synchronized with API configuration")
-            
+
         except Exception as e:
             self._logger.warning(f"Failed to sync weather configuration: {e}")
 
@@ -318,11 +318,11 @@ class ConfigService:
         try:
             if hasattr(self._config.api, key_name):
                 setattr(self._config.api, key_name, key_value)
-                
+
                 # Re-sync weather configuration if OpenWeather API key was updated
-                if key_name == 'openweather_api_key':
+                if key_name == "openweather_api_key":
                     self._sync_weather_config()
-                    
+
                 self._logger.info(f"Updated API key: {key_name}")
                 return True
             else:
@@ -357,10 +357,10 @@ class ConfigService:
         try:
             # Reinitialize the config to pick up new environment variables
             self._config = AppConfig()
-            
+
             # Ensure weather configuration is synced after reload
             self._sync_weather_config()
-            
+
             if not self.validate_configuration():
                 raise ConfigurationError("Reloaded configuration is invalid")
             self._logger.info("Configuration reloaded successfully")

@@ -1,32 +1,36 @@
 import logging
-from datetime import datetime, timedelta
 import tkinter as tk
+from datetime import datetime, timedelta
 
 import customtkinter as ctk
 from dotenv import load_dotenv
 
 from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
-from src.services.enhanced_weather_service import EnhancedWeatherService
+from src.services.enhanced_weather_service import EnhancedWeatherData, EnhancedWeatherService
 from src.services.github_team_service import GitHubTeamService
-from src.ui.components.forecast_day_card import ForecastDayCard
-from src.ui.components.theme_preview_card import ThemePreviewCard
-from src.ui.components.city_comparison_panel import CityComparisonPanel
-from src.ui.components.ml_comparison_panel import MLComparisonPanel
 from src.ui.components import (
-    AnimationManager, ShimmerEffect, MicroInteractions, LoadingSkeleton,
-    WeatherBackgroundManager, ParticleSystem, TemperatureGradient,
-    ErrorManager, StatusMessageManager, VisualPolishManager,
-    GlassMorphism, ShadowSystem, KeyboardShortcuts
+    AnimationManager,
+    ErrorManager,
+    LoadingSkeleton,
+    MicroInteractions,
+    ShimmerEffect,
+    StatusMessageManager,
+    VisualPolishManager,
+    WeatherBackgroundManager,
 )
+from src.ui.components.city_comparison_panel import CityComparisonPanel
 from src.ui.components.error_handler import ErrorHandler
+from src.ui.components.forecast_day_card import ForecastDayCard
+from src.ui.components.ml_comparison_panel import MLComparisonPanel
+from src.ui.components.theme_preview_card import ThemePreviewCard
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
-from src.utils.loading_manager import LoadingManager
-from src.utils.cache_manager import CacheManager
-from src.utils.startup_optimizer import StartupOptimizer
-from src.utils.component_recycler import ComponentRecycler
 from src.utils.api_optimizer import APIOptimizer
+from src.utils.cache_manager import CacheManager
+from src.utils.component_recycler import ComponentRecycler
+from src.utils.loading_manager import LoadingManager
+from src.utils.startup_optimizer import StartupOptimizer
 
 # Load environment variables
 load_dotenv()
@@ -50,18 +54,20 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             max_size_mb=100,  # 100MB cache
             enable_compression=True,
             compression_threshold=1024,  # Compress items > 1KB
-            lru_factor=0.8  # Evict when 80% full
+            lru_factor=0.8,  # Evict when 80% full
         )
         self.startup_optimizer = StartupOptimizer()
         self.component_recycler = ComponentRecycler()
         self.api_optimizer = APIOptimizer()
-        
+
         # Initialize services (with fallback for demo mode)
         try:
             self.config_service = config_service or ConfigService()
             self.weather_service = EnhancedWeatherService(self.config_service)
             self.activity_service = ActivityService(self.config_service)
-            github_token = self.config_service.get_setting('api.github_token') if self.config_service else None
+            github_token = (
+                self.config_service.get_setting("api.github_token") if self.config_service else None
+            )
             self.github_service = GitHubTeamService(github_token=github_token)
             self.loading_manager = LoadingManager()
         except Exception as e:
@@ -79,19 +85,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.error_manager = ErrorManager(self)
         self.status_manager = StatusMessageManager(self)
         self.visual_polish_manager = VisualPolishManager(self)
-        
+
         # Initialize comprehensive error handling system
         self.error_handler = ErrorHandler(self)
-        
+
         # Initialize theme manager and register as observer
         DataTerminalTheme.add_observer(self._on_theme_changed)
-        
+
         # Register visual polish managers with theme system
         theme_manager.add_observer(self.weather_background_manager.update_theme)
         theme_manager.add_observer(self.error_manager.update_theme)
         theme_manager.add_observer(self.status_manager.update_theme)
         theme_manager.add_observer(self.visual_polish_manager.update_theme)
-        
+
         # Weather icons mapping
         self.weather_icons = {
             "clear": "☀️",
@@ -108,14 +114,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Track scheduled after() calls for cleanup
         self.scheduled_calls = []
-        
+
         # Track open hourly breakdown windows
         self.open_hourly_windows = []
         self.is_destroyed = False
-        
+
         # Bind cleanup to window close
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
-        
+
         # State
         self.current_city = "London"
         self.temp_unit = "C"  # Default temperature unit
@@ -150,7 +156,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Start auto-refresh
         self._schedule_refresh()
-        
+
         # Initialize enhanced settings
         self._initialize_enhanced_settings()
 
@@ -183,25 +189,41 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.time_format = "%H:%M"
             self.selected_language = "English"
             self.font_size = 12
-            
+
             # Load saved settings if config service is available
             if self.config_service:
-                self.analytics_enabled = self.config_service.get_setting('privacy.analytics_enabled', True)
-                self.location_history_enabled = self.config_service.get_setting('privacy.location_history_enabled', True)
-                self.refresh_interval_minutes = self.config_service.get_setting('refresh.interval_minutes', 5)
-                self.quiet_hours_enabled = self.config_service.get_setting('refresh.quiet_hours_enabled', False)
-                self.quiet_start_hour = self.config_service.get_setting('refresh.quiet_start_hour', 22)
-                self.quiet_end_hour = self.config_service.get_setting('refresh.quiet_end_hour', 7)
-                self.wifi_only_refresh = self.config_service.get_setting('refresh.wifi_only', False)
-                self.date_format = self.config_service.get_setting('appearance.date_format', '%Y-%m-%d')
-                self.time_format = self.config_service.get_setting('appearance.time_format', '%H:%M')
-                self.selected_language = self.config_service.get_setting('appearance.language', 'English')
-                self.font_size = self.config_service.get_setting('appearance.font_size', 12)
-            
+                self.analytics_enabled = self.config_service.get_setting(
+                    "privacy.analytics_enabled", True
+                )
+                self.location_history_enabled = self.config_service.get_setting(
+                    "privacy.location_history_enabled", True
+                )
+                self.refresh_interval_minutes = self.config_service.get_setting(
+                    "refresh.interval_minutes", 5
+                )
+                self.quiet_hours_enabled = self.config_service.get_setting(
+                    "refresh.quiet_hours_enabled", False
+                )
+                self.quiet_start_hour = self.config_service.get_setting(
+                    "refresh.quiet_start_hour", 22
+                )
+                self.quiet_end_hour = self.config_service.get_setting("refresh.quiet_end_hour", 7)
+                self.wifi_only_refresh = self.config_service.get_setting("refresh.wifi_only", False)
+                self.date_format = self.config_service.get_setting(
+                    "appearance.date_format", "%Y-%m-%d"
+                )
+                self.time_format = self.config_service.get_setting(
+                    "appearance.time_format", "%H:%M"
+                )
+                self.selected_language = self.config_service.get_setting(
+                    "appearance.language", "English"
+                )
+                self.font_size = self.config_service.get_setting("appearance.font_size", 12)
+
             # Schedule periodic updates
             self.after(5000, self._update_usage_stats)  # Update usage stats every 5 seconds
             self.after(10000, self._update_cache_size)  # Update cache size every 10 seconds
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to initialize enhanced settings: {e}")
 
@@ -256,10 +278,11 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Enhanced Search Bar
         try:
             from src.ui.components.search_components import EnhancedSearchBar
+
             self.search_bar = EnhancedSearchBar(
                 search_container,
                 self.weather_service,
-                on_location_selected=self._on_location_selected
+                on_location_selected=self._on_location_selected,
             )
             self.search_bar.pack()
         except ImportError as e:
@@ -400,7 +423,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             command=self._enhanced_toggle_temperature_unit,
         )
         self.temp_toggle_btn.pack(side="left", padx=(0, 12), pady=8)
-        
+
         # Add micro-interactions to temperature toggle button
         self.micro_interactions.add_hover_effect(self.temp_toggle_btn)
         self.micro_interactions.add_click_effect(self.temp_toggle_btn)
@@ -518,7 +541,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             forecast_date = datetime.now() + timedelta(days=i)
             day_name = forecast_date.strftime("%a")
             date_str = forecast_date.strftime("%m/%d")
-            
+
             # Create enhanced forecast card with click handler
             day_card = ForecastDayCard(
                 forecast_frame,
@@ -530,12 +553,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 precipitation=0.0,
                 wind_speed=0.0,
                 temp_unit=self.temp_unit,
-                on_click=self._on_forecast_card_click
+                on_click=self._on_forecast_card_click,
             )
-            
+
             day_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
             self.forecast_cards.append(day_card)
-            
+
             # Add staggered animation
             day_card.animate_in(delay=i * 100)
 
@@ -747,41 +770,41 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Update 5-day forecast cards with weather data."""
         try:
             # Check if we have forecast cards to update
-            if not hasattr(self, 'forecast_cards') or not self.forecast_cards:
+            if not hasattr(self, "forecast_cards") or not self.forecast_cards:
                 return
-            
+
             # If we have forecast data, use it; otherwise generate sample data
-            if hasattr(weather_data, 'forecast_data') and weather_data.forecast_data:
+            if hasattr(weather_data, "forecast_data") and weather_data.forecast_data:
                 self._update_cards_with_forecast_data(weather_data.forecast_data)
             elif hasattr(weather_data, "temperature"):
                 self._update_cards_with_sample_data(weather_data.temperature)
-                
+
         except Exception as e:
             self.logger.error(f"Failed to update forecast cards: {e}")
-    
+
     def _update_cards_with_forecast_data(self, forecast_data):
         """Update forecast cards with real forecast data."""
         try:
             # Get daily forecasts from forecast data
             daily_forecasts = self._parse_daily_forecasts(forecast_data)
-            
+
             for i, card in enumerate(self.forecast_cards):
                 if i < len(daily_forecasts):
                     daily_data = daily_forecasts[i]
-                    
+
                     # Update card with real data
                     card.update_data(
-                        icon=daily_data.get('icon', '01d'),
-                        high=daily_data.get('high_temp', 22),
-                        low=daily_data.get('low_temp', 15),
-                        precipitation=daily_data.get('precipitation', 0.0),
-                        wind_speed=daily_data.get('wind_speed', 0.0),
-                        temp_unit=self.temp_unit
+                        icon=daily_data.get("icon", "01d"),
+                        high=daily_data.get("high_temp", 22),
+                        low=daily_data.get("low_temp", 15),
+                        precipitation=daily_data.get("precipitation", 0.0),
+                        wind_speed=daily_data.get("wind_speed", 0.0),
+                        temp_unit=self.temp_unit,
                     )
-                    
+
         except Exception as e:
             self.logger.error(f"Failed to update cards with forecast data: {e}")
-    
+
     def _update_cards_with_sample_data(self, base_temp):
         """Update forecast cards with sample data based on current temperature."""
         try:
@@ -789,142 +812,147 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 # Generate forecast temperatures (slight variations)
                 high_temp = int(base_temp + (i * 2) - 2)
                 low_temp = int(base_temp - 5 + (i * 1))
-                
+
                 # Sample weather conditions
-                icons = ['01d', '02d', '03d', '04d', '09d']
+                icons = ["01d", "02d", "03d", "04d", "09d"]
                 precipitations = [0.0, 0.1, 0.3, 0.2, 0.0]
                 wind_speeds = [2.5, 3.0, 4.2, 3.8, 2.1]
-                
+
                 card.update_data(
                     icon=icons[i % len(icons)],
                     high=high_temp,
                     low=low_temp,
                     precipitation=precipitations[i % len(precipitations)],
                     wind_speed=wind_speeds[i % len(wind_speeds)],
-                    temp_unit=self.temp_unit
+                    temp_unit=self.temp_unit,
                 )
-                
+
         except Exception as e:
             self.logger.error(f"Failed to update cards with sample data: {e}")
-    
+
     def _parse_daily_forecasts(self, forecast_data):
         """Parse forecast data into daily summaries."""
         try:
             daily_forecasts = []
-            
+
             # Check if forecast_data has the expected structure
-            if hasattr(forecast_data, 'get_daily_forecast'):
+            if hasattr(forecast_data, "get_daily_forecast"):
                 # Use the model's method to get daily forecast
                 daily_data = forecast_data.get_daily_forecast()
                 for day_data in daily_data[:5]:  # Get first 5 days
-                    daily_forecasts.append({
-                        'icon': getattr(day_data, 'icon', '01d'),
-                        'high_temp': int(getattr(day_data, 'high_temp', 22)),
-                        'low_temp': int(getattr(day_data, 'low_temp', 15)),
-                        'precipitation': getattr(day_data, 'precipitation_probability', 0.0),
-                        'wind_speed': getattr(day_data, 'wind_speed', 0.0)
-                    })
-            elif hasattr(forecast_data, 'list'):
+                    daily_forecasts.append(
+                        {
+                            "icon": getattr(day_data, "icon", "01d"),
+                            "high_temp": int(getattr(day_data, "high_temp", 22)),
+                            "low_temp": int(getattr(day_data, "low_temp", 15)),
+                            "precipitation": getattr(day_data, "precipitation_probability", 0.0),
+                            "wind_speed": getattr(day_data, "wind_speed", 0.0),
+                        }
+                    )
+            elif hasattr(forecast_data, "list"):
                 # Parse OpenWeatherMap 5-day forecast format
                 daily_forecasts = self._parse_openweather_forecast(forecast_data.list)
             else:
                 # Fallback to sample data
                 for i in range(5):
-                    daily_forecasts.append({
-                        'icon': ['01d', '02d', '03d', '04d', '09d'][i],
-                        'high_temp': 22 + (i * 2) - 2,
-                        'low_temp': 15 + i,
-                        'precipitation': [0.0, 0.1, 0.3, 0.2, 0.0][i],
-                        'wind_speed': [2.5, 3.0, 4.2, 3.8, 2.1][i]
-                    })
-            
+                    daily_forecasts.append(
+                        {
+                            "icon": ["01d", "02d", "03d", "04d", "09d"][i],
+                            "high_temp": 22 + (i * 2) - 2,
+                            "low_temp": 15 + i,
+                            "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                            "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
+                        }
+                    )
+
             return daily_forecasts
-            
+
         except Exception as e:
             self.logger.error(f"Failed to parse daily forecasts: {e}")
             return []
-    
+
     def _parse_openweather_forecast(self, forecast_list):
         """Parse OpenWeatherMap forecast list into daily summaries."""
         try:
             daily_data = {}
-            
+
             # Group forecast entries by date
             for entry in forecast_list:
-                if 'dt_txt' in entry:
-                    date_str = entry['dt_txt'][:10]  # Get YYYY-MM-DD part
-                    
+                if "dt_txt" in entry:
+                    date_str = entry["dt_txt"][:10]  # Get YYYY-MM-DD part
+
                     if date_str not in daily_data:
                         daily_data[date_str] = {
-                            'temps': [],
-                            'icons': [],
-                            'precipitation': 0.0,
-                            'wind_speeds': []
+                            "temps": [],
+                            "icons": [],
+                            "precipitation": 0.0,
+                            "wind_speeds": [],
                         }
-                    
+
                     # Collect temperature data
-                    if 'main' in entry and 'temp' in entry['main']:
-                        daily_data[date_str]['temps'].append(entry['main']['temp'])
-                    
+                    if "main" in entry and "temp" in entry["main"]:
+                        daily_data[date_str]["temps"].append(entry["main"]["temp"])
+
                     # Collect weather icons (use most common one)
-                    if 'weather' in entry and len(entry['weather']) > 0:
-                        daily_data[date_str]['icons'].append(entry['weather'][0].get('icon', '01d'))
-                    
+                    if "weather" in entry and len(entry["weather"]) > 0:
+                        daily_data[date_str]["icons"].append(entry["weather"][0].get("icon", "01d"))
+
                     # Collect precipitation probability
-                    if 'pop' in entry:
-                        daily_data[date_str]['precipitation'] = max(
-                            daily_data[date_str]['precipitation'], 
-                            entry['pop']
+                    if "pop" in entry:
+                        daily_data[date_str]["precipitation"] = max(
+                            daily_data[date_str]["precipitation"], entry["pop"]
                         )
-                    
+
                     # Collect wind speed
-                    if 'wind' in entry and 'speed' in entry['wind']:
-                        daily_data[date_str]['wind_speeds'].append(entry['wind']['speed'])
-            
+                    if "wind" in entry and "speed" in entry["wind"]:
+                        daily_data[date_str]["wind_speeds"].append(entry["wind"]["speed"])
+
             # Convert to daily forecasts
             daily_forecasts = []
             for date_str in sorted(daily_data.keys())[:5]:  # Get first 5 days
                 day_data = daily_data[date_str]
-                
+
                 # Calculate high/low temperatures
-                temps = day_data['temps']
+                temps = day_data["temps"]
                 high_temp = int(max(temps)) if temps else 22
                 low_temp = int(min(temps)) if temps else 15
-                
+
                 # Get most common icon
-                icons = day_data['icons']
-                icon = max(set(icons), key=icons.count) if icons else '01d'
-                
+                icons = day_data["icons"]
+                icon = max(set(icons), key=icons.count) if icons else "01d"
+
                 # Average wind speed
-                wind_speeds = day_data['wind_speeds']
+                wind_speeds = day_data["wind_speeds"]
                 avg_wind = sum(wind_speeds) / len(wind_speeds) if wind_speeds else 0.0
-                
-                daily_forecasts.append({
-                    'icon': icon,
-                    'high_temp': high_temp,
-                    'low_temp': low_temp,
-                    'precipitation': day_data['precipitation'],
-                    'wind_speed': avg_wind
-                })
-            
+
+                daily_forecasts.append(
+                    {
+                        "icon": icon,
+                        "high_temp": high_temp,
+                        "low_temp": low_temp,
+                        "precipitation": day_data["precipitation"],
+                        "wind_speed": avg_wind,
+                    }
+                )
+
             return daily_forecasts
-            
+
         except Exception as e:
             self.logger.error(f"Failed to parse OpenWeather forecast: {e}")
             return []
-    
+
     def _on_forecast_card_click(self, card):
         """Handle forecast card click to show hourly breakdown."""
         try:
             # Get the card index
             card_index = self.forecast_cards.index(card) if card in self.forecast_cards else 0
-            
+
             # Create hourly breakdown dialog
             self._show_hourly_breakdown(card_index)
-            
+
         except Exception as e:
             self.logger.error(f"Failed to handle forecast card click: {e}")
-    
+
     def _show_hourly_breakdown(self, day_index):
         """Show hourly weather breakdown for selected day."""
         try:
@@ -934,117 +962,124 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             hourly_window.geometry("600x400")
             hourly_window.transient(self)
             hourly_window.grab_set()
-            
+
             # Check if we have newer weather data available
             current_time = datetime.now()
-            current_data_timestamp = getattr(self.current_weather_data, 'timestamp', current_time) if hasattr(self, 'current_weather_data') and self.current_weather_data else current_time
-            
+            current_data_timestamp = (
+                getattr(self.current_weather_data, "timestamp", current_time)
+                if hasattr(self, "current_weather_data") and self.current_weather_data
+                else current_time
+            )
+
             # Store reference to window and its day index with creation timestamp
             window_info = {
-                'window': hourly_window,
-                'day_index': day_index,
-                'created_at': current_time,
-                'data_timestamp': current_data_timestamp
+                "window": hourly_window,
+                "day_index": day_index,
+                "created_at": current_time,
+                "data_timestamp": current_data_timestamp,
             }
             self.open_hourly_windows.append(window_info)
-            logging.info(f"Hourly window opened for day {day_index}. Total open windows: {len(self.open_hourly_windows)}")
-            logging.info(f"Window created at {window_info['created_at'].strftime('%H:%M:%S')} with data from {window_info['data_timestamp'].strftime('%H:%M:%S')}")
-            
+            logging.info(
+                f"Hourly window opened for day {day_index}. Total open windows: {len(self.open_hourly_windows)}"
+            )
+            logging.info(
+                f"Window created at {window_info['created_at'].strftime('%H:%M:%S')} with data from {window_info['data_timestamp'].strftime('%H:%M:%S')}"
+            )
+
             # Set up cleanup when window is closed
             def on_window_close():
                 if window_info in self.open_hourly_windows:
                     self.open_hourly_windows.remove(window_info)
-                    logging.info(f"Hourly window closed for day {day_index}. Total open windows: {len(self.open_hourly_windows)}")
+                    logging.info(
+                        f"Hourly window closed for day {day_index}. Total open windows: {len(self.open_hourly_windows)}"
+                    )
                 hourly_window.destroy()
-            
+
             hourly_window.protocol("WM_DELETE_WINDOW", on_window_close)
-            
+
             # Center the window
             hourly_window.update_idletasks()
             x = (hourly_window.winfo_screenwidth() // 2) - (600 // 2)
             y = (hourly_window.winfo_screenheight() // 2) - (400 // 2)
             hourly_window.geometry(f"600x400+{x}+{y}")
-            
+
             # Create content
             content_frame = ctk.CTkFrame(hourly_window)
             content_frame.pack(fill="both", expand=True, padx=20, pady=20)
-            
+
             # Title
             target_date = datetime.now() + timedelta(days=day_index)
             title_label = ctk.CTkLabel(
                 content_frame,
                 text=f"Hourly Forecast - {target_date.strftime('%A, %B %d')}",
                 font=ctk.CTkFont(size=18, weight="bold"),
-                text_color=theme_manager.get_current_theme().get("text", "#FFFFFF")
+                text_color=theme_manager.get_current_theme().get("text", "#FFFFFF"),
             )
             title_label.pack(pady=(0, 20))
-            
+
             # Scrollable frame for hourly data
             scrollable_frame = ctk.CTkScrollableFrame(content_frame)
             scrollable_frame.pack(fill="both", expand=True)
-            
+
             # Get real hourly forecast data
             hourly_data = self._get_hourly_data_for_day(day_index)
-            
+
             # Check if we have newer weather data available and update window info if needed
-            if hasattr(self, 'last_weather_data_timestamp') and self.last_weather_data_timestamp > current_data_timestamp:
-                window_info['data_timestamp'] = self.last_weather_data_timestamp
-                logging.info(f"Updated window data timestamp to latest: {self.last_weather_data_timestamp.strftime('%H:%M:%S')}")
-            
+            if (
+                hasattr(self, "last_weather_data_timestamp")
+                and self.last_weather_data_timestamp > current_data_timestamp
+            ):
+                window_info["data_timestamp"] = self.last_weather_data_timestamp
+                logging.info(
+                    f"Updated window data timestamp to latest: {self.last_weather_data_timestamp.strftime('%H:%M:%S')}"
+                )
+
             if hourly_data:
                 # Display real hourly data
                 for hour_entry in hourly_data:
                     hour_frame = ctk.CTkFrame(scrollable_frame)
                     hour_frame.pack(fill="x", padx=5, pady=2)
-                    
+
                     # Time
-                    time_str = hour_entry.get('time', '00:00')
+                    time_str = hour_entry.get("time", "00:00")
                     time_label = ctk.CTkLabel(
-                        hour_frame,
-                        text=time_str,
-                        font=ctk.CTkFont(size=14),
-                        width=60
+                        hour_frame, text=time_str, font=ctk.CTkFont(size=14), width=60
                     )
                     time_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Weather icon
-                    icon = self._get_weather_icon(hour_entry.get('condition', 'clear'))
+                    icon = self._get_weather_icon(hour_entry.get("condition", "clear"))
                     icon_label = ctk.CTkLabel(
-                        hour_frame,
-                        text=icon,
-                        font=ctk.CTkFont(size=14),
-                        width=40
+                        hour_frame, text=icon, font=ctk.CTkFont(size=14), width=40
                     )
                     icon_label.pack(side="left", padx=5, pady=5)
-                    
+
                     # Temperature
-                    temp = hour_entry.get('temperature', 20)
-                    if hasattr(self, 'temp_unit') and self.temp_unit == 'F':
-                        temp = temp * 9/5 + 32
+                    temp = hour_entry.get("temperature", 20)
+                    if hasattr(self, "temp_unit") and self.temp_unit == "F":
+                        temp = temp * 9 / 5 + 32
                     temp_label = ctk.CTkLabel(
                         hour_frame,
                         text=f"{int(temp)}°{getattr(self, 'temp_unit', 'C')}",
                         font=ctk.CTkFont(size=14),
-                        width=60
+                        width=60,
                     )
                     temp_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Precipitation
-                    precip = hour_entry.get('precipitation', 0)
+                    precip = hour_entry.get("precipitation", 0)
                     precip_label = ctk.CTkLabel(
                         hour_frame,
                         text=f"💧 {int(precip)}%" if precip > 0 else "",
                         font=ctk.CTkFont(size=12),
-                        width=60
+                        width=60,
                     )
                     precip_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Wind
-                    wind = hour_entry.get('wind_speed', 0)
+                    wind = hour_entry.get("wind_speed", 0)
                     wind_label = ctk.CTkLabel(
-                        hour_frame,
-                        text=f"💨 {wind:.1f} m/s",
-                        font=ctk.CTkFont(size=12)
+                        hour_frame, text=f"💨 {wind:.1f} m/s", font=ctk.CTkFont(size=12)
                     )
                     wind_label.pack(side="left", padx=10, pady=5)
             else:
@@ -1053,173 +1088,180 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     scrollable_frame,
                     text="No hourly forecast data available for this day.",
                     font=ctk.CTkFont(size=14),
-                    text_color=theme_manager.get_current_theme().get("text_secondary", "#CCCCCC")
+                    text_color=theme_manager.get_current_theme().get("text_secondary", "#CCCCCC"),
                 )
                 no_data_label.pack(pady=20)
-                
+
                 # Show sample data as fallback
                 for hour in range(0, 24, 3):  # Every 3 hours
                     hour_frame = ctk.CTkFrame(scrollable_frame)
                     hour_frame.pack(fill="x", padx=5, pady=2)
-                    
+
                     # Time
                     time_label = ctk.CTkLabel(
-                        hour_frame,
-                        text=f"{hour:02d}:00",
-                        font=ctk.CTkFont(size=14),
-                        width=60
+                        hour_frame, text=f"{hour:02d}:00", font=ctk.CTkFont(size=14), width=60
                     )
                     time_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Weather icon
                     icon_label = ctk.CTkLabel(
-                        hour_frame,
-                        text="🌤️",
-                        font=ctk.CTkFont(size=14),
-                        width=40
+                        hour_frame, text="🌤️", font=ctk.CTkFont(size=14), width=40
                     )
                     icon_label.pack(side="left", padx=5, pady=5)
-                    
+
                     # Temperature
                     temp = 20 + (hour // 3) - 2  # Sample temperature variation
                     temp_label = ctk.CTkLabel(
                         hour_frame,
                         text=f"{temp}°{getattr(self, 'temp_unit', 'C')}",
                         font=ctk.CTkFont(size=14),
-                        width=60
+                        width=60,
                     )
                     temp_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Precipitation
-                    precip = max(0, (hour - 12) * 5) if 9 <= hour <= 15 else 0  # Sample precipitation
+                    precip = (
+                        max(0, (hour - 12) * 5) if 9 <= hour <= 15 else 0
+                    )  # Sample precipitation
                     precip_label = ctk.CTkLabel(
                         hour_frame,
                         text=f"💧 {precip}%" if precip > 0 else "",
                         font=ctk.CTkFont(size=12),
-                        width=60
+                        width=60,
                     )
                     precip_label.pack(side="left", padx=10, pady=5)
-                    
+
                     # Wind
                     wind = 2.0 + (hour * 0.1)  # Sample wind variation
                     wind_label = ctk.CTkLabel(
-                        hour_frame,
-                        text=f"💨 {wind:.1f} m/s",
-                        font=ctk.CTkFont(size=12)
+                        hour_frame, text=f"💨 {wind:.1f} m/s", font=ctk.CTkFont(size=12)
                     )
                     wind_label.pack(side="left", padx=10, pady=5)
-            
+
             # Close button
             close_button = ctk.CTkButton(
-                content_frame,
-                text="Close",
-                command=on_window_close,
-                font=ctk.CTkFont(size=14)
+                content_frame, text="Close", command=on_window_close, font=ctk.CTkFont(size=14)
             )
             close_button.pack(pady=(10, 0))
-            
+
             # Store reference to content frame for updates
-            window_info['content_frame'] = content_frame
-            
+            window_info["content_frame"] = content_frame
+
         except Exception as e:
             self.logger.error(f"Failed to show hourly breakdown: {e}")
-    
+
     def _refresh_open_hourly_windows(self):
         """Refresh content of all open hourly breakdown windows."""
         try:
-            current_time = datetime.now().strftime('%H:%M:%S')
-            current_data_timestamp = getattr(self.current_weather_data, 'timestamp', datetime.now()) if hasattr(self, 'current_weather_data') and self.current_weather_data else datetime.now()
-            
-            self.logger.info(f"[{current_time}] Refreshing {len(self.open_hourly_windows)} open hourly windows")
-            self.logger.info(f"[{current_time}] Current weather data timestamp: {current_data_timestamp.strftime('%H:%M:%S')}")
-            
+            current_time = datetime.now().strftime("%H:%M:%S")
+            current_data_timestamp = (
+                getattr(self.current_weather_data, "timestamp", datetime.now())
+                if hasattr(self, "current_weather_data") and self.current_weather_data
+                else datetime.now()
+            )
+
+            self.logger.info(
+                f"[{current_time}] Refreshing {len(self.open_hourly_windows)} open hourly windows"
+            )
+            self.logger.info(
+                f"[{current_time}] Current weather data timestamp: {current_data_timestamp.strftime('%H:%M:%S')}"
+            )
+
             for window_info in self.open_hourly_windows[:]:
                 try:
-                    window = window_info['window']
-                    day_index = window_info['day_index']
-                    window_data_timestamp = window_info.get('data_timestamp', datetime.min)
-                    
+                    window = window_info["window"]
+                    day_index = window_info["day_index"]
+                    window_data_timestamp = window_info.get("data_timestamp", datetime.min)
+
                     # Check if window still exists
                     if not window.winfo_exists():
                         self.open_hourly_windows.remove(window_info)
-                        self.logger.info(f"[{current_time}] Removed non-existent window for day {day_index}")
+                        self.logger.info(
+                            f"[{current_time}] Removed non-existent window for day {day_index}"
+                        )
                         continue
-                    
+
                     # Check if current data is newer than window's data
                     if current_data_timestamp <= window_data_timestamp:
-                        self.logger.info(f"[{current_time}] Skipping window for day {day_index} - data is current (window: {window_data_timestamp.strftime('%H:%M:%S')}, current: {current_data_timestamp.strftime('%H:%M:%S')})")
+                        self.logger.info(
+                            f"[{current_time}] Skipping window for day {day_index} - "
+                            f"data is current (window: {window_data_timestamp.strftime('%H:%M:%S')}, "
+                            f"current: {current_data_timestamp.strftime('%H:%M:%S')})"
+                        )
                         continue
-                    
-                    self.logger.info(f"[{current_time}] Refreshing hourly window for day {day_index} with newer data (window: {window_data_timestamp.strftime('%H:%M:%S')}, current: {current_data_timestamp.strftime('%H:%M:%S')})")
-                    
+
+                    self.logger.info(
+                        f"[{current_time}] Refreshing hourly window for day {day_index} "
+                        f"with newer data (window: {window_data_timestamp.strftime('%H:%M:%S')}, "
+                        f"current: {current_data_timestamp.strftime('%H:%M:%S')})"
+                    )
+
                     # Update the window's data timestamp
-                    window_info['data_timestamp'] = current_data_timestamp
-                    
+                    window_info["data_timestamp"] = current_data_timestamp
+
+                    # Get content frame from window info
+                    content_frame = window_info.get("content_frame")
+                    if not content_frame:
+                        self.logger.warning(f"No content frame found for hourly window {day_index}")
+                        continue
+
                     # Clear existing content (except close button)
                     for child in content_frame.winfo_children():
                         if not isinstance(child, ctk.CTkButton):
                             child.destroy()
-                    
+
                     # Recreate the scrollable frame and content
                     scrollable_frame = ctk.CTkScrollableFrame(content_frame)
                     scrollable_frame.pack(fill="both", expand=True)
-                    
+
                     # Get updated hourly data
                     hourly_data = self._get_hourly_data_for_day(day_index)
-                    
+
                     if hourly_data:
                         # Display updated hourly data
                         for hour_entry in hourly_data:
                             hour_frame = ctk.CTkFrame(scrollable_frame)
                             hour_frame.pack(fill="x", padx=5, pady=2)
-                            
+
                             # Time
-                            time_str = hour_entry.get('time', '00:00')
+                            time_str = hour_entry.get("time", "00:00")
                             time_label = ctk.CTkLabel(
-                                hour_frame,
-                                text=time_str,
-                                font=ctk.CTkFont(size=14),
-                                width=60
+                                hour_frame, text=time_str, font=ctk.CTkFont(size=14), width=60
                             )
                             time_label.pack(side="left", padx=10, pady=5)
-                            
+
                             # Weather icon
-                            condition = hour_entry.get('condition', 'clear')
+                            condition = hour_entry.get("condition", "clear")
                             icon = self._get_weather_icon(condition)
                             icon_label = ctk.CTkLabel(
-                                hour_frame,
-                                text=icon,
-                                font=ctk.CTkFont(size=16),
-                                width=40
+                                hour_frame, text=icon, font=ctk.CTkFont(size=16), width=40
                             )
                             icon_label.pack(side="left", padx=10, pady=5)
-                            
+
                             # Temperature
-                            temp = hour_entry.get('temperature', 20)
+                            temp = hour_entry.get("temperature", 20)
                             temp_label = ctk.CTkLabel(
                                 hour_frame,
                                 text=f"{int(temp)}°{getattr(self, 'temp_unit', 'C')}",
                                 font=ctk.CTkFont(size=14),
-                                width=60
+                                width=60,
                             )
                             temp_label.pack(side="left", padx=10, pady=5)
-                            
+
                             # Precipitation
-                            precip = hour_entry.get('precipitation', 0)
+                            precip = hour_entry.get("precipitation", 0)
                             precip_label = ctk.CTkLabel(
                                 hour_frame,
                                 text=f"💧 {int(precip)}%" if precip > 0 else "",
                                 font=ctk.CTkFont(size=12),
-                                width=60
+                                width=60,
                             )
                             precip_label.pack(side="left", padx=10, pady=5)
-                            
+
                             # Wind
-                            wind = hour_entry.get('wind_speed', 0)
+                            wind = hour_entry.get("wind_speed", 0)
                             wind_label = ctk.CTkLabel(
-                                hour_frame,
-                                text=f"💨 {wind:.1f} m/s",
-                                font=ctk.CTkFont(size=12)
+                                hour_frame, text=f"💨 {wind:.1f} m/s", font=ctk.CTkFont(size=12)
                             )
                             wind_label.pack(side="left", padx=10, pady=5)
                     else:
@@ -1227,85 +1269,91 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                         no_data_label = ctk.CTkLabel(
                             scrollable_frame,
                             text="No hourly forecast data available for this day.",
-                            font=ctk.CTkFont(size=14)
+                            font=ctk.CTkFont(size=14),
                         )
                         no_data_label.pack(pady=20)
-                        
+
                 except Exception as e:
                     self.logger.error(f"Failed to refresh hourly window: {e}")
                     # Remove problematic window from tracking
                     if window_info in self.open_hourly_windows:
                         self.open_hourly_windows.remove(window_info)
-                        
+
         except Exception as e:
             self.logger.error(f"Failed to refresh open hourly windows: {e}")
-    
+
     def _get_hourly_data_for_day(self, day_index):
         """Extract hourly forecast data for a specific day."""
         try:
-            if not self.current_weather_data or not hasattr(self.current_weather_data, 'forecast_data'):
+            if not self.current_weather_data or not hasattr(
+                self.current_weather_data, "forecast_data"
+            ):
                 return None
-            
+
             forecast_data = self.current_weather_data.forecast_data
-            if not forecast_data or not hasattr(forecast_data, 'hourly_forecasts'):
+            if not forecast_data or not hasattr(forecast_data, "hourly_forecasts"):
                 return None
-            
+
             # Calculate target date
             target_date = datetime.now().date() + timedelta(days=day_index)
-            
+
             hourly_data = []
             for forecast in forecast_data.hourly_forecasts:
                 # Get the forecast datetime
                 forecast_dt = forecast.timestamp
-                
+
                 # Check if this forecast is for the target day
                 if forecast_dt.date() == target_date:
                     # Get precipitation probability as percentage
                     precip_prob = 0
                     if forecast.precipitation_probability is not None:
                         precip_prob = forecast.precipitation_probability * 100
-                    
+
                     hour_data = {
-                        'time': forecast_dt.strftime('%H:%M'),
-                        'temperature': forecast.temperature,
-                        'condition': forecast.condition.value if hasattr(forecast.condition, 'value') else str(forecast.condition),
-                        'precipitation': precip_prob,
-                        'wind_speed': forecast.wind_speed or 0
+                        "time": forecast_dt.strftime("%H:%M"),
+                        "temperature": forecast.temperature,
+                        "condition": (
+                            forecast.condition.value
+                            if hasattr(forecast.condition, "value")
+                            else str(forecast.condition)
+                        ),
+                        "precipitation": precip_prob,
+                        "wind_speed": forecast.wind_speed or 0,
                     }
                     hourly_data.append(hour_data)
-            
+
             return hourly_data if hourly_data else None
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get hourly data for day {day_index}: {e}")
             return None
-    
+
     def _get_weather_icon(self, condition):
         """Get weather icon emoji based on condition."""
         condition_lower = condition.lower()
-        
+
         icon_map = {
-            'clear': '☀️',
-            'sunny': '☀️',
-            'clouds': '☁️',
-            'cloudy': '☁️',
-            'partly cloudy': '⛅',
-            'overcast': '☁️',
-            'rain': '🌧️',
-            'drizzle': '🌦️',
-            'shower': '🌦️',
-            'thunderstorm': '⛈️',
-            'snow': '❄️',
-            'mist': '🌫️',
-            'fog': '🌫️',
-            'haze': '🌫️'
+            "clear": "☀️",
+            "sunny": "☀️",
+            "clouds": "☁️",
+            "cloudy": "☁️",
+            "partly cloudy": "⛅",
+            "overcast": "☁️",
+            "rain": "🌧️",
+            "drizzle": "🌦️",
+            "shower": "🌦️",
+            "thunderstorm": "⛈️",
+            "snow": "❄️",
+            "mist": "🌫️",
+            "fog": "🌫️",
+            "haze": "🌫️",
         }
-        
+
         for key, icon in icon_map.items():
             if key in condition_lower:
                 return icon
-        
-        return '🌤️'  # Default icon
+
+        return "🌤️"  # Default icon
 
     def _update_temperature_chart(self, weather_data):
         """Update temperature chart with weather data."""
@@ -1326,9 +1374,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     hourly_temps.append(temp)
 
                 # Ensure chart uses correct temperature unit
-                if hasattr(self.temp_chart, 'set_temperature_unit') and hasattr(self, 'temp_unit'):
+                if hasattr(self.temp_chart, "set_temperature_unit") and hasattr(self, "temp_unit"):
                     self.temp_chart.set_temperature_unit(self.temp_unit)
-                
+
                 # Update chart if it has an update method
                 if hasattr(self.temp_chart, "update_data"):
                     self.temp_chart.update_data(hourly_temps)
@@ -1341,12 +1389,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Enhanced weather search with micro-interactions."""
         # Add ripple effect on button click
         self.micro_interactions.add_ripple_effect(self.search_button)
-        
+
         search_term = self.search_entry.get().strip()
         if search_term:
             # Pulse animation for search entry
             self.animation_manager.pulse_animation(self.search_entry)
-            
+
             # Update current city with fade effect
             self.current_city = search_term
             self.animation_manager.fade_in(self.location_label)
@@ -1357,43 +1405,45 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.city_label.configure(text=self.current_city)
 
             # Clear search entry with animation
-            self.animation_manager.fade_out(self.search_entry, callback=lambda: self.search_entry.delete(0, "end"))
+            self.animation_manager.fade_out(
+                self.search_entry, callback=lambda: self.search_entry.delete(0, "end")
+            )
 
             # Call original weather update
             self._update_weather_display()
         else:
             # Show warning pulse for empty search
             self.micro_interactions.add_warning_pulse(self.search_entry)
-    
+
     def _on_location_selected(self, location_result):
         """Handle location selection from enhanced search bar."""
         try:
             self.logger.info(f"Location selected: {location_result.display_name}")
-            
+
             # Update current city
             self.current_city = location_result.display_name
             self.location_label.configure(text=f"📍 Current: {self.current_city}")
-            
+
             # Update weather display
-            if hasattr(self, 'city_label'):
+            if hasattr(self, "city_label"):
                 self.city_label.configure(text=self.current_city)
-            
+
             # Store location coordinates for future use
             self.current_location = {
-                'name': location_result.name,
-                'display_name': location_result.display_name,
-                'latitude': location_result.latitude,
-                'longitude': location_result.longitude,
-                'country': location_result.country,
-                'state': location_result.state
+                "name": location_result.name,
+                "display_name": location_result.display_name,
+                "latitude": location_result.latitude,
+                "longitude": location_result.longitude,
+                "country": location_result.country,
+                "state": location_result.state,
             }
-            
+
             # Trigger weather data update
             self._safe_fetch_weather_data()
-            
+
             # Trigger forecast update - this will be handled by _safe_fetch_weather_data
             # which calls _update_forecast_display with proper forecast data
-                
+
         except Exception as e:
             self.logger.error(f"Error handling location selection: {e}")
             self._show_error_state(f"Failed to update location: {str(e)}")
@@ -1430,7 +1480,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             command=self._enhanced_search_weather,
         )
         self.search_button.pack(side="left")
-        
+
         # Add micro-interactions to search button
         self.micro_interactions.add_hover_effect(self.search_button)
         self.micro_interactions.add_click_effect(self.search_button)
@@ -1438,45 +1488,42 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _search_weather(self):
         """Handle weather search functionality with input validation."""
         search_term = self.search_entry.get().strip()
-        
+
         # Clear any existing validation errors
         self.error_handler.clear_validation_error(self.search_entry)
-        
+
         # Validate input
         if not search_term:
             self.error_handler.show_validation_error(
                 self.search_entry,
                 "City name is required",
-                "Enter a valid city name (e.g., 'New York' or 'London, UK')"
+                "Enter a valid city name (e.g., 'New York' or 'London, UK')",
             )
             return
-        
+
         if len(search_term) < 2:
             self.error_handler.show_validation_error(
-                self.search_entry,
-                "City name too short",
-                "Please enter at least 2 characters"
+                self.search_entry, "City name too short", "Please enter at least 2 characters"
             )
             return
-        
+
         if len(search_term) > 100:
             self.error_handler.show_validation_error(
-                self.search_entry,
-                "City name too long",
-                "Please enter a shorter city name"
+                self.search_entry, "City name too long", "Please enter a shorter city name"
             )
             return
-        
+
         # Check for invalid characters
         import re
-        if not re.match(r'^[a-zA-Z\s,.-]+$', search_term):
+
+        if not re.match(r"^[a-zA-Z\s,.-]+$", search_term):
             self.error_handler.show_validation_error(
                 self.search_entry,
                 "Invalid characters in city name",
-                "Use only letters, spaces, commas, periods, and hyphens"
+                "Use only letters, spaces, commas, periods, and hyphens",
             )
             return
-        
+
         # Valid input - proceed with search
         # Update current city
         self.current_city = search_term
@@ -1491,14 +1538,6 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Trigger weather data update
         self._safe_fetch_weather_data()
 
-    def _get_weather_icon(self, condition):
-        """Get weather icon based on condition."""
-        condition_lower = condition.lower()
-        for key, icon in self.weather_icons.items():
-            if key in condition_lower:
-                return icon
-        return "🌤️"  # Default icon
-
     def _update_weather_display(self, weather_data):
         """Update UI with enhanced weather display and visual effects."""
         try:
@@ -1509,12 +1548,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update weather-based background
             from src.ui.components.weather_effects import WeatherCondition
+
             weather_condition = WeatherCondition(
                 condition=weather_data.description,
                 temperature=weather_data.temperature,
-                humidity=getattr(weather_data, 'humidity', 50),
-                wind_speed=getattr(weather_data, 'wind_speed', 0),
-                time_of_day='day' if 6 <= datetime.now().hour <= 18 else 'night'
+                humidity=getattr(weather_data, "humidity", 50),
+                wind_speed=getattr(weather_data, "wind_speed", 0),
+                time_of_day="day" if 6 <= datetime.now().hour <= 18 else "night",
             )
             self.weather_background_manager.update_weather_background(weather_condition)
 
@@ -1543,15 +1583,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update main display with number transition animation
             self.animation_manager.animate_number_change(
-                self.temp_label, 
-                f"{int(weather_data.temperature)}°C"
+                self.temp_label, f"{int(weather_data.temperature)}°C"
             )
             self.animation_manager.fade_in(self.condition_label)
             self.condition_label.configure(text=f"{icon} {weather_data.description}")
-            
+
             # Show success status
             self.status_manager.show_weather_fact()
-            
+
             # Refresh any open hourly breakdown windows
             self.logger.info("About to refresh open hourly windows from _update_weather_display")
             self._refresh_open_hourly_windows()
@@ -1606,30 +1645,29 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Enhanced temperature unit toggle with micro-interactions."""
         # Add ripple effect on button click
         self.micro_interactions.add_ripple_effect(self.temp_toggle_btn)
-        
+
         # Animate button state change
         self.animation_manager.pulse_effect(self.temp_toggle_btn, duration=500, intensity=0.3)
-        
+
         # Store old unit for smooth transition
-        old_unit = self.temp_unit
-        
+        self.temp_unit
+
         # Call original toggle method
         self._toggle_temperature_unit()
-        
+
         # Animate temperature value changes
         if hasattr(self, "temp_label"):
             self.animation_manager.animate_number_change(
-                self.temp_label, 
-                self.temp_label.cget("text")
+                self.temp_label, self.temp_label.cget("text")
             )
-        
+
         # Animate feels like temperature if available
         if hasattr(self, "metric_labels") and "feels_like" in self.metric_labels:
             self.animation_manager.fade_in(self.metric_labels["feels_like"])
-        
+
         # Success pulse for successful conversion
         self.animation_manager.pulse_effect(self.temp_toggle_btn, duration=0.3, intensity=1.2)
-        
+
         # Show status with unit change
         new_unit_name = "Fahrenheit" if self.temp_unit == "F" else "Celsius"
         if hasattr(self, "status_label"):
@@ -1686,10 +1724,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                         self.metric_labels["feels_like"].configure(text=f"{celsius:.0f}°C")
                     except ValueError:
                         pass
-        
+
         # Update forecast cards with new temperature unit
-        if hasattr(self, 'forecast_cards') and hasattr(self, 'current_weather_data'):
-            if hasattr(self.current_weather_data, 'forecast_data'):
+        if hasattr(self, "forecast_cards") and hasattr(self, "current_weather_data"):
+            if hasattr(self.current_weather_data, "forecast_data"):
                 self._update_forecast_cards(self.current_weather_data)
 
     def _create_comparison_tab(self):
@@ -1702,7 +1740,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.city_comparison_panel = CityComparisonPanel(
             self.comparison_tab,
             weather_service=self.weather_service,
-            github_service=self.github_service
+            github_service=self.github_service,
         )
         self.city_comparison_panel.pack(fill="both", expand=True)
 
@@ -1716,7 +1754,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.ml_comparison_panel = MLComparisonPanel(
             self.ml_comparison_tab,
             weather_service=self.weather_service,
-            github_service=self.github_service
+            github_service=self.github_service,
         )
         self.ml_comparison_panel.pack(fill="both", expand=True)
 
@@ -1923,7 +1961,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             # Create cache key based on weather conditions
             cache_key = f"activities_{self.current_city}_{weather_data.get('condition', 'unknown')}_{weather_data.get('temperature', 0)}"
-            
+
             # Try to get cached suggestions first
             cached_suggestions = self.cache_manager.get(cache_key)
             if cached_suggestions:
@@ -1935,10 +1973,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     suggestions = self.activity_service.get_activity_suggestions(weather_data)
                     # Cache the suggestions for 30 minutes
                     self.cache_manager.set(
-                        cache_key, 
-                        suggestions, 
+                        cache_key,
+                        suggestions,
                         ttl=1800,  # 30 minutes
-                        tags=["activities", f"city_{self.current_city}"]
+                        tags=["activities", f"city_{self.current_city}"],
                     )
                 else:
                     suggestions = self._get_fallback_activities()
@@ -2131,7 +2169,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 font=(DataTerminalTheme.FONT_FAMILY, 12),
             )
             label.grid(row=1, column=i, sticky="w", padx=10, pady=5)
-            
+
             value_label = ctk.CTkLabel(
                 usage_frame,
                 text=value,
@@ -2139,7 +2177,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 text_color=DataTerminalTheme.SUCCESS,
             )
             value_label.grid(row=2, column=i, sticky="w", padx=10, pady=(0, 10))
-            
+
             self.usage_labels[label_text] = value_label
 
         # Action buttons frame
@@ -2215,15 +2253,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         theme_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=15, pady=6)
 
         # Theme preview grid
-        self.theme_grid = ctk.CTkFrame(
-            appearance_frame,
-            fg_color="transparent"
-        )
+        self.theme_grid = ctk.CTkFrame(appearance_frame, fg_color="transparent")
         self.theme_grid.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))
         self.theme_grid.grid_columnconfigure(0, weight=1)
         self.theme_grid.grid_columnconfigure(1, weight=1)
         self.theme_grid.grid_columnconfigure(2, weight=1)
-        
+
         # Create theme preview cards
         self._create_theme_selector()
 
@@ -2262,7 +2297,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.datetime_var = ctk.StringVar(value="MM/DD/YYYY HH:MM")
         datetime_menu = ctk.CTkOptionMenu(
             appearance_frame,
-            values=["MM/DD/YYYY HH:MM", "DD/MM/YYYY HH:MM", "YYYY-MM-DD HH:MM", "DD MMM YYYY HH:MM"],
+            values=[
+                "MM/DD/YYYY HH:MM",
+                "DD/MM/YYYY HH:MM",
+                "YYYY-MM-DD HH:MM",
+                "DD MMM YYYY HH:MM",
+            ],
             variable=self.datetime_var,
             width=180,
             height=30,
@@ -2329,23 +2369,23 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_theme_selector(self):
         """Create theme preview cards for theme selection."""
         self.theme_preview_cards = []
-        
+
         for i, (key, theme) in enumerate(theme_manager.THEMES.items()):
             # Create theme preview card
             preview = ThemePreviewCard(
                 self.theme_grid,
                 theme_data=theme,
                 theme_key=key,
-                on_select=lambda t=key: self.apply_theme(t)
+                on_select=lambda t=key: self.apply_theme(t),
             )
-            
+
             # Arrange in 3 columns, 2 rows
             row = i // 3
             col = i % 3
             preview.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
-            
+
             self.theme_preview_cards.append(preview)
-            
+
             # Set current theme as selected
             if key == "matrix":  # Default theme
                 preview.set_selected(True)
@@ -2354,19 +2394,18 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Apply selected theme to the entire application with micro-interactions."""
         try:
             # Find and animate the selected theme card
-            selected_card = None
             for card in self.theme_preview_cards:
                 if card.theme_key == theme_name:
-                    selected_card = card
+                    pass
                     # Add ripple effect to selected theme card
                     self.micro_interactions.add_ripple_effect(card)
                     # Success pulse for theme selection
                     self.animation_manager.success_pulse(card)
                     break
-            
+
             # Apply theme using theme manager
             theme_manager.apply_theme(theme_name, self)
-            
+
             # Update theme preview cards selection with fade effects
             for card in self.theme_preview_cards:
                 if card.theme_key == theme_name:
@@ -2377,38 +2416,38 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                     card.set_selected(False)
                     # Subtle fade for unselected cards
                     self.animation_manager.fade_out(card, duration=200)
-                
+
             # Update temperature chart if it exists
-            if hasattr(self, 'temp_chart') and self.temp_chart:
+            if hasattr(self, "temp_chart") and self.temp_chart:
                 theme_data = theme_manager.THEMES.get(theme_name, {})
                 self.temp_chart.update_theme(theme_data)
-                
+
             # Show theme change status with animation
-            theme_display_name = theme_manager.THEMES.get(theme_name, {}).get('name', theme_name)
+            theme_display_name = theme_manager.THEMES.get(theme_name, {}).get("name", theme_name)
             if hasattr(self, "status_label"):
                 self.animation_manager.fade_in(self.status_label)
                 self.status_label.configure(text=f"🎨 Theme changed to {theme_display_name}")
-                
+
             logging.info(f"Applied theme: {theme_name}")
-            
+
         except Exception as e:
-             logging.error(f"Error applying theme {theme_name}: {e}")
+            logging.error(f"Error applying theme {theme_name}: {e}")
 
     def _on_theme_changed(self):
         """Callback for when theme changes - update UI colors."""
         try:
             # Force update of the entire widget tree
             self.update_idletasks()
-            
+
             # Update temperature chart colors if it exists
-            if hasattr(self, 'temp_chart') and self.temp_chart:
+            if hasattr(self, "temp_chart") and self.temp_chart:
                 theme_data = {
-                    'chart_color': DataTerminalTheme.PRIMARY,
-                    'chart_bg': DataTerminalTheme.BACKGROUND,
-                    'text_color': DataTerminalTheme.TEXT
+                    "chart_color": DataTerminalTheme.PRIMARY,
+                    "chart_bg": DataTerminalTheme.BACKGROUND,
+                    "text_color": DataTerminalTheme.TEXT,
                 }
                 self.temp_chart.update_theme(theme_data)
-                
+
         except Exception as e:
             logging.error(f"Error updating theme: {e}")
 
@@ -2505,7 +2544,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         export_label.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 6))
 
         # Date range selection
-        from_label = ctk.CTkLabel(export_frame, text="Range:", font=(DataTerminalTheme.FONT_FAMILY, 11))
+        from_label = ctk.CTkLabel(
+            export_frame, text="Range:", font=(DataTerminalTheme.FONT_FAMILY, 11)
+        )
         from_label.grid(row=1, column=0, sticky="w", pady=2)
 
         self.export_from_var = ctk.StringVar(value="Last 30 days")
@@ -2607,7 +2648,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
         refresh_frame.grid(row=4, column=0, sticky="ew", pady=(0, 15))
         refresh_frame.grid_columnconfigure(0, weight=1)
@@ -2618,18 +2659,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         header_frame.grid_columnconfigure(1, weight=1)
 
         # Icon and title
-        icon_label = ctk.CTkLabel(
-            header_frame,
-            text="🔄",
-            font=(DataTerminalTheme.FONT_FAMILY, 18)
-        )
+        icon_label = ctk.CTkLabel(header_frame, text="🔄", font=(DataTerminalTheme.FONT_FAMILY, 18))
         icon_label.grid(row=0, column=0, padx=(0, 10))
 
         title_label = ctk.CTkLabel(
             header_frame,
             text="Auto-Refresh Configuration",
             font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.TEXT
+            text_color=DataTerminalTheme.TEXT,
         )
         title_label.grid(row=0, column=1, sticky="w")
 
@@ -2643,7 +2680,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             content_frame,
             text="Refresh Interval (minutes):",
             font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         interval_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
 
@@ -2652,12 +2689,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         interval_frame.grid(row=0, column=1, sticky="ew", padx=(20, 0), pady=(0, 10))
         interval_frame.grid_columnconfigure(0, weight=1)
 
-        self.refresh_interval_var = tk.IntVar(value=self.config_service.get_setting("refresh_interval", 5))
+        self.refresh_interval_var = tk.IntVar(
+            value=self.config_service.get_setting("refresh_interval", 5)
+        )
         self.refresh_interval_label = ctk.CTkLabel(
             interval_frame,
             text=f"{self.refresh_interval_var.get()} min",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            text_color=DataTerminalTheme.PRIMARY
+            text_color=DataTerminalTheme.PRIMARY,
         )
         self.refresh_interval_label.grid(row=0, column=1, padx=(10, 0))
 
@@ -2669,7 +2708,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             variable=self.refresh_interval_var,
             command=self._on_refresh_interval_changed,
             button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY
+            progress_color=DataTerminalTheme.PRIMARY,
         )
         self.refresh_interval_slider.grid(row=0, column=0, sticky="ew")
 
@@ -2678,7 +2717,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             content_frame,
             text="Quiet Hours:",
             font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         quiet_label.grid(row=1, column=0, sticky="w", pady=(10, 0))
 
@@ -2687,14 +2726,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         quiet_frame.grid_columnconfigure(2, weight=1)
 
         # Enable quiet hours toggle
-        self.quiet_hours_var = tk.BooleanVar(value=self.config_service.get_setting("quiet_hours_enabled", False))
+        self.quiet_hours_var = tk.BooleanVar(
+            value=self.config_service.get_setting("quiet_hours_enabled", False)
+        )
         quiet_toggle = ctk.CTkSwitch(
             quiet_frame,
             text="Enable",
             variable=self.quiet_hours_var,
             command=self._on_quiet_hours_changed,
             button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY
+            progress_color=DataTerminalTheme.PRIMARY,
         )
         quiet_toggle.grid(row=0, column=0, sticky="w")
 
@@ -2703,16 +2744,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             quiet_frame,
             text="From:",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         start_label.grid(row=0, column=1, padx=(20, 5))
 
-        self.quiet_start_var = tk.StringVar(value=self.config_service.get_setting("quiet_start_time", "22:00"))
+        self.quiet_start_var = tk.StringVar(
+            value=self.config_service.get_setting("quiet_start_time", "22:00")
+        )
         start_entry = ctk.CTkEntry(
-            quiet_frame,
-            textvariable=self.quiet_start_var,
-            width=60,
-            placeholder_text="22:00"
+            quiet_frame, textvariable=self.quiet_start_var, width=60, placeholder_text="22:00"
         )
         start_entry.grid(row=0, column=2, padx=(0, 10))
 
@@ -2721,16 +2761,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             quiet_frame,
             text="To:",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         end_label.grid(row=0, column=3, padx=(0, 5))
 
-        self.quiet_end_var = tk.StringVar(value=self.config_service.get_setting("quiet_end_time", "07:00"))
+        self.quiet_end_var = tk.StringVar(
+            value=self.config_service.get_setting("quiet_end_time", "07:00")
+        )
         end_entry = ctk.CTkEntry(
-            quiet_frame,
-            textvariable=self.quiet_end_var,
-            width=60,
-            placeholder_text="07:00"
+            quiet_frame, textvariable=self.quiet_end_var, width=60, placeholder_text="07:00"
         )
         end_entry.grid(row=0, column=4)
 
@@ -2739,7 +2778,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             content_frame,
             text="Network Awareness:",
             font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         network_label.grid(row=2, column=0, sticky="w", pady=(15, 0))
 
@@ -2747,14 +2786,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         network_frame.grid(row=2, column=1, sticky="ew", padx=(20, 0), pady=(15, 0))
 
         # WiFi only toggle
-        self.wifi_only_var = tk.BooleanVar(value=self.config_service.get_setting("wifi_only_refresh", False))
+        self.wifi_only_var = tk.BooleanVar(
+            value=self.config_service.get_setting("wifi_only_refresh", False)
+        )
         wifi_toggle = ctk.CTkSwitch(
             network_frame,
             text="WiFi Only (disable on mobile data)",
             variable=self.wifi_only_var,
             command=self._on_wifi_only_changed,
             button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY
+            progress_color=DataTerminalTheme.PRIMARY,
         )
         wifi_toggle.grid(row=0, column=0, sticky="w")
 
@@ -2771,7 +2812,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.HOVER,
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            height=35
+            height=35,
         )
         save_btn.grid(row=0, column=0, padx=(0, 10))
 
@@ -2783,7 +2824,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.ACCENT,
             hover_color=DataTerminalTheme.HOVER,
             font=(DataTerminalTheme.FONT_FAMILY, 12),
-            height=35
+            height=35,
         )
         test_btn.grid(row=0, column=1, sticky="w")
 
@@ -2804,7 +2845,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         enabled = self.quiet_hours_var.get()
         self.config_service.set_setting("quiet_hours_enabled", enabled)
         # Update refresh schedule if needed
-        if hasattr(self, 'refresh_job') and self.refresh_job:
+        if hasattr(self, "refresh_job") and self.refresh_job:
             self._schedule_refresh()
 
     def _on_wifi_only_changed(self):
@@ -2818,14 +2859,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             # Save quiet hours times
             self.config_service.set_setting("quiet_start_time", self.quiet_start_var.get())
             self.config_service.set_setting("quiet_end_time", self.quiet_end_var.get())
-            
+
             # Show success message
             self.status_manager.show_success("Auto-refresh settings saved successfully!")
-            
+
             # Update refresh schedule
-            if hasattr(self, 'refresh_job') and self.refresh_job:
+            if hasattr(self, "refresh_job") and self.refresh_job:
                 self._schedule_refresh()
-                
+
         except Exception as e:
             self.status_manager.show_error(f"Failed to save settings: {str(e)}")
 
@@ -2899,7 +2940,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             command=self._enhanced_open_github,
         )
         github_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
-        
+
         # Add micro-interactions to GitHub button
         self.micro_interactions.add_hover_effect(github_btn)
         self.micro_interactions.add_click_effect(github_btn)
@@ -2933,12 +2974,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _change_theme(self, theme_name):
         """Legacy theme change method - redirects to new theme system."""
         # Map old theme names to new theme keys
-        theme_map = {
-            "Dark Terminal": "matrix",
-            "Light Mode": "arctic", 
-            "Midnight Blue": "midnight"
-        }
-        
+        theme_map = {"Dark Terminal": "matrix", "Light Mode": "arctic", "Midnight Blue": "midnight"}
+
         new_theme_key = theme_map.get(theme_name, "matrix")
         self.apply_theme(new_theme_key)
 
@@ -2965,7 +3002,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.temp_toggle_btn.configure(text=symbol_map.get(new_unit, "°C"))
 
         # Update temperature chart unit
-        if hasattr(self, 'temp_chart') and hasattr(self.temp_chart, 'set_temperature_unit'):
+        if hasattr(self, "temp_chart") and hasattr(self.temp_chart, "set_temperature_unit"):
             self.temp_chart.set_temperature_unit(new_unit)
 
         # Convert and update all temperature displays
@@ -2985,7 +3022,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Test API key validity."""
         try:
             # Test with a simple weather request
-            if hasattr(self, 'weather_service') and self.weather_service:
+            if hasattr(self, "weather_service") and self.weather_service:
                 # Use a known location for testing
                 test_result = self.weather_service.get_weather("London")
                 if test_result:
@@ -3006,21 +3043,21 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             # Mock usage data - in real implementation, get from API provider
             usage_data = {
-                'requests_today': 150,
-                'daily_limit': 1000,
-                'requests_month': 4500,
-                'monthly_limit': 30000
+                "requests_today": 150,
+                "daily_limit": 1000,
+                "requests_month": 4500,
+                "monthly_limit": 30000,
             }
-            
-            daily_percent = (usage_data['requests_today'] / usage_data['daily_limit']) * 100
-            monthly_percent = (usage_data['requests_month'] / usage_data['monthly_limit']) * 100
-            
+
+            daily_percent = (usage_data["requests_today"] / usage_data["daily_limit"]) * 100
+            monthly_percent = (usage_data["requests_month"] / usage_data["monthly_limit"]) * 100
+
             # Update usage labels if they exist
-            if hasattr(self, 'daily_usage_label'):
+            if hasattr(self, "daily_usage_label"):
                 self.daily_usage_label.configure(
                     text=f"Daily: {usage_data['requests_today']}/{usage_data['daily_limit']} ({daily_percent:.1f}%)"
                 )
-            if hasattr(self, 'monthly_usage_label'):
+            if hasattr(self, "monthly_usage_label"):
                 self.monthly_usage_label.configure(
                     text=f"Monthly: {usage_data['requests_month']}/{usage_data['monthly_limit']} ({monthly_percent:.1f}%)"
                 )
@@ -3044,7 +3081,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             print("Key rotation reminder set (mock implementation)")
         except Exception as e:
             self.status_label.configure(text=f"❌ Failed to set reminder: {str(e)}")
-    
+
     def _setup_key_rotation(self):
         """Setup API key rotation schedule."""
         try:
@@ -3054,83 +3091,79 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             dialog.geometry("450x300")
             dialog.transient(self)
             dialog.grab_set()
-            
+
             # Main frame
             main_frame = ctk.CTkFrame(dialog)
             main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-            
+
             # Title
             title_label = ctk.CTkLabel(
                 main_frame,
                 text="API Key Rotation Setup",
-                font=(DataTerminalTheme.FONT_FAMILY, 16, "bold")
+                font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
             )
             title_label.pack(pady=(0, 20))
-            
+
             # Rotation interval
             interval_frame = ctk.CTkFrame(main_frame)
             interval_frame.pack(fill="x", pady=10)
-            
+
             ctk.CTkLabel(
                 interval_frame,
                 text="Rotation Interval (days):",
-                font=(DataTerminalTheme.FONT_FAMILY, 12)
+                font=(DataTerminalTheme.FONT_FAMILY, 12),
             ).pack(side="left", padx=10, pady=10)
-            
+
             interval_var = ctk.StringVar(value="30")
-            interval_entry = ctk.CTkEntry(
-                interval_frame,
-                textvariable=interval_var,
-                width=100
-            )
+            interval_entry = ctk.CTkEntry(interval_frame, textvariable=interval_var, width=100)
             interval_entry.pack(side="right", padx=10, pady=10)
-            
+
             # Email notifications
             email_frame = ctk.CTkFrame(main_frame)
             email_frame.pack(fill="x", pady=10)
-            
+
             email_var = ctk.BooleanVar(value=True)
             email_check = ctk.CTkCheckBox(
-                email_frame,
-                text="Email notifications",
-                variable=email_var
+                email_frame, text="Email notifications", variable=email_var
             )
             email_check.pack(side="left", padx=10, pady=10)
-            
+
             # Buttons
             button_frame = ctk.CTkFrame(main_frame)
             button_frame.pack(fill="x", pady=20)
-            
+
             def save_rotation_settings():
                 try:
                     interval = int(interval_var.get())
                     email_enabled = email_var.get()
-                    
+
                     if self.config_service:
-                        self.config_service.set_setting('api.rotation_interval_days', interval)
-                        self.config_service.set_setting('api.rotation_email_enabled', email_enabled)
-                    
-                    self.logger.info(f"Key rotation set for {interval} days, email: {email_enabled}")
+                        self.config_service.set_setting("api.rotation_interval_days", interval)
+                        self.config_service.set_setting("api.rotation_email_enabled", email_enabled)
+
+                    self.logger.info(
+                        f"Key rotation set for {interval} days, email: {email_enabled}"
+                    )
                     dialog.destroy()
                 except ValueError:
                     self.logger.error("Invalid rotation interval")
-            
+
             save_btn = ctk.CTkButton(
                 button_frame,
                 text="Save Settings",
                 command=save_rotation_settings,
-                fg_color=DataTerminalTheme.SUCCESS
+                fg_color=DataTerminalTheme.SUCCESS,
             )
             save_btn.pack(side="left", padx=10)
-            
+
             cancel_btn = ctk.CTkButton(
                 button_frame,
                 text="Cancel",
                 command=dialog.destroy,
-                fg_color=DataTerminalTheme.ERROR
+                fg_color=DataTerminalTheme.ERROR,
             )
             cancel_btn.pack(side="right", padx=10)
-            
+
         except Exception as e:
             self.logger.error(f"Failed to setup key rotation: {e}")
 
@@ -3139,7 +3172,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             # Mock cache size calculation
             cache_size_mb = 15.7
-            if hasattr(self, 'cache_size_label'):
+            if hasattr(self, "cache_size_label"):
                 self.cache_size_label.configure(text=f"Cache Size: {cache_size_mb:.1f} MB")
         except Exception as e:
             print(f"Error updating cache size: {e}")
@@ -3179,7 +3212,9 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             # In real implementation, open date range dialog and export
             self.status_label.configure(text="📤 Exporting data with date range...")
             # Mock export delay
-            self.after(1500, lambda: self.status_label.configure(text="✅ Data exported successfully"))
+            self.after(
+                1500, lambda: self.status_label.configure(text="✅ Data exported successfully")
+            )
         except Exception as e:
             self.status_label.configure(text=f"❌ Data export failed: {str(e)}")
 
@@ -3187,10 +3222,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Toggle usage analytics collection."""
         try:
             # Get current state and toggle
-            current_state = getattr(self, 'analytics_enabled', True)
+            current_state = getattr(self, "analytics_enabled", True)
             new_state = not current_state
-            setattr(self, 'analytics_enabled', new_state)
-            
+            setattr(self, "analytics_enabled", new_state)
+
             status = "enabled" if new_state else "disabled"
             self.status_label.configure(text=f"📊 Usage analytics {status}")
         except Exception as e:
@@ -3200,10 +3235,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Toggle location history storage."""
         try:
             # Get current state and toggle
-            current_state = getattr(self, 'location_history_enabled', True)
+            current_state = getattr(self, "location_history_enabled", True)
             new_state = not current_state
-            setattr(self, 'location_history_enabled', new_state)
-            
+            setattr(self, "location_history_enabled", new_state)
+
             status = "enabled" if new_state else "disabled"
             self.status_label.configure(text=f"📍 Location history {status}")
         except Exception as e:
@@ -3214,8 +3249,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             self.datetime_format = format_type
             # Save to config
-            if hasattr(self, 'config_service'):
-                self.config_service.set('datetime_format', format_type)
+            if hasattr(self, "config_service"):
+                self.config_service.set("datetime_format", format_type)
             self.status_label.configure(text=f"📅 Date format changed to {format_type}")
         except Exception as e:
             self.status_label.configure(text=f"❌ Date format change failed: {str(e)}")
@@ -3225,8 +3260,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             self.language = language
             # Save to config
-            if hasattr(self, 'config_service'):
-                self.config_service.set('language', language)
+            if hasattr(self, "config_service"):
+                self.config_service.set("language", language)
             self.status_label.configure(text=f"🌐 Language changed to {language}")
         except Exception as e:
             self.status_label.configure(text=f"❌ Language change failed: {str(e)}")
@@ -3236,8 +3271,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             self.font_size = size
             # Save to config
-            if hasattr(self, 'config_service'):
-                self.config_service.set('font_size', size)
+            if hasattr(self, "config_service"):
+                self.config_service.set("font_size", size)
             self.status_label.configure(text=f"🔤 Font size changed to {size}")
         except Exception as e:
             self.status_label.configure(text=f"❌ Font size change failed: {str(e)}")
@@ -3246,14 +3281,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Toggle usage analytics."""
         try:
             # Get current state and toggle
-            current_state = getattr(self, 'analytics_enabled', True)
+            current_state = getattr(self, "analytics_enabled", True)
             new_state = not current_state
-            setattr(self, 'analytics_enabled', new_state)
-            
+            setattr(self, "analytics_enabled", new_state)
+
             # Save to config
-            if hasattr(self, 'config_service'):
-                self.config_service.set('analytics_enabled', new_state)
-            
+            if hasattr(self, "config_service"):
+                self.config_service.set("analytics_enabled", new_state)
+
             status = "enabled" if new_state else "disabled"
             self.status_label.configure(text=f"📊 Analytics {status}")
         except Exception as e:
@@ -3263,14 +3298,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Toggle location data storage."""
         try:
             # Get current state and toggle
-            current_state = getattr(self, 'location_storage_enabled', True)
+            current_state = getattr(self, "location_storage_enabled", True)
             new_state = not current_state
-            setattr(self, 'location_storage_enabled', new_state)
-            
+            setattr(self, "location_storage_enabled", new_state)
+
             # Save to config
-            if hasattr(self, 'config_service'):
-                self.config_service.set('location_storage_enabled', new_state)
-            
+            if hasattr(self, "config_service"):
+                self.config_service.set("location_storage_enabled", new_state)
+
             status = "enabled" if new_state else "disabled"
             self.status_label.configure(text=f"📍 Location storage {status}")
         except Exception as e:
@@ -3280,10 +3315,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Enhanced auto-refresh toggle with micro-interactions."""
         # Add ripple effect on switch toggle
         self.micro_interactions.add_ripple_effect(self.auto_refresh_switch)
-        
+
         enabled = self.auto_refresh_switch.get()
         self.auto_refresh_enabled = enabled
-        
+
         # Animate status change
         if enabled:
             # Success pulse for enabling
@@ -3295,14 +3330,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             # Warning pulse for disabling
             self.animation_manager.warning_pulse(self.auto_refresh_switch)
             status_text = "⏸️ Auto-refresh disabled"
-        
+
         # Show status with fade effect
         if hasattr(self, "status_label"):
             self.animation_manager.fade_in(self.status_label)
             self.status_label.configure(text=status_text)
         else:
             print(status_text)
-        
+
         # Call original method for core functionality
         self._toggle_auto_refresh()
 
@@ -3399,31 +3434,31 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _enhanced_open_github(self):
         """Enhanced GitHub opening with micro-interactions."""
         # Add ripple effect to GitHub button
-        if hasattr(self, 'github_button'):
+        if hasattr(self, "github_button"):
             self.micro_interactions.add_ripple_effect(self.github_button)
-        
+
         # Show loading animation
-        if hasattr(self, 'status_manager'):
+        if hasattr(self, "status_manager"):
             self.status_manager.show_loading("Opening GitHub...")
-        
+
         try:
-            result = self._open_github()
-            
+            self._open_github()
+
             # Success pulse animation
-            if hasattr(self, 'github_button'):
+            if hasattr(self, "github_button"):
                 self.micro_interactions.add_success_pulse(self.github_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_success("GitHub repository opened!")
-                
+
         except Exception as e:
             # Warning pulse for errors
-            if hasattr(self, 'github_button'):
+            if hasattr(self, "github_button"):
                 self.micro_interactions.add_warning_pulse(self.github_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_error(f"Failed to open GitHub: {str(e)}")
-    
+
     def _open_github(self):
         """Open GitHub repository in browser."""
         import webbrowser
@@ -3499,31 +3534,31 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _enhanced_export_data(self):
         """Enhanced export with micro-interactions."""
         # Add ripple effect to export button
-        if hasattr(self, 'export_button'):
+        if hasattr(self, "export_button"):
             self.micro_interactions.add_ripple_effect(self.export_button)
-        
+
         # Show loading animation
-        if hasattr(self, 'status_manager'):
+        if hasattr(self, "status_manager"):
             self.status_manager.show_loading("Preparing export...")
-        
+
         try:
-            result = self._export_data()
-            
+            self._export_data()
+
             # Success pulse animation
-            if hasattr(self, 'export_button'):
+            if hasattr(self, "export_button"):
                 self.micro_interactions.add_success_pulse(self.export_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_success("Data exported successfully!")
-                
+
         except Exception as e:
             # Warning pulse for errors
-            if hasattr(self, 'export_button'):
+            if hasattr(self, "export_button"):
                 self.micro_interactions.add_warning_pulse(self.export_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_error(f"Export failed: {str(e)}")
-    
+
     def _export_data(self):
         """Export application data."""
         try:
@@ -3578,31 +3613,31 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _enhanced_import_data(self):
         """Enhanced import with micro-interactions."""
         # Add ripple effect to import button
-        if hasattr(self, 'import_button'):
+        if hasattr(self, "import_button"):
             self.micro_interactions.add_ripple_effect(self.import_button)
-        
+
         # Show loading animation
-        if hasattr(self, 'status_manager'):
+        if hasattr(self, "status_manager"):
             self.status_manager.show_loading("Processing import...")
-        
+
         try:
-            result = self._import_data()
-            
+            self._import_data()
+
             # Success pulse animation
-            if hasattr(self, 'import_button'):
+            if hasattr(self, "import_button"):
                 self.micro_interactions.add_success_pulse(self.import_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_success("Data imported successfully!")
-                
+
         except Exception as e:
             # Warning pulse for errors
-            if hasattr(self, 'import_button'):
+            if hasattr(self, "import_button"):
                 self.micro_interactions.add_warning_pulse(self.import_button)
-            
-            if hasattr(self, 'status_manager'):
+
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_error(f"Import failed: {str(e)}")
-    
+
     def _import_data(self):
         """Import application data."""
         try:
@@ -3697,7 +3732,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             return call_id
         except tk.TclError:
             return None
-    
+
     def _cleanup_scheduled_calls(self):
         """Cancel all scheduled after() calls."""
         for call_id in self.scheduled_calls:
@@ -3706,50 +3741,50 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             except (tk.TclError, ValueError):
                 pass
         self.scheduled_calls.clear()
-    
+
     def _on_closing(self):
         """Handle application closing."""
         self.is_destroyed = True
         self._cleanup_scheduled_calls()
-        
+
         # Cleanup open hourly windows
-        if hasattr(self, 'open_hourly_windows'):
+        if hasattr(self, "open_hourly_windows"):
             for window_info in self.open_hourly_windows:
                 try:
-                    if window_info['window'].winfo_exists():
-                        window_info['window'].destroy()
-                except:
+                    if window_info["window"].winfo_exists():
+                        window_info["window"].destroy()
+                except (tk.TclError, AttributeError):
                     pass
             self.open_hourly_windows.clear()
-        
+
         # Cleanup animation manager
-        if hasattr(self, 'animation_manager'):
+        if hasattr(self, "animation_manager"):
             self.animation_manager.cleanup()
-        
+
         # Cleanup status manager
-        if hasattr(self, 'status_manager'):
+        if hasattr(self, "status_manager"):
             self.status_manager.cleanup()
-        
+
         # Cleanup error handler
-        if hasattr(self, 'error_handler'):
+        if hasattr(self, "error_handler"):
             self.error_handler.cleanup()
-        
+
         # Cleanup performance optimization services
-        if hasattr(self, 'api_optimizer'):
+        if hasattr(self, "api_optimizer"):
             self.api_optimizer.shutdown()
-        
-        if hasattr(self, 'component_recycler'):
+
+        if hasattr(self, "component_recycler"):
             self.component_recycler.shutdown()
-        
-        if hasattr(self, 'cache_manager'):
+
+        if hasattr(self, "cache_manager"):
             # Cache manager doesn't have a stop method, just clear it
             self.cache_manager.clear()
-        
-        if hasattr(self, 'loading_manager'):
+
+        if hasattr(self, "loading_manager"):
             self.loading_manager.shutdown()
-        
+
         self.destroy()
-    
+
     def _update_time(self):
         """Update time display."""
         try:
@@ -3767,52 +3802,55 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         try:
             # Register components with startup optimizer
             self._register_startup_components()
-            
+
             # Step 1: Show skeleton UI immediately
             self._show_skeleton_ui()
-            
+
             # Step 2: Start progressive loading
             self.startup_optimizer.start_progressive_loading(
-                on_component_loaded=self._on_component_loaded,
-                on_complete=self._on_startup_complete
+                on_component_loaded=self._on_component_loaded, on_complete=self._on_startup_complete
             )
-            
+
         except Exception as e:
             self.logger.error(f"Progressive loading initialization failed: {e}")
             self._show_error_state("Failed to initialize dashboard")
-    
+
     def _register_startup_components(self):
         """Register components with startup optimizer for progressive loading."""
         from src.utils.startup_optimizer import ComponentPriority
-        
+
         # Critical components (load first)
         self.startup_optimizer.register_component(
-            "weather_display", ComponentPriority.CRITICAL,
+            "weather_display",
+            ComponentPriority.CRITICAL,
             lambda: self._load_weather_data_with_timeout(),
-            dependencies=[]
+            dependencies=[],
         )
-        
+
         # High priority components
         self.startup_optimizer.register_component(
-            "forecast_cards", ComponentPriority.HIGH,
+            "forecast_cards",
+            ComponentPriority.HIGH,
             lambda: self._initialize_forecast_cards(),
-            dependencies=["weather_display"]
+            dependencies=["weather_display"],
         )
-        
+
         # Medium priority components
         self.startup_optimizer.register_component(
-            "activity_suggestions", ComponentPriority.MEDIUM,
+            "activity_suggestions",
+            ComponentPriority.MEDIUM,
             lambda: self._initialize_activity_suggestions(),
-            dependencies=["weather_display"]
+            dependencies=["weather_display"],
         )
-        
+
         # Low priority components (load last)
         self.startup_optimizer.register_component(
-            "background_data", ComponentPriority.LOW,
+            "background_data",
+            ComponentPriority.LOW,
             lambda: self._start_background_loading(),
-            dependencies=["weather_display", "forecast_cards"]
+            dependencies=["weather_display", "forecast_cards"],
         )
-    
+
     def _show_skeleton_ui(self):
         """Show skeleton UI with loading placeholders."""
         try:
@@ -3820,20 +3858,20 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.city_label.configure(text=self.current_city)
             self.temp_label.configure(text="--°")
             self.condition_label.configure(text="Loading...")
-            
+
             # Show skeleton for forecast cards
-            if hasattr(self, 'forecast_frame'):
+            if hasattr(self, "forecast_frame"):
                 for widget in self.forecast_frame.winfo_children():
-                    if hasattr(widget, 'configure'):
+                    if hasattr(widget, "configure"):
                         widget.configure(text="Loading...")
-            
+
             # Update status
             if hasattr(self, "status_label"):
                 self.status_label.configure(text="Initializing dashboard...")
-                
+
         except Exception as e:
             self.logger.error(f"Failed to show skeleton UI: {e}")
-    
+
     def _on_component_loaded(self, component_name, success):
         """Handle component loading completion."""
         if success:
@@ -3842,28 +3880,28 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.status_label.configure(text=f"Loaded {component_name}...")
         else:
             self.logger.warning(f"Component '{component_name}' failed to load")
-    
+
     def _on_startup_complete(self):
         """Handle startup completion."""
         self.logger.info("Startup optimization complete")
         if hasattr(self, "status_label"):
             self.status_label.configure(text="Ready")
-    
+
     def _initialize_forecast_cards(self):
         """Initialize forecast cards with recycled components."""
         try:
             # Use component recycler for forecast cards
-            if hasattr(self, 'forecast_frame'):
+            if hasattr(self, "forecast_frame"):
                 # Get recycled forecast cards or create new ones
                 for i in range(5):  # Typical 5-day forecast
-                    card = self.component_recycler.get_component('forecast_card')
+                    card = self.component_recycler.get_component("forecast_card")
                     if card:
                         # Reset and configure the recycled card
                         card.configure(text=f"Day {i+1}")
                         card.pack(in_=self.forecast_frame, side="left", padx=5)
         except Exception as e:
             self.logger.error(f"Failed to initialize forecast cards: {e}")
-    
+
     def _initialize_activity_suggestions(self):
         """Initialize activity suggestions with caching."""
         try:
@@ -3923,21 +3961,19 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         """Show loading indicators with visual polish."""
         # Use new error handler's loading system
         self.current_loading_state = self.error_handler.show_loading(
-            self,
-            "Fetching weather data...",
-            show_progress=True
+            self, "Fetching weather data...", show_progress=True
         )
-        
+
         # Start shimmer effects on weather cards
-        if hasattr(self, 'weather_metrics_frame'):
+        if hasattr(self, "weather_metrics_frame"):
             self.shimmer_effect = ShimmerEffect(self.weather_metrics_frame)
             self.shimmer_effect.start_shimmer()
-        
+
         # Apply loading skeleton to forecast cards
-        if hasattr(self, 'forecast_frame'):
+        if hasattr(self, "forecast_frame"):
             self.forecast_skeleton = LoadingSkeleton(self.forecast_frame)
             self.forecast_skeleton.show()
-        
+
         # Update labels with fade effect
         self.animation_manager.fade_in(self.city_label)
         self.city_label.configure(text="Loading...")
@@ -3951,20 +3987,20 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _hide_loading_state(self):
         """Hide loading indicators and clean up visual effects."""
         # Hide new error handler's loading state
-        if hasattr(self, 'current_loading_state'):
+        if hasattr(self, "current_loading_state"):
             self.error_handler.hide_loading(self.current_loading_state)
-            delattr(self, 'current_loading_state')
-        
+            delattr(self, "current_loading_state")
+
         # Stop shimmer effects
-        if hasattr(self, 'shimmer_effect'):
+        if hasattr(self, "shimmer_effect"):
             self.shimmer_effect.stop_shimmer()
-            delattr(self, 'shimmer_effect')
-        
+            delattr(self, "shimmer_effect")
+
         # Hide loading skeleton
-        if hasattr(self, 'forecast_skeleton'):
+        if hasattr(self, "forecast_skeleton"):
             self.forecast_skeleton.hide()
-            delattr(self, 'forecast_skeleton')
-        
+            delattr(self, "forecast_skeleton")
+
         # Hide loading spinner if available
         if hasattr(self, "loading_spinner"):
             self.loading_spinner.stop()
@@ -3978,8 +4014,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
         try:
             # Use API optimizer for enhanced performance
-            from src.utils.api_optimizer import APIRequest, RequestPriority, CacheStrategy
-            
+            from src.utils.api_optimizer import APIRequest, CacheStrategy, RequestPriority
+
             # Create optimized API request
             api_request = APIRequest(
                 url=f"weather/{self.current_city}",
@@ -3987,36 +4023,39 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 priority=RequestPriority.HIGH,
                 cache_strategy=CacheStrategy.CACHE_FIRST,
                 timeout=10.0,
-                metadata={"city": self.current_city, "units": self.temp_unit}
+                metadata={"city": self.current_city, "units": self.temp_unit},
             )
-            
+
             # Make optimized request
             response = self.api_optimizer.make_request(
                 api_request,
-                actual_fetch_func=lambda: self.weather_service.get_weather(self.current_city)
+                actual_fetch_func=lambda: self.weather_service.get_weather(self.current_city),
             )
-            
-            if response and response.get('success'):
-                return response.get('data')
+
+            if response and response.get("success"):
+                return response.get("data")
             else:
                 self.logger.warning("API optimizer returned no data, falling back to direct fetch")
                 return self._direct_fetch_weather_data()
-                
+
         except Exception as e:
             self.logger.error(f"API optimizer fetch failed: {e}")
             return self._direct_fetch_weather_data()
-    
+
     def _direct_fetch_weather_data(self):
         """Direct weather data fetch as fallback."""
         try:
             # Import custom exceptions for proper handling
-            from src.services.enhanced_weather_service import (
-                WeatherServiceError, RateLimitError, APIKeyError, 
-                NetworkError, ServiceUnavailableError
-            )
-            
             # For Windows compatibility, use threading timeout instead of signal
             import threading
+
+            from src.services.enhanced_weather_service import (
+                APIKeyError,
+                NetworkError,
+                RateLimitError,
+                ServiceUnavailableError,
+                WeatherServiceError,
+            )
 
             result = [None]
             exception = [None]
@@ -4043,9 +4082,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 raise exception[0]
 
             if result[0]:
-                self.logger.info(
-                    f"✅ Weather data loaded successfully for {self.current_city}"
-                )
+                self.logger.info(f"✅ Weather data loaded successfully for {self.current_city}")
                 return result[0]
             else:
                 raise WeatherServiceError("No weather data returned")
@@ -4068,31 +4105,31 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             # Show user-friendly message and use cached data
             self._show_rate_limit_message()
             return self._get_cached_or_offline_weather_data()
-            
+
         except APIKeyError as e:
             self.logger.error(f"API key error: {e}")
             # Show configuration error message
             self._show_config_error_message()
             return self._get_offline_weather_data()
-            
+
         except NetworkError as e:
             self.logger.warning(f"Network error: {e}")
             # Show network error and use cached data
             self._show_network_error_message()
             return self._get_cached_or_offline_weather_data()
-            
+
         except ServiceUnavailableError as e:
             self.logger.warning(f"Service unavailable: {e}")
             # Show service error and use cached data
             self._show_service_error_message()
             return self._get_cached_or_offline_weather_data()
-            
+
         except WeatherServiceError as e:
             self.logger.error(f"Weather service error: {e}")
             # Generic weather service error
             self._show_weather_service_error_message(str(e))
             return self._get_cached_or_offline_weather_data()
-            
+
         except Exception as e:
             self.logger.error(f"Unexpected error: {e}")
             # Fallback for any other errors
@@ -4143,10 +4180,10 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _get_offline_weather_data(self):
         """Get offline fallback weather data."""
-        from src.models.weather import WeatherCondition
         from src.models.location import Location
-        # Note: EnhancedWeatherData may need to be defined or imported from appropriate module
+        from src.models.weather import WeatherCondition
 
+        # Note: EnhancedWeatherData may need to be defined or imported from appropriate module
         # Create basic offline weather data
         location = Location(name=self.current_city, country="Unknown", latitude=0.0, longitude=0.0)
 
@@ -4175,7 +4212,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         def forecast_task():
             try:
                 # Use coordinates if available, otherwise use city name
-                if hasattr(self, 'current_location') and self.current_location:
+                if hasattr(self, "current_location") and self.current_location:
                     return self.weather_service.get_forecast_data(
                         self.current_location["lat"], self.current_location["lon"]
                     )
@@ -4244,9 +4281,9 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             # Update forecast UI components if they exist
             if hasattr(self, "forecast_frame") and forecast_data:
                 self.logger.info("📊 Forecast data updated in background")
-                
+
                 # Store forecast data for use in forecast cards
-                if hasattr(self, 'current_weather_data'):
+                if hasattr(self, "current_weather_data"):
                     self.current_weather_data.forecast_data = forecast_data
                 else:
                     # Create a simple object to hold forecast data
@@ -4254,20 +4291,20 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                         def __init__(self, forecast_data):
                             self.forecast_data = forecast_data
                             self.temperature = 20  # Default temperature
-                    
+
                     self.current_weather_data = WeatherDataWithForecast(forecast_data)
-                
+
                 # Update forecast cards with new data
-                if hasattr(self, 'forecast_cards') and self.forecast_cards:
+                if hasattr(self, "forecast_cards") and self.forecast_cards:
                     self._update_forecast_cards(self.current_weather_data)
-                    
+
                     # Trigger staggered animation for updated cards
                     for i, card in enumerate(self.forecast_cards):
                         self.after(i * 100, lambda c=card: c.animate_in())
-                
+
                 # Refresh any open hourly breakdown windows
                 self._refresh_open_hourly_windows()
-                        
+
         except Exception as e:
             self.logger.error(f"Failed to update forecast display: {e}")
 
@@ -4328,14 +4365,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _show_error_state(self, error_message):
         """Show error state in UI with enhanced styling."""
         self._hide_loading_state()
-        
+
         # Use new error handler for comprehensive error display
         self.error_handler.show_api_error(
             error_message,
             retry_callback=lambda: self._load_weather_data(),
-            show_offline_indicator=True
+            show_offline_indicator=True,
         )
-        
+
         # Update labels with animation
         self.animation_manager.fade_in(self.city_label)
         self.city_label.configure(text="Error")
@@ -4352,37 +4389,30 @@ Tech Pathways - Justice Through Code - 2025 Cohort
     def _show_rate_limit_message(self):
         """Show user-friendly rate limit message."""
         self.error_handler.show_toast(
-            "Rate limit exceeded. Using cached data. Please wait before trying again.",
-            "warning"
+            "Rate limit exceeded. Using cached data. Please wait before trying again.", "warning"
         )
-        
+
     def _show_config_error_message(self):
         """Show configuration error message."""
         self.error_handler.show_toast(
-            "API configuration error. Please check your API key settings.",
-            "error"
+            "API configuration error. Please check your API key settings.", "error"
         )
-        
+
     def _show_network_error_message(self):
         """Show network error message."""
         self.error_handler.show_offline_indicator()
-        self.error_handler.show_toast(
-            "Network connection issue. Using cached data.",
-            "warning"
-        )
-        
+        self.error_handler.show_toast("Network connection issue. Using cached data.", "warning")
+
     def _show_service_error_message(self):
         """Show service unavailable message."""
         self.error_handler.show_toast(
-            "Weather service temporarily unavailable. Using cached data.",
-            "warning"
+            "Weather service temporarily unavailable. Using cached data.", "warning"
         )
-        
+
     def _show_weather_service_error_message(self, error_details):
         """Show generic weather service error message."""
         self.error_handler.show_toast(
-            f"Weather service error: {error_details}. Using cached data.",
-            "error"
+            f"Weather service error: {error_details}. Using cached data.", "error"
         )
 
     def _create_maps_tab(self):
@@ -4510,8 +4540,6 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         )
         self.map_display_label.pack(expand=True, pady=50)
 
-
-
     def _update_map_display(self, map_type):
         """Update map display based on selected type."""
         self.map_display_label.configure(
@@ -4535,8 +4563,6 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.map_display_label.configure(
                 text="🗺️\n\nPlease enter a location\nto display weather map"
             )
-
-
 
     def center_window(self):
         """Center the window on screen."""

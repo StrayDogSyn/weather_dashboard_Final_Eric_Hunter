@@ -5,16 +5,16 @@ This package contains user-related data models:
 """
 
 from .preference_models import (
-    TemperatureUnit,
-    WindSpeedUnit,
-    PressureUnit,
-    DistanceUnit,
-    TimeFormat,
-    Theme,
-    UnitPreferences,
-    NotificationPreferences,
     DisplayPreferences,
-    UserPreferences
+    DistanceUnit,
+    NotificationPreferences,
+    PressureUnit,
+    TemperatureUnit,
+    Theme,
+    TimeFormat,
+    UnitPreferences,
+    UserPreferences,
+    WindSpeedUnit,
 )
 
 __all__ = [
@@ -25,10 +25,9 @@ __all__ = [
     "DistanceUnit",
     "TimeFormat",
     "Theme",
-    
     # Preference Models
     "UnitPreferences",
     "NotificationPreferences",
     "DisplayPreferences",
-    "UserPreferences"
+    "UserPreferences",
 ]

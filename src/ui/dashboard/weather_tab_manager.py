@@ -2,7 +2,6 @@
 
 import logging
 from datetime import datetime, timedelta
-import tkinter as tk
 
 import customtkinter as ctk
 
@@ -15,7 +14,7 @@ class WeatherTabManager:
 
     def __init__(self, parent_dashboard, weather_tab):
         """Initialize the weather tab manager.
-        
+
         Args:
             parent_dashboard: Reference to the main dashboard
             weather_tab: The weather tab frame
@@ -23,13 +22,13 @@ class WeatherTabManager:
         self.dashboard = parent_dashboard
         self.weather_tab = weather_tab
         self.logger = logging.getLogger(__name__)
-        
+
         # Initialize state
         self.forecast_cards = []
         self.metric_labels = {}
         self.temp_chart = None
         self.temp_toggle_btn = None
-        
+
         # Create weather tab content
         self._create_weather_tab_content()
 
@@ -43,10 +42,10 @@ class WeatherTabManager:
 
         # Left column - Current weather card with glassmorphic styling
         self._create_current_weather_card()
-        
+
         # Middle column - Forecast chart
         self._create_forecast_section()
-        
+
         # Right column - Additional metrics and details
         self._create_additional_metrics_section()
 
@@ -90,7 +89,7 @@ class WeatherTabManager:
 
         # Weather metrics grid
         self._create_weather_metrics()
-        
+
         # Temperature conversion toggle
         self._create_temperature_toggle()
 
@@ -178,9 +177,9 @@ class WeatherTabManager:
             command=self._enhanced_toggle_temperature_unit,
         )
         self.temp_toggle_btn.pack(side="left", padx=(0, 12), pady=8)
-        
+
         # Add micro-interactions to temperature toggle button
-        if hasattr(self.dashboard, 'micro_interactions'):
+        if hasattr(self.dashboard, "micro_interactions"):
             self.dashboard.micro_interactions.add_hover_effect(self.temp_toggle_btn)
             self.dashboard.micro_interactions.add_click_effect(self.temp_toggle_btn)
 
@@ -207,6 +206,7 @@ class WeatherTabManager:
         # Import and create chart
         try:
             from src.ui.components.simple_temperature_chart import SimpleTemperatureChart
+
             self.temp_chart = SimpleTemperatureChart(
                 forecast_container, fg_color=DataTerminalTheme.CARD_BG
             )
@@ -240,7 +240,7 @@ class WeatherTabManager:
             forecast_date = datetime.now() + timedelta(days=i)
             day_name = forecast_date.strftime("%a")
             date_str = forecast_date.strftime("%m/%d")
-            
+
             # Create enhanced forecast card with click handler
             try:
                 day_card = ForecastDayCard(
@@ -252,17 +252,17 @@ class WeatherTabManager:
                     low=15,
                     precipitation=0.0,
                     wind_speed=0.0,
-                    temp_unit=getattr(self.dashboard, 'temp_unit', 'C'),
-                    on_click=self._on_forecast_card_click
+                    temp_unit=getattr(self.dashboard, "temp_unit", "C"),
+                    on_click=self._on_forecast_card_click,
                 )
-                
+
                 day_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
                 self.forecast_cards.append(day_card)
-                
+
                 # Add staggered animation
-                if hasattr(day_card, 'animate_in'):
+                if hasattr(day_card, "animate_in"):
                     day_card.animate_in(delay=i * 100)
-                    
+
             except Exception as e:
                 self.logger.warning(f"Could not create forecast card {i}: {e}")
                 # Create simple placeholder card
@@ -274,14 +274,14 @@ class WeatherTabManager:
                     border_color=DataTerminalTheme.BORDER,
                 )
                 placeholder_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
-                
+
                 ctk.CTkLabel(
                     placeholder_card,
                     text=f"{day_name}\n{date_str}\n--°",
                     font=(DataTerminalTheme.FONT_FAMILY, 10),
                     text_color=DataTerminalTheme.TEXT,
                 ).pack(pady=10)
-                
+
                 self.forecast_cards.append(placeholder_card)
 
     def _create_additional_metrics_section(self):
@@ -306,10 +306,10 @@ class WeatherTabManager:
 
         # Air Quality Section
         self._create_air_quality_section(metrics_container)
-        
+
         # Sun Times Section
         self._create_sun_times_section(metrics_container)
-        
+
         # Weather Alerts Section
         self._create_weather_alerts_section(metrics_container)
 
@@ -403,29 +403,29 @@ class WeatherTabManager:
         """Enhanced temperature unit toggle with animations."""
         try:
             # Get current unit
-            current_unit = getattr(self.dashboard, 'temp_unit', 'C')
-            new_unit = 'F' if current_unit == 'C' else 'C'
-            
+            current_unit = getattr(self.dashboard, "temp_unit", "C")
+            new_unit = "F" if current_unit == "C" else "C"
+
             # Update dashboard unit
             self.dashboard.temp_unit = new_unit
-            
+
             # Update button text with animation
             self.temp_toggle_btn.configure(text=f"°{new_unit}")
-            
+
             # Add click animation if available
-            if hasattr(self.dashboard, 'micro_interactions'):
+            if hasattr(self.dashboard, "micro_interactions"):
                 self.dashboard.micro_interactions.add_click_effect(self.temp_toggle_btn)
-            
+
             # Convert all temperatures
-            if hasattr(self.dashboard, '_convert_all_temperatures'):
+            if hasattr(self.dashboard, "_convert_all_temperatures"):
                 self.dashboard._convert_all_temperatures(current_unit, new_unit)
-            
+
             # Refresh weather display
-            if hasattr(self.dashboard, '_refresh_weather_with_new_units'):
+            if hasattr(self.dashboard, "_refresh_weather_with_new_units"):
                 self.dashboard._refresh_weather_with_new_units()
-                
+
             self.logger.info(f"Temperature unit changed to {new_unit}")
-            
+
         except Exception as e:
             self.logger.error(f"Error toggling temperature unit: {e}")
 
@@ -438,14 +438,14 @@ class WeatherTabManager:
                 if forecast_card == card:
                     card_index = i
                     break
-            
+
             if card_index is not None:
                 # Delegate to dashboard's hourly breakdown method
-                if hasattr(self.dashboard, '_show_hourly_breakdown'):
+                if hasattr(self.dashboard, "_show_hourly_breakdown"):
                     self.dashboard._show_hourly_breakdown(card_index)
                 else:
                     self.logger.warning("Hourly breakdown method not available")
-            
+
         except Exception as e:
             self.logger.error(f"Error handling forecast card click: {e}")
 
@@ -454,72 +454,72 @@ class WeatherTabManager:
         try:
             if not weather_data:
                 return
-            
+
             # Update city label
-            city_name = weather_data.get('name', 'Unknown')
+            city_name = weather_data.get("name", "Unknown")
             self.city_label.configure(text=city_name)
-            
+
             # Update temperature
-            temp = weather_data.get('main', {}).get('temp', 0)
-            temp_unit = getattr(self.dashboard, 'temp_unit', 'C')
+            temp = weather_data.get("main", {}).get("temp", 0)
+            temp_unit = getattr(self.dashboard, "temp_unit", "C")
             self.temp_label.configure(text=f"{temp:.0f}°{temp_unit}")
-            
+
             # Update condition
-            condition = weather_data.get('weather', [{}])[0].get('description', '--')
+            condition = weather_data.get("weather", [{}])[0].get("description", "--")
             self.condition_label.configure(text=condition.title())
-            
+
             # Update metrics
             self._update_weather_metrics(weather_data)
-            
+
             # Update forecast cards if available
-            if hasattr(self.dashboard, '_update_forecast_cards'):
+            if hasattr(self.dashboard, "_update_forecast_cards"):
                 self.dashboard._update_forecast_cards(weather_data)
-            
+
             # Update temperature chart
-            if self.temp_chart and hasattr(self.temp_chart, 'update_data'):
+            if self.temp_chart and hasattr(self.temp_chart, "update_data"):
                 self.temp_chart.update_data(weather_data)
-                
+
         except Exception as e:
             self.logger.error(f"Error updating weather display: {e}")
 
     def _update_weather_metrics(self, weather_data):
         """Update weather metrics display."""
         try:
-            main_data = weather_data.get('main', {})
-            wind_data = weather_data.get('wind', {})
-            visibility = weather_data.get('visibility', 0) / 1000  # Convert to km
-            clouds = weather_data.get('clouds', {}).get('all', 0)
-            
+            main_data = weather_data.get("main", {})
+            wind_data = weather_data.get("wind", {})
+            visibility = weather_data.get("visibility", 0) / 1000  # Convert to km
+            clouds = weather_data.get("clouds", {}).get("all", 0)
+
             # Update humidity
-            if 'humidity' in self.metric_labels:
-                humidity = main_data.get('humidity', 0)
-                self.metric_labels['humidity'].configure(text=f"{humidity}%")
-            
+            if "humidity" in self.metric_labels:
+                humidity = main_data.get("humidity", 0)
+                self.metric_labels["humidity"].configure(text=f"{humidity}%")
+
             # Update wind
-            if 'wind' in self.metric_labels:
-                wind_speed = wind_data.get('speed', 0)
-                wind_dir = wind_data.get('deg', 0)
-                self.metric_labels['wind'].configure(text=f"{wind_speed:.1f} m/s {wind_dir}°")
-            
+            if "wind" in self.metric_labels:
+                wind_speed = wind_data.get("speed", 0)
+                wind_dir = wind_data.get("deg", 0)
+                self.metric_labels["wind"].configure(text=f"{wind_speed:.1f} m/s {wind_dir}°")
+
             # Update feels like
-            if 'feels_like' in self.metric_labels:
-                feels_like = main_data.get('feels_like', 0)
-                temp_unit = getattr(self.dashboard, 'temp_unit', 'C')
-                self.metric_labels['feels_like'].configure(text=f"{feels_like:.0f}°{temp_unit}")
-            
+            if "feels_like" in self.metric_labels:
+                feels_like = main_data.get("feels_like", 0)
+                temp_unit = getattr(self.dashboard, "temp_unit", "C")
+                self.metric_labels["feels_like"].configure(text=f"{feels_like:.0f}°{temp_unit}")
+
             # Update visibility
-            if 'visibility' in self.metric_labels:
-                self.metric_labels['visibility'].configure(text=f"{visibility:.1f} km")
-            
+            if "visibility" in self.metric_labels:
+                self.metric_labels["visibility"].configure(text=f"{visibility:.1f} km")
+
             # Update pressure
-            if 'pressure' in self.metric_labels:
-                pressure = main_data.get('pressure', 0)
-                self.metric_labels['pressure'].configure(text=f"{pressure} hPa")
-            
+            if "pressure" in self.metric_labels:
+                pressure = main_data.get("pressure", 0)
+                self.metric_labels["pressure"].configure(text=f"{pressure} hPa")
+
             # Update cloudiness
-            if 'cloudiness' in self.metric_labels:
-                self.metric_labels['cloudiness'].configure(text=f"{clouds}%")
-                
+            if "cloudiness" in self.metric_labels:
+                self.metric_labels["cloudiness"].configure(text=f"{clouds}%")
+
         except Exception as e:
             self.logger.error(f"Error updating weather metrics: {e}")
 
@@ -528,20 +528,20 @@ class WeatherTabManager:
         try:
             if not forecast_data or not self.forecast_cards:
                 return
-            
+
             # Parse forecast data and update cards
             daily_forecasts = self._parse_daily_forecasts(forecast_data)
-            
+
             for i, (card, forecast) in enumerate(zip(self.forecast_cards, daily_forecasts)):
-                if hasattr(card, 'update_data'):
+                if hasattr(card, "update_data"):
                     card.update_data(
-                        high=forecast.get('high', 0),
-                        low=forecast.get('low', 0),
-                        icon=forecast.get('icon', '01d'),
-                        precipitation=forecast.get('precipitation', 0),
-                        wind_speed=forecast.get('wind_speed', 0)
+                        high=forecast.get("high", 0),
+                        low=forecast.get("low", 0),
+                        icon=forecast.get("icon", "01d"),
+                        precipitation=forecast.get("precipitation", 0),
+                        wind_speed=forecast.get("wind_speed", 0),
                     )
-                    
+
         except Exception as e:
             self.logger.error(f"Error updating forecast cards: {e}")
 
@@ -549,63 +549,59 @@ class WeatherTabManager:
         """Parse forecast data into daily summaries."""
         try:
             daily_forecasts = []
-            
+
             # Handle different forecast data formats
-            if 'list' in forecast_data:
+            if "list" in forecast_data:
                 # OpenWeatherMap format
-                forecast_list = forecast_data['list']
-                
+                forecast_list = forecast_data["list"]
+
                 # Group by day and calculate daily highs/lows
                 daily_data = {}
                 for item in forecast_list:
-                    date = datetime.fromtimestamp(item['dt']).date()
+                    date = datetime.fromtimestamp(item["dt"]).date()
                     if date not in daily_data:
                         daily_data[date] = {
-                            'temps': [],
-                            'conditions': [],
-                            'precipitation': 0,
-                            'wind_speeds': []
+                            "temps": [],
+                            "conditions": [],
+                            "precipitation": 0,
+                            "wind_speeds": [],
                         }
-                    
-                    daily_data[date]['temps'].append(item['main']['temp'])
-                    daily_data[date]['conditions'].append(item['weather'][0]['icon'])
-                    daily_data[date]['wind_speeds'].append(item.get('wind', {}).get('speed', 0))
-                    
+
+                    daily_data[date]["temps"].append(item["main"]["temp"])
+                    daily_data[date]["conditions"].append(item["weather"][0]["icon"])
+                    daily_data[date]["wind_speeds"].append(item.get("wind", {}).get("speed", 0))
+
                     # Add precipitation if available
-                    if 'rain' in item:
-                        daily_data[date]['precipitation'] += item['rain'].get('3h', 0)
-                    if 'snow' in item:
-                        daily_data[date]['precipitation'] += item['snow'].get('3h', 0)
-                
+                    if "rain" in item:
+                        daily_data[date]["precipitation"] += item["rain"].get("3h", 0)
+                    if "snow" in item:
+                        daily_data[date]["precipitation"] += item["snow"].get("3h", 0)
+
                 # Convert to daily forecasts
                 for date, data in sorted(daily_data.items())[:5]:
-                    daily_forecasts.append({
-                        'high': max(data['temps']),
-                        'low': min(data['temps']),
-                        'icon': data['conditions'][0] if data['conditions'] else '01d',
-                        'precipitation': data['precipitation'],
-                        'wind_speed': sum(data['wind_speeds']) / len(data['wind_speeds']) if data['wind_speeds'] else 0
-                    })
-            
+                    daily_forecasts.append(
+                        {
+                            "high": max(data["temps"]),
+                            "low": min(data["temps"]),
+                            "icon": data["conditions"][0] if data["conditions"] else "01d",
+                            "precipitation": data["precipitation"],
+                            "wind_speed": (
+                                sum(data["wind_speeds"]) / len(data["wind_speeds"])
+                                if data["wind_speeds"]
+                                else 0
+                            ),
+                        }
+                    )
+
             # Fill with placeholder data if not enough forecasts
             while len(daily_forecasts) < 5:
-                daily_forecasts.append({
-                    'high': 20,
-                    'low': 10,
-                    'icon': '01d',
-                    'precipitation': 0,
-                    'wind_speed': 0
-                })
-            
+                daily_forecasts.append(
+                    {"high": 20, "low": 10, "icon": "01d", "precipitation": 0, "wind_speed": 0}
+                )
+
             return daily_forecasts[:5]
-            
+
         except Exception as e:
             self.logger.error(f"Error parsing daily forecasts: {e}")
             # Return placeholder data
-            return [{
-                'high': 20,
-                'low': 10,
-                'icon': '01d',
-                'precipitation': 0,
-                'wind_speed': 0
-            }] * 5
+            return [{"high": 20, "low": 10, "icon": "01d", "precipitation": 0, "wind_speed": 0}] * 5

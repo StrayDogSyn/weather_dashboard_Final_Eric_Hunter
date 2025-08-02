@@ -17,14 +17,14 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from ..models.location import (
+    Location,
+    LocationResult,
+)
 from ..models.weather import (
     ForecastData,
     WeatherCondition,
     WeatherData,
-)
-from ..models.location import (
-    Location,
-    LocationResult,
 )
 from .config_service import ConfigService
 
@@ -32,11 +32,11 @@ from .config_service import ConfigService
 # Custom Exception Types for Different Failure Modes
 class WeatherServiceError(Exception):
     """Base exception for weather service errors."""
-    pass
 
 
 class RateLimitError(WeatherServiceError):
     """Raised when API rate limit is exceeded."""
+
     def __init__(self, retry_after: int = None):
         self.retry_after = retry_after
         super().__init__(f"Rate limit exceeded. Retry after {retry_after} seconds.")
@@ -44,17 +44,14 @@ class RateLimitError(WeatherServiceError):
 
 class APIKeyError(WeatherServiceError):
     """Raised when API key is invalid or missing."""
-    pass
 
 
 class NetworkError(WeatherServiceError):
     """Raised when network connectivity issues occur."""
-    pass
 
 
 class ServiceUnavailableError(WeatherServiceError):
     """Raised when weather service is temporarily unavailable."""
-    pass
 
 
 @dataclass
@@ -400,11 +397,10 @@ class EnhancedWeatherService:
             sleep_time = self._current_backoff + jitter
             self.logger.info(f"⏳ Applying exponential backoff: {sleep_time:.2f}s")
             time.sleep(sleep_time)
-            
+
             # Increase backoff for next time, up to max
             self._current_backoff = min(
-                self._current_backoff * self._backoff_multiplier,
-                self._backoff_max
+                self._current_backoff * self._backoff_multiplier, self._backoff_max
             )
 
     def _reset_backoff(self) -> None:
@@ -417,12 +413,12 @@ class EnhancedWeatherService:
     def _check_offline_mode(self) -> None:
         """Check if service should enter offline mode after consecutive failures."""
         current_time = time.time()
-        
+
         if self._failed_requests_start is None:
             self._failed_requests_start = current_time
-        
+
         time_since_first_failure = current_time - self._failed_requests_start
-        
+
         if time_since_first_failure >= self._offline_threshold:
             if not self._offline_mode:
                 self.logger.warning(
@@ -433,8 +429,8 @@ class EnhancedWeatherService:
     def _should_use_fallback_api(self) -> bool:
         """Determine if we should switch to fallback API."""
         return (
-            self._consecutive_failures >= self._api_switch_threshold and
-            self._current_api == self._primary_api
+            self._consecutive_failures >= self._api_switch_threshold
+            and self._current_api == self._primary_api
         )
 
     def _switch_to_fallback_api(self) -> None:
@@ -450,15 +446,15 @@ class EnhancedWeatherService:
         """Get stale cache data when API is unavailable but cache exists."""
         if cache_key not in self._cache:
             return None
-            
+
         cached_data = self._cache[cache_key]
         if "timestamp" not in cached_data:
             return None
-            
+
         cache_age = time.time() - time.mktime(
             datetime.fromisoformat(cached_data["timestamp"]).timetuple()
         )
-        
+
         # Allow stale data up to the stale_acceptable limit
         if cache_age < self._cache_ttl["stale_acceptable"]:
             self.logger.info(f"📋 Using stale cache data (age: {cache_age:.0f}s)")
@@ -466,7 +462,7 @@ class EnhancedWeatherService:
             stale_data["stale"] = True
             stale_data["cache_age"] = cache_age
             return stale_data
-            
+
         return None
 
     def _is_cache_valid_with_ttl(self, cache_key: str, cache_type: str) -> bool:
@@ -541,7 +537,7 @@ class EnhancedWeatherService:
     def _make_request(self, endpoint: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Make API request with robust error handling, fallback, and intelligent caching."""
         cache_key = f"{endpoint}_{str(sorted(params.items()))}"
-        
+
         # Check if we're in offline mode
         if self._offline_mode:
             self.logger.warning("🔌 Service in offline mode, trying stale cache")
@@ -587,7 +583,7 @@ class EnhancedWeatherService:
             elif response.status_code == 429:
                 # Rate limit exceeded
                 self._consecutive_failures += 1
-                retry_after = int(response.headers.get('Retry-After', self._current_backoff))
+                retry_after = int(response.headers.get("Retry-After", self._current_backoff))
                 raise RateLimitError(retry_after)
             elif response.status_code == 401:
                 # Invalid API key
@@ -610,7 +606,7 @@ class EnhancedWeatherService:
             self.logger.error("⏰ API request timed out")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
@@ -621,12 +617,12 @@ class EnhancedWeatherService:
             self.logger.error("🌐 Connection error")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
                 return stale_data
-            
+
             if self._offline_mode:
                 return self._get_offline_fallback("weather", params.get("q", "Unknown"))
             raise NetworkError("No internet connection - please check your network")
@@ -641,12 +637,12 @@ class EnhancedWeatherService:
             self.logger.error(f"❌ Unexpected API error: {e}")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data as last resort
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
                 return stale_data
-            
+
             raise WeatherServiceError(f"Weather service error: {str(e)}")
 
     def _make_geocoding_request(
@@ -654,7 +650,7 @@ class EnhancedWeatherService:
     ) -> Optional[Dict[str, Any]]:
         """Make geocoding API request with robust error handling and caching."""
         cache_key = f"geocoding_{endpoint}_{str(sorted(params.items()))}"
-        
+
         # Check if we're in offline mode
         if self._offline_mode:
             self.logger.warning("🔌 Service in offline mode, trying cached geocoding")
@@ -697,7 +693,7 @@ class EnhancedWeatherService:
             elif response.status_code == 429:
                 # Rate limit exceeded
                 self._consecutive_failures += 1
-                retry_after = int(response.headers.get('Retry-After', self._current_backoff))
+                retry_after = int(response.headers.get("Retry-After", self._current_backoff))
                 raise RateLimitError(retry_after)
             elif response.status_code == 401:
                 # Invalid API key
@@ -709,13 +705,15 @@ class EnhancedWeatherService:
             else:
                 # Other HTTP errors
                 self._consecutive_failures += 1
-                raise ServiceUnavailableError(f"Geocoding API returned status {response.status_code}")
+                raise ServiceUnavailableError(
+                    f"Geocoding API returned status {response.status_code}"
+                )
 
         except (requests.exceptions.Timeout, requests.exceptions.ReadTimeout):
             self.logger.error("⏰ Geocoding request timed out")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
@@ -726,7 +724,7 @@ class EnhancedWeatherService:
             self.logger.error("🌐 Geocoding connection error")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
@@ -743,12 +741,12 @@ class EnhancedWeatherService:
             self.logger.error(f"❌ Unexpected geocoding error: {e}")
             self._consecutive_failures += 1
             self._check_offline_mode()
-            
+
             # Try stale cache data as last resort
             stale_data = self._get_stale_cache_data(cache_key)
             if stale_data:
                 return stale_data
-            
+
             raise WeatherServiceError(f"Geocoding service error: {str(e)}")
 
     def search_locations(self, query: str, limit: int = 5) -> List[LocationSearchResult]:
@@ -1385,16 +1383,20 @@ class EnhancedWeatherService:
                         weather_dict["condition"] = WeatherCondition(condition_str)
                 if isinstance(weather_dict["timestamp"], str):
                     weather_dict["timestamp"] = datetime.fromisoformat(weather_dict["timestamp"])
-                
+
                 weather_data = EnhancedWeatherData(**weather_dict)
                 if stale_data.get("air_quality"):
                     weather_data.air_quality = AirQualityData.from_dict(stale_data["air_quality"])
                 if stale_data.get("astronomical"):
-                    weather_data.astronomical = AstronomicalData.from_dict(stale_data["astronomical"])
+                    weather_data.astronomical = AstronomicalData.from_dict(
+                        stale_data["astronomical"]
+                    )
                 if stale_data.get("alerts"):
-                    weather_data.alerts = [WeatherAlert.from_dict(alert) for alert in stale_data["alerts"]]
+                    weather_data.alerts = [
+                        WeatherAlert.from_dict(alert) for alert in stale_data["alerts"]
+                    ]
                 return weather_data
-            
+
             # If no stale data, use offline fallback
             fallback_data = self._get_offline_fallback("weather", location)
             if fallback_data:

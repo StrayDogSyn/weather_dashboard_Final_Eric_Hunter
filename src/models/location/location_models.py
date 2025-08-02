@@ -32,7 +32,7 @@ class Location:
     def coordinates(self) -> tuple[float, float]:
         """Get coordinates as (lat, lon) tuple."""
         return (self.latitude, self.longitude)
-    
+
     @property
     def display_name(self) -> str:
         """Get formatted display name."""
@@ -42,32 +42,32 @@ class Location:
         if self.country:
             parts.append(self.country)
         return ", ".join(parts)
-    
+
     @property
     def short_name(self) -> str:
         """Get short name for display."""
         if self.state:
             return f"{self.name}, {self.state}"
         return self.name
-    
+
     def distance_to(self, other: "Location") -> float:
         """Calculate distance to another location in kilometers using Haversine formula."""
         import math
-        
+
         # Convert latitude and longitude from degrees to radians
         lat1, lon1 = math.radians(self.latitude), math.radians(self.longitude)
         lat2, lon2 = math.radians(other.latitude), math.radians(other.longitude)
-        
+
         # Haversine formula
         dlat = lat2 - lat1
         dlon = lon2 - lon1
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         c = 2 * math.asin(math.sqrt(a))
-        
+
         # Radius of earth in kilometers
         r = 6371
         return c * r
-    
+
     def is_nearby(self, other: "Location", threshold_km: float = 50.0) -> bool:
         """Check if another location is nearby within threshold."""
         return self.distance_to(other) <= threshold_km
@@ -84,7 +84,7 @@ class Location:
             latitude=coord.get("lat", 0.0),
             longitude=coord.get("lon", 0.0),
         )
-    
+
     @classmethod
     def from_geocoding(cls, data: Dict[str, Any]) -> "Location":
         """Create Location from geocoding API response."""
@@ -114,7 +114,9 @@ class LocationResult:
     raw_address: str = ""
     importance: Optional[float] = None  # Search result relevance score
     place_type: Optional[str] = None  # city, town, village, etc.
-    bbox: Optional[tuple[float, float, float, float]] = None  # Bounding box (min_lat, min_lon, max_lat, max_lon)
+    bbox: Optional[tuple[float, float, float, float]] = (
+        None  # Bounding box (min_lat, min_lon, max_lat, max_lon)
+    )
 
     def __str__(self) -> str:
         """String representation of location result."""
@@ -124,7 +126,7 @@ class LocationResult:
     def coordinates(self) -> tuple[float, float]:
         """Get coordinates as (lat, lon) tuple."""
         return (self.latitude, self.longitude)
-    
+
     @property
     def short_display(self) -> str:
         """Get short display name."""
@@ -134,7 +136,7 @@ class LocationResult:
         elif self.country:
             parts.append(self.country)
         return ", ".join(parts)
-    
+
     def to_location(self) -> Location:
         """Convert to basic Location object."""
         return Location(
@@ -142,14 +144,14 @@ class LocationResult:
             country=self.country,
             state=self.state,
             latitude=self.latitude,
-            longitude=self.longitude
+            longitude=self.longitude,
         )
-    
+
     @classmethod
     def from_nominatim(cls, data: Dict[str, Any]) -> "LocationResult":
         """Create LocationResult from Nominatim geocoding response."""
         address = data.get("address", {})
-        
+
         return cls(
             name=data.get("name", data.get("display_name", "Unknown")),
             display_name=data.get("display_name", "Unknown"),
@@ -163,21 +165,21 @@ class LocationResult:
             postcode=address.get("postcode"),
             raw_address=data.get("display_name", ""),
             importance=data.get("importance"),
-            place_type=data.get("type")
+            place_type=data.get("type"),
         )
 
 
 @dataclass
 class LocationSearchQuery:
     """Location search query parameters."""
-    
+
     query: str
     country_code: Optional[str] = None
     limit: int = 10
     language: str = "en"
     include_bbox: bool = False
     min_importance: Optional[float] = None
-    
+
     def to_params(self) -> Dict[str, Any]:
         """Convert to API parameters dictionary."""
         params = {
@@ -185,13 +187,13 @@ class LocationSearchQuery:
             "format": "json",
             "limit": self.limit,
             "accept-language": self.language,
-            "addressdetails": 1
+            "addressdetails": 1,
         }
-        
+
         if self.country_code:
             params["countrycodes"] = self.country_code
-        
+
         if self.include_bbox:
             params["extratags"] = 1
-            
+
         return params
