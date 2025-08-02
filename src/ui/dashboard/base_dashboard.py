@@ -185,6 +185,7 @@ class BaseDashboard(ctk.CTk):
             self.analytics_enabled = True
             self.location_history_enabled = True
             self.refresh_interval_minutes = 5
+            self.refresh_interval = 300000  # 5 minutes in milliseconds
             self.quiet_hours_enabled = False
             self.quiet_start_hour = 22
             self.quiet_end_hour = 7

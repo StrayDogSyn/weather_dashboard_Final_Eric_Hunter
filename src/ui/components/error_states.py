@@ -260,24 +260,34 @@ class LoadingState(ErrorStateComponent):
     def _create_frame(self):
         """Create the loading state frame."""
         self.frame = tk.Frame(self.parent, bg="#f8f9fa")
-        self.frame.pack(fill="both", expand=True, padx=5, pady=5)
+        # Use grid instead of pack to avoid geometry manager conflicts
+        self.frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        
+        # Configure grid weights for proper expansion
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(1, weight=0)  # spinner
+        self.frame.grid_rowconfigure(2, weight=0)  # message
+        self.frame.grid_rowconfigure(3, weight=0)  # progress bar
+        self.frame.grid_rowconfigure(4, weight=0)  # skeleton
+        self.frame.grid_rowconfigure(5, weight=1)
 
         # Loading animation
         self.spinner_label = tk.Label(
             self.frame, text="⟳", font=("Arial", 24), bg="#f8f9fa", fg="#6c757d"
         )
-        self.spinner_label.pack(pady=(30, 10))
+        self.spinner_label.grid(row=1, column=0, pady=(30, 10))
 
         # Loading message
         self.message_label = tk.Label(
             self.frame, text=self.message, font=("Arial", 12), bg="#f8f9fa", fg="#6c757d"
         )
-        self.message_label.pack(pady=(0, 20))
+        self.message_label.grid(row=2, column=0, pady=(0, 20))
 
         # Progress bar (if enabled)
         if self.show_progress:
             self.progress_bar = ttk.Progressbar(self.frame, mode="determinate", length=200)
-            self.progress_bar.pack(pady=(0, 20))
+            self.progress_bar.grid(row=3, column=0, pady=(0, 20))
 
         # Skeleton content
         self._create_skeleton()
@@ -288,12 +298,18 @@ class LoadingState(ErrorStateComponent):
     def _create_skeleton(self):
         """Create skeleton loading content."""
         skeleton_frame = tk.Frame(self.frame, bg="#f8f9fa")
-        skeleton_frame.pack(fill="x", padx=20, pady=10)
+        skeleton_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
+        
+        # Configure skeleton frame grid
+        skeleton_frame.grid_columnconfigure(0, weight=1)
 
         # Skeleton lines
         for i in range(3):
             skeleton_line = tk.Frame(skeleton_frame, bg="#e9ecef", height=15)
-            skeleton_line.pack(fill="x", pady=2)
+            skeleton_line.grid(row=i, column=0, sticky="ew", pady=2)
+            
+            # Configure skeleton line grid
+            skeleton_frame.grid_rowconfigure(i, weight=0)
 
             # Animate skeleton
             self._animate_skeleton_line(skeleton_line)

@@ -238,6 +238,10 @@ class StatusMessageManager:
             message=fact, status_type=StatusType.FACT, auto_clear=10000, typing_effect=True
         )
 
+    def show_info(self, message: str, auto_clear: int = 5000):
+        """Show info message."""
+        self.set_status(message=message, status_type=StatusType.INFO, auto_clear=auto_clear)
+
     def show_contextual_help(self, context: str):
         """Show contextual help message."""
         help_message = self.contextual_help.get(
