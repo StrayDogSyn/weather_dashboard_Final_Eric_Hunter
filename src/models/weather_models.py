@@ -8,7 +8,12 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..utils.safe_math import safe_divide
+def safe_divide(a, b, default=0):
+    """Safely divide two numbers, returning default if division by zero."""
+    try:
+        return a / b if b != 0 else default
+    except (TypeError, ZeroDivisionError):
+        return default
 
 
 class WeatherCondition(Enum):

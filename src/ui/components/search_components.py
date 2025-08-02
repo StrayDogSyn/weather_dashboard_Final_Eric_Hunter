@@ -1,36 +1,53 @@
-import customtkinter as ctk
-import tkinter as tk
-from typing import List, Dict, Optional, Callable
+"""Enhanced Search Components with Autocomplete and Geolocation
+
+Provides advanced search functionality including:
+- Real-time autocomplete
+- Geolocation detection
+- Zip code support
+- Search history persistence
+"""
+
 import json
 import os
-from datetime import datetime
+import re
 import threading
 import time
-from ..safe_widgets import SafeWidget
+from pathlib import Path
+from typing import List, Dict, Any, Optional, Callable
+from datetime import datetime
+
+import customtkinter as ctk
+import tkinter as tk
+from tkinter import messagebox
+
 from ...services.geocoding_service import GeocodingService
-from ...models.weather_models import LocationResult
+from ...models.weather_models import LocationResult, Location
 
 
 class EnhancedSearchBar(ctk.CTkFrame):
     """Enhanced search bar with autocomplete, geolocation, and search history."""
     
-    def __init__(self, parent, weather_service, on_location_selected: Callable = None, **kwargs):
+    def __init__(self, parent, weather_service, on_location_selected: Optional[Callable] = None, **kwargs):
+        """Initialize enhanced search bar."""
         super().__init__(parent, **kwargs)
+        
         self.weather_service = weather_service
         self.geocoding_service = GeocodingService()
         self.on_location_selected = on_location_selected
         
         # Search state
-        self.search_history = self.load_search_history()
-        self.autocomplete_results = []
-        self.selected_index = -1
-        self.search_timer = None
         self.is_searching = False
-        
-        # UI state
+        self.search_delay_id = None
+        self.autocomplete_results: List[LocationResult] = []
+        self.selected_index = -1
         self.dropdown_visible = False
         self.loading_spinner_active = False
+        self.search_timer = None
         
+        # Load search history
+        self.search_history = self.load_search_history()
+        
+        # Initialize UI components
         self.setup_ui()
         self.bind_events()
     
@@ -193,8 +210,8 @@ class EnhancedSearchBar(ctk.CTkFrame):
         self.show_loading()
         
         try:
-            # Use geocoding service for advanced search
-            results = self.geocoding_service.search_locations_advanced(query)
+            # Use weather service for advanced search
+            results = self.weather_service.search_locations_advanced(query)
             
             # Update UI in main thread
             self.after(0, self.update_autocomplete_results, results)
@@ -426,7 +443,22 @@ class EnhancedSearchBar(ctk.CTkFrame):
             try:
                 location = self.geocoding_service.get_current_location()
                 if location:
-                    self.after(0, self.handle_geolocation_result, location)
+                    # Convert to LocationResult format if needed
+                    if hasattr(location, 'display_name'):
+                        self.after(0, self.handle_geolocation_result, location)
+                    else:
+                        # Create LocationResult from geocoding result
+                        location_result = LocationResult(
+                            name=location.name,
+                            display_name=location.display_name,
+                            latitude=location.latitude,
+                            longitude=location.longitude,
+                            country=location.country,
+                            country_code=location.country_code,
+                            state=location.state,
+                            raw_address=location.raw_address
+                        )
+                        self.after(0, self.handle_geolocation_result, location_result)
                 else:
                     self.after(0, self.handle_geolocation_error)
             except Exception as e:

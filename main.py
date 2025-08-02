@@ -381,7 +381,7 @@ class ProgressiveWeatherApp:
 
 
 def main():
-    """Main entry point with progressive loading."""
+    """Main entry point for the weather dashboard."""
     # Setup logging
     logging.basicConfig(
         level=logging.INFO,
@@ -390,14 +390,30 @@ def main():
     )
     
     logger = logging.getLogger(__name__)
-    logger.info("Starting Progressive Weather Dashboard...")
+    logger.info("Starting Weather Dashboard...")
     
     # Load environment
     load_dotenv()
     
-    # Create and run progressive app
-    app = ProgressiveWeatherApp()
-    app.run()
+    try:
+        # Import and create the professional dashboard directly
+        from src.ui.professional_weather_dashboard import ProfessionalWeatherDashboard
+        from src.services.config_service import ConfigService
+        
+        # Initialize config service
+        config_service = ConfigService()
+        logger.info("Configuration service initialized successfully")
+        
+        # Create and run the dashboard
+        dashboard = ProfessionalWeatherDashboard(config_service=config_service)
+        logger.info("Dashboard created successfully")
+        
+        # Start the main loop
+        dashboard.mainloop()
+        
+    except Exception as e:
+        logger.error(f"Failed to start dashboard: {e}")
+        raise
 
 
 if __name__ == "__main__":

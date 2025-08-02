@@ -5,6 +5,7 @@ Handles weather data, air quality, astronomical data, and advanced search.
 
 import json
 import logging
+import socket
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
@@ -303,31 +304,39 @@ class EnhancedWeatherService:
         self._last_request_time = datetime.now().timestamp()
     
     def _create_session_with_retries(self) -> requests.Session:
-        """Create HTTP session with connection pooling and retry strategy."""
+        """Create HTTP session with enhanced connection pooling and exponential backoff."""
         session = requests.Session()
         
-        # Retry strategy with exponential backoff
+        # Enhanced retry strategy with exponential backoff
         retry_strategy = Retry(
             total=3,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET", "OPTIONS"],
-            backoff_factor=1,  # 1, 2, 4 seconds
-            raise_on_status=False
+            backoff_factor=2,  # 2, 4, 8 seconds - more aggressive backoff
+            raise_on_status=False,
+            respect_retry_after_header=True  # Respect server retry-after headers
         )
         
-        # HTTP adapter with connection pooling
+        # Enhanced HTTP adapter with larger connection pool
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
-            pool_connections=10,
-            pool_maxsize=20,
+            pool_connections=20,  # Increased from 10
+            pool_maxsize=50,     # Increased from 20
             pool_block=False
         )
         
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         
-        # Set default timeout
-        session.timeout = 5.0
+        # Set aggressive timeout for faster failure detection
+        session.timeout = (3.0, 5.0)  # (connect_timeout, read_timeout)
+        
+        # Add headers for better caching and compression
+        session.headers.update({
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'User-Agent': 'WeatherDashboard/1.0'
+        })
         
         return session
     
@@ -346,9 +355,20 @@ class EnhancedWeatherService:
         return cache_age < ttl
     
     def _get_offline_fallback(self, data_type: str, location: str = "Unknown") -> Dict[str, Any]:
-        """Get offline fallback data when API is unavailable."""
+        """Get enhanced offline fallback data when API is unavailable."""
         self.logger.warning(f"🔌 Using offline fallback for {data_type}")
         
+        # Try to get last known good data from cache first
+        cache_key = f"{data_type}_{location.lower()}"
+        if cache_key in self._cache:
+            cached_data = self._cache[cache_key]
+            if 'data' in cached_data:
+                self.logger.info(f"Using cached {data_type} data for offline mode")
+                cached_data['data']['offline'] = True
+                cached_data['data']['cache_used'] = True
+                return cached_data['data']
+        
+        # Fallback to default offline data
         fallbacks = {
             'weather': {
                 'location': location,
@@ -359,13 +379,22 @@ class EnhancedWeatherService:
                 'pressure': 1013.25,
                 'wind_speed': 0.0,
                 'timestamp': time.time(),
-                'offline': True
+                'offline': True,
+                'cache_used': False
             },
             'forecast': {
                 'location': location,
                 'days': [],
                 'message': 'Forecast unavailable in offline mode',
-                'offline': True
+                'offline': True,
+                'cache_used': False
+            },
+            'air_quality': {
+                'location': location,
+                'aqi': 50,
+                'quality': 'Offline Mode',
+                'offline': True,
+                'cache_used': False
             }
         }
         
