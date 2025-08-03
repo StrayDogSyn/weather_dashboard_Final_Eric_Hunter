@@ -22,7 +22,6 @@ from .visual_polish import (
 )
 from .weather_effects import (
     ParticleSystem,
-    StatusMessageManager,
     TemperatureGradient,
     WeatherBackgroundManager,
 )

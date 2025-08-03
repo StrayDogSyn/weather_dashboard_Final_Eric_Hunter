@@ -1863,7 +1863,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             if hasattr(self, 'status_label'):
                 self.status_label.configure(text=f"❌ {error_msg}")
             if hasattr(self, 'error_handler'):
-                self.error_handler.handle_error(error, error_msg)
+                self.error_handler.show_error_toast(f"{error_msg}: {str(error)}")
         except Exception as e:
             self.logger.error(f"Error handling display error: {e}")
 
@@ -4261,6 +4261,39 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         except Exception as e:
             self.logger.error(f"Failed to initialize activity suggestions: {e}")
 
+    def _initialize_background_data(self):
+        """Initialize background data loading."""
+        try:
+            # Load background weather data and cache
+            if hasattr(self, 'current_weather_data') and self.current_weather_data:
+                # Update background components with current data
+                self._update_background_components()
+            else:
+                # Load minimal background data
+                self._load_background_weather_data()
+        except Exception as e:
+            self.logger.error(f"Failed to initialize background data: {e}")
+
+    def _update_background_components(self):
+        """Update background UI components."""
+        try:
+            # Update weather background if available
+            if hasattr(self, 'weather_background_manager'):
+                self.weather_background_manager.update_background(self.current_weather_data)
+        except Exception as e:
+            self.logger.error(f"Failed to update background components: {e}")
+
+    def _load_background_weather_data(self):
+        """Load minimal weather data for background."""
+        try:
+            # Load cached data or minimal fallback
+            cached_data = self.cache_manager.get(f"weather_{self.current_city}")
+            if cached_data:
+                self.current_weather_data = cached_data
+                self._update_background_components()
+        except Exception as e:
+            self.logger.error(f"Failed to load background weather data: {e}")
+
     def _show_initial_ui_state(self):
         """Show initial UI state with placeholders."""
         try:
@@ -4364,8 +4397,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
             # Create optimized API request
             api_request = APIRequest(
-                url=f"weather/{self.current_city}",
-                method="GET",
+                endpoint=f"weather/{self.current_city}",
                 priority=RequestPriority.HIGH,
                 cache_strategy=CacheStrategy.CACHE_FIRST,
                 timeout=10.0,
@@ -4373,13 +4405,14 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             )
 
             # Make optimized request
-            response = self.api_optimizer.make_request(
-                api_request,
-                actual_fetch_func=lambda: self.weather_service.get_weather(self.current_city),
-            )
+            request_id = self.api_optimizer.submit_request(api_request)
+            
+            # For now, fallback to direct weather service call
+            # TODO: Implement proper async handling for API optimizer responses
+            response = self.weather_service.get_weather(self.current_city)
 
-            if response and response.get("success"):
-                return response.get("data")
+            if response:
+                return response
             else:
                 self.logger.warning("API optimizer returned no data, falling back to direct fetch")
                 return self._direct_fetch_weather_data()
@@ -4517,7 +4550,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self._update_weather_display(weather_data)
             self.logger.info("Weather display updated successfully")
             # Show success toast
-            self.error_handler.show_toast("Weather data updated successfully", "success")
+            self.error_handler.show_warning_toast("Weather data updated successfully")
         except Exception as e:
             self.logger.error(f"Failed to update weather display: {e}")
             self.error_handler.show_error_toast(f"Failed to display weather data: {str(e)}")
@@ -4718,8 +4751,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         # Use new error handler for comprehensive error display
         self.error_handler.show_api_error(
             error_message,
-            retry_callback=lambda: self._load_weather_data(),
-            show_offline_indicator=True,
+            "weather data loading",
+            retry_callback=lambda: self._load_weather_data()
         )
 
         # Update labels with animation
@@ -4737,31 +4770,31 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
     def _show_rate_limit_message(self):
         """Show user-friendly rate limit message."""
-        self.error_handler.show_toast(
-            "Rate limit exceeded. Using cached data. Please wait before trying again.", "warning"
+        self.error_handler.show_warning_toast(
+            "Rate limit exceeded. Using cached data. Please wait before trying again."
         )
 
     def _show_config_error_message(self):
         """Show configuration error message."""
-        self.error_handler.show_toast(
-            "API configuration error. Please check your API key settings.", "error"
+        self.error_handler.show_error_toast(
+            "API configuration error. Please check your API key settings."
         )
 
     def _show_network_error_message(self):
         """Show network error message."""
-        self.error_handler.show_offline_indicator()
-        self.error_handler.show_toast("Network connection issue. Using cached data.", "warning")
+        self.error_handler.show_offline_indicator(self, has_cached_data=True)
+        self.error_handler.show_warning_toast("Network connection issue. Using cached data.")
 
     def _show_service_error_message(self):
         """Show service unavailable message."""
-        self.error_handler.show_toast(
-            "Weather service temporarily unavailable. Using cached data.", "warning"
+        self.error_handler.show_warning_toast(
+            "Weather service temporarily unavailable. Using cached data."
         )
 
     def _show_weather_service_error_message(self, error_details):
         """Show generic weather service error message."""
-        self.error_handler.show_toast(
-            f"Weather service error: {error_details}. Using cached data.", "error"
+        self.error_handler.show_error_toast(
+            f"Weather service error: {error_details}. Using cached data."
         )
 
     def _create_maps_tab(self):

@@ -242,6 +242,18 @@ class ErrorHandler:
                 message=message, toast_type=ToastType.INFO, duration=duration
             )
 
+    def show_toast(self, message: str, level: str = "info", duration: int = 5000):
+        """Show toast notification with specified level."""
+        level_map = {
+            "error": self.show_error_toast,
+            "warning": self.show_warning_toast,
+            "success": self.show_success_toast,
+            "info": self.show_info_toast
+        }
+        
+        toast_method = level_map.get(level.lower(), self.show_info_toast)
+        toast_method(message, duration)
+
     # Error state methods
     def show_offline_indicator(self, parent: tk.Widget, has_cached_data: bool = False):
         """Show offline indicator."""

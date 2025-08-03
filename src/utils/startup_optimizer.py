@@ -165,22 +165,42 @@ class StartupOptimizer:
         """Resolve dependencies within a priority group."""
         resolved = []
         remaining = component_names.copy()
+        max_iterations = len(component_names) * 2  # Prevent infinite loops
+        iteration = 0
 
-        while remaining:
+        while remaining and iteration < max_iterations:
+            iteration += 1
             # Find components with no unresolved dependencies
             ready = []
             for name in remaining:
                 config = self.components[name]
                 deps_satisfied = all(
-                    dep in self.loaded_components or dep in resolved for dep in config.dependencies
+                    dep in self.loaded_components or dep in resolved or dep not in self.components
+                    for dep in config.dependencies
                 )
                 if deps_satisfied:
                     ready.append(name)
 
             if not ready:
-                # Circular dependency or missing dependency
-                self.logger.warning(f"Circular or missing dependencies detected: {remaining}")
-                ready = remaining  # Load anyway
+                # Check if dependencies are in other priority groups that should be loaded first
+                unmet_deps = set()
+                for name in remaining:
+                    config = self.components[name]
+                    for dep in config.dependencies:
+                        if dep not in self.loaded_components and dep not in resolved and dep in self.components:
+                            dep_priority = self.components[dep].priority.value
+                            current_priority = config.priority.value
+                            if dep_priority <= current_priority:
+                                unmet_deps.add(dep)
+                
+                if unmet_deps:
+                    self.logger.debug(f"Dependencies {list(unmet_deps)} will be loaded in earlier priority groups")
+                    # Load remaining components anyway since dependencies will be satisfied later
+                    ready = remaining
+                else:
+                    # True circular dependency within same priority
+                    self.logger.warning(f"Circular dependencies detected within priority group: {remaining}")
+                    ready = remaining  # Load anyway
 
             resolved.extend(ready)
             for name in ready:
