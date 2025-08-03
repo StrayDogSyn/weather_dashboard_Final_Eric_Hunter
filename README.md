@@ -28,6 +28,18 @@ A modern weather dashboard application featuring **AI-powered analytics**, **mac
 - **📋 Detailed Reports**: Comprehensive analysis exports with clustering and similarity data
 - **🎨 Theme-Integrated Charts**: All visualizations adapt to selected theme automatically
 
+### 🎯 Enhanced Activity Service (NEW)
+
+- **🤖 AI-Powered Suggestions**: Intelligent activity recommendations using OpenAI and Google Gemini APIs
+- **💰 Cost Filtering**: Filter activities by budget levels ($, $$, $$$)
+- **♿ Accessibility Options**: Easy, Moderate, and Difficult accessibility levels
+- **⏱️ Duration Matching**: Flexible duration filtering (short, medium, long)
+- **🎒 Equipment Requirements**: Smart equipment matching (none, minimal, basic, advanced)
+- **🌤️ Weather-Specific Activities**: Tailored suggestions for sunny, rainy, cold, and mild conditions
+- **🔄 Fallback System**: Robust offline suggestions when AI services are unavailable
+- **⚡ Intelligent Caching**: 1-hour cache duration with smart invalidation
+- **🎯 Quick Suggestions**: Instant activity recommendations for immediate needs
+
 ### 🌤️ Weather Data
 
 - **Real-time conditions** for any city worldwide with enhanced accuracy
@@ -97,6 +109,17 @@ A modern weather dashboard application featuring **AI-powered analytics**, **mac
 - **✅ Theme-Integrated Charts**: All ML visualizations automatically adapt to selected theme
 - **✅ Export Capabilities**: Comprehensive data export with ML analysis results
 
+### 🎯 Enhanced Activity Service (Latest)
+
+- **✅ AI Integration**: Complete integration with OpenAI GPT and Google Gemini APIs for intelligent suggestions
+- **✅ Advanced Filtering**: Cost, accessibility, duration, and equipment filtering with flexible matching
+- **✅ Enhanced Fallback System**: Comprehensive offline suggestions with detailed metadata
+- **✅ Weather-Specific Categories**: Tailored activity suggestions for different weather conditions
+- **✅ Smart Caching**: Intelligent caching system with 1-hour duration and proper invalidation
+- **✅ Robust Error Handling**: Graceful degradation when AI services are unavailable
+- **✅ Detailed Metadata**: Each activity includes cost, accessibility, equipment, and duration information
+- **✅ Quick Suggestions**: Instant activity recommendations for immediate user needs
+
 ### 🎨 Dynamic Theme System (Latest)
 
 - **✅ Multi-Theme Architecture**: 6 professional themes (Matrix, Cyberpunk, Arctic, Solar, Terminal, Midnight)
@@ -140,12 +163,13 @@ cd weather_dashboard_Final_Eric_Hunter
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Configure API key
-# Create a .env file in the root directory
-# Add: OPENWEATHER_API_KEY=your_key_here
+# 3. Configure API keys (create .env file in root directory)
+OPENWEATHER_API_KEY=your_openweather_key_here
+OPENAI_API_KEY=your_openai_key_here  # Optional for AI activity suggestions
+GEMINI_API_KEY=your_gemini_key_here  # Optional for enhanced AI features
 
-# 4. Install enhanced dependencies (optional)
-pip install geopy geocoder ratelimit cachetools
+# 4. Install optional dependencies
+pip install streamlit  # For web interface (optional)
 
 # 5. Run application
 python main.py
@@ -205,7 +229,7 @@ python main.py
 - **📈 Radar Charts** - Multi-dimensional weather profile comparisons
 - **🌍 Enhanced City Comparison** - Traditional and AI-powered analysis modes
 - **📔 Smart Weather Journal** - Personal tracking with AI mood correlation
-- **🎯 Intelligent Activity Suggestions** - ML-enhanced weather-appropriate recommendations
+- **🎯 Enhanced Activity Suggestions** - AI-powered recommendations with cost, accessibility, and equipment filtering
 - **🎨 Dynamic Weather Poetry** - AI-generated poems with theme-integrated presentation
 - **🔊 Voice Assistant** - Cortana integration for hands-free operation
 - **🎨 Live Theme System** - 6 professional themes with instant switching
@@ -232,6 +256,7 @@ python main.py
 # UI Framework
 customtkinter==5.2.2          # Modern UI framework
 ttkbootstrap==1.10.1          # Bootstrap-themed widgets
+streamlit==1.29.0             # Web app framework (optional)
 
 # Data & Visualization
 matplotlib==3.8.2             # Charts and visualizations

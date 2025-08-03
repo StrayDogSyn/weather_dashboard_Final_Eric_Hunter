@@ -101,6 +101,9 @@ window_config.json
 
 # API response cache
 *.cache
+activity_cache/
+ai_suggestions_cache/
+*.activity_cache
 
 # Spotify authentication and cache files
 .cache-*
@@ -132,6 +135,9 @@ spectrum_data/
 htmlcov/
 .tox/
 .nox/
+test_*.py
+*_test.py
+test_results/
 
 # Documentation builds
 docs/_build/

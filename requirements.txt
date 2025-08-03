@@ -66,6 +66,9 @@ customtkinter==5.2.2          # Modern and customizable tkinter
 ttkbootstrap==1.10.1          # Bootstrap-themed tkinter widgets
 tkinter                        # Built-in GUI toolkit (Python standard library)
 
+# Web Framework (Optional)
+streamlit==1.29.0             # Web app framework for data applications
+
 # =============================================================================
 # GEOLOCATION AND MAPPING
 # =============================================================================
