@@ -123,3 +123,19 @@ class SafeCTkScrollableFrame(SafeWidget, ctk.CTkScrollableFrame):
     def __init__(self, *args, **kwargs):
         ctk.CTkScrollableFrame.__init__(self, *args, **kwargs)
         SafeWidget.__init__(self)
+
+
+class SafeCTkTextbox(SafeWidget, ctk.CTkTextbox):
+    """Safe CTkTextbox with lifecycle management."""
+
+    def __init__(self, *args, **kwargs):
+        ctk.CTkTextbox.__init__(self, *args, **kwargs)
+        SafeWidget.__init__(self)
+
+
+class SafeCTkComboBox(SafeWidget, ctk.CTkComboBox):
+    """Safe CTkComboBox with lifecycle management."""
+
+    def __init__(self, *args, **kwargs):
+        ctk.CTkComboBox.__init__(self, *args, **kwargs)
+        SafeWidget.__init__(self)

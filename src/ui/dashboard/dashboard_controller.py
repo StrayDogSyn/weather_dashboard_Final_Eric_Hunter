@@ -10,6 +10,7 @@ import customtkinter as ctk
 
 from src.ui.components.common.header import HeaderComponent
 from src.ui.components.common.status_bar_component import StatusBarComponent
+from src.ui.components.journal_tab_manager import JournalTabManager
 from src.ui.dashboard.activities_tab_manager import ActivitiesTabManager
 from src.ui.dashboard.base_dashboard import BaseDashboard
 from src.ui.dashboard.comparison_tab_manager import ComparisonTabManager, MLComparisonTabManager
@@ -34,6 +35,7 @@ class DashboardController(BaseDashboard):
         self.activities_tab_manager = None
         self.comparison_tab_manager = None
         self.ml_comparison_tab_manager = None
+        self.journal_tab_manager = None
 
         # UI components
         self.header_component = None
@@ -58,6 +60,7 @@ class DashboardController(BaseDashboard):
         self.comparison_tab = self.tabview.add("🏙️ Team Compare")
         self.ml_comparison_tab = self.tabview.add("🧠 AI Analysis")
         self.activities_tab = self.tabview.add("Activities")
+        self.journal_tab = self.tabview.add("📝 Journal")
         self.maps_tab = self.tabview.add("Maps")
         self.settings_tab = self.tabview.add("Settings")
 
@@ -77,6 +80,7 @@ class DashboardController(BaseDashboard):
             self.comparison_tab,
             self.ml_comparison_tab,
             self.activities_tab,
+            self.journal_tab,
             self.maps_tab,
             self.settings_tab,
         ]
@@ -104,6 +108,10 @@ class DashboardController(BaseDashboard):
         self.ml_comparison_tab_manager = MLComparisonTabManager(
             self.ml_comparison_tab, self.weather_service, self.github_service
         )
+        
+        self.journal_tab_manager = JournalTabManager(
+            self.journal_tab, self.weather_service, self.theme_manager
+        )
 
     def _create_all_tabs(self):
         """Create content for all tabs using their respective managers."""
@@ -114,8 +122,14 @@ class DashboardController(BaseDashboard):
         self.activities_tab_manager.create_activities_tab(self.activities_tab)
         self.comparison_tab_manager.create_comparison_tab()
         self.settings_tab_manager.create_settings_tab(self.settings_tab)
+        self._create_journal_tab()
         self._create_maps_tab()
 
+    def _create_journal_tab(self):
+        """Create journal tab content."""
+        if self.journal_tab_manager:
+            self.journal_tab_manager.create_journal_tab()
+    
     def _create_maps_tab(self):
         """Create maps tab content (placeholder for now)."""
         # This would be implemented with a dedicated maps tab manager

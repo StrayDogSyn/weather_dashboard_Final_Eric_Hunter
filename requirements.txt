@@ -57,6 +57,10 @@ plotly==5.17.0                # Interactive plotting library
 # Image Processing
 Pillow==10.1.0                # Python Imaging Library (PIL Fork)
 
+# Document Generation
+reportlab==4.0.7              # PDF generation library
+wordcloud==1.9.2              # Word cloud generation
+
 # =============================================================================
 # USER INTERFACE
 # =============================================================================
