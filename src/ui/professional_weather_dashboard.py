@@ -585,6 +585,36 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Add staggered animation
             day_card.animate_in(delay=i * 100)
+    
+    def _on_forecast_card_click(self, card):
+        """Handle forecast card click to show detailed forecast popup."""
+        try:
+            from .components.forecast_details_popup import ForecastDetailsPopup
+            
+            # Get forecast data for the clicked card
+            forecast_data = {
+                'day': getattr(card, 'day_text', 'Day'),
+                'date': getattr(card, 'date_text', '--/--'),
+                'icon': getattr(card, 'icon_code', '01d'),
+                'high_temp': getattr(card, 'high_temp', 22),
+                'low_temp': getattr(card, 'low_temp', 15),
+                'precipitation': getattr(card, 'precipitation', 0.0),
+                'wind_speed': getattr(card, 'wind_speed', 0.0),
+                'description': getattr(card, 'forecast_details', {}).get('description', 'Unknown'),
+                'humidity': getattr(card, 'forecast_details', {}).get('humidity', 0),
+                'precipitation_amount': getattr(card, 'forecast_details', {}).get('precipitation_amount', 0.0)
+            }
+            
+            # Get hourly data if available (would be enhanced later)
+            hourly_data = getattr(card, 'hourly_data', [])
+            
+            # Create and show popup
+            popup = ForecastDetailsPopup(self, forecast_data, hourly_data)
+            
+            self.logger.info(f"Opened forecast details for {forecast_data['day']} {forecast_data['date']}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to open forecast details popup: {e}")
 
     def _create_additional_metrics_section(self):
         """Create additional metrics section for the third column."""
@@ -831,8 +861,10 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 if i < len(daily_forecasts):
                     daily_data = daily_forecasts[i]
 
-                    # Update card with real data
+                    # Update card with real data including day and date
                     card.update_data(
+                        day=daily_data.get("day", "Day"),
+                        date=daily_data.get("date", "--/--"),
                         icon=daily_data.get("icon", "01d"),
                         high=daily_data.get("high_temp", 22),
                         low=daily_data.get("low_temp", 15),
@@ -840,6 +872,26 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                         wind_speed=daily_data.get("wind_speed", 0.0),
                         temp_unit=self.temp_unit,
                     )
+                    
+                    # Store additional data for popup details
+                    forecast_details = {
+                        'description': daily_data.get('description', 'Unknown'),
+                        'humidity': daily_data.get('humidity', 0),
+                        'precipitation_amount': daily_data.get('precipitation_amount', 0.0),
+                        'wind_speed': daily_data.get('wind_speed', 0.0),
+                        'confidence_level': daily_data.get('confidence_level', 85),
+                        'last_update': daily_data.get('last_update', 'Unknown'),
+                        'provider': daily_data.get('provider', 'OpenWeatherMap'),
+                        'sunrise': daily_data.get('sunrise', '06:30'),
+                        'sunset': daily_data.get('sunset', '18:45'),
+                        'uv_index': daily_data.get('uv_index', 5)
+                    }
+                    
+                    setattr(card, 'forecast_details', forecast_details)
+                    
+                    # Store hourly data for the day
+                    hourly_data = daily_data.get('hourly_data', [])
+                    setattr(card, 'hourly_data', hourly_data)
 
         except Exception as e:
             self.logger.error(f"Failed to update cards with forecast data: {e}")
@@ -874,41 +926,161 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             daily_forecasts = []
 
-            # Check if forecast_data has the expected structure
-            if hasattr(forecast_data, "get_daily_forecast"):
-                # Use the model's method to get daily forecast
+            # Check if forecast_data is a ForecastData object with daily_forecasts
+            if hasattr(forecast_data, "daily_forecasts") and forecast_data.daily_forecasts:
+                # Use the enhanced ForecastData model
+                from datetime import datetime
+                
+                for i, day_forecast in enumerate(forecast_data.daily_forecasts[:5]):  # Get first 5 days
+                    # Map weather condition to icon
+                    icon_code = self._get_weather_icon_code(day_forecast.condition)
+                    
+                    # Get hourly data for this day from the forecast_data
+                    day_hourly_data = []
+                    if hasattr(forecast_data, 'hourly_forecasts'):
+                        # Filter hourly forecasts for this specific day
+                        target_date = day_forecast.date.date()
+                        for hourly in forecast_data.hourly_forecasts:
+                             if hourly.timestamp.date() == target_date:
+                                 day_hourly_data.append({
+                                     'time': hourly.timestamp.strftime('%H:%M'),
+                                    'temp': int(hourly.temp_f if self.temp_unit == 'F' else hourly.temp),
+                                    'condition': hourly.condition,
+                                    'icon': self._get_weather_icon_code(hourly.condition),
+                                    'precipitation': hourly.precipitation_probability or 0.0,
+                                    'wind_speed': hourly.wind_speed or 0.0
+                                })
+                    
+                    # Calculate forecast accuracy indicators
+                    days_ahead = i
+                    confidence_level = max(95 - (days_ahead * 5), 60)  # Decreasing confidence
+                    
+                    daily_forecasts.append({
+                        "day": day_forecast.date.strftime("%a"),
+                        "date": day_forecast.date.strftime("%m/%d"),
+                        "icon": icon_code,
+                        "high_temp": int(day_forecast.temp_max_f if self.temp_unit == "F" else day_forecast.temp_max),
+                        "low_temp": int(day_forecast.temp_min_f if self.temp_unit == "F" else day_forecast.temp_min),
+                        "precipitation": day_forecast.precipitation_probability or 0.0,
+                        "wind_speed": day_forecast.wind_speed or 0.0,
+                        "description": day_forecast.description,
+                        "humidity": day_forecast.humidity,
+                        "precipitation_amount": day_forecast.precipitation_amount or 0.0,
+                        "hourly_data": day_hourly_data,
+                        "confidence_level": confidence_level,
+                        "last_update": datetime.now().strftime('%H:%M'),
+                        "provider": "OpenWeatherMap",
+                        "sunrise": "06:30",  # Would be enhanced with real data
+                        "sunset": "18:45",   # Would be enhanced with real data
+                        "uv_index": min(10, max(1, 5 + i))  # Sample UV index
+                    })
+            elif hasattr(forecast_data, "get_daily_forecast"):
+                # Use the model's method to get daily forecast (legacy support)
                 daily_data = forecast_data.get_daily_forecast()
                 for day_data in daily_data[:5]:  # Get first 5 days
-                    daily_forecasts.append(
-                        {
-                            "icon": getattr(day_data, "icon", "01d"),
-                            "high_temp": int(getattr(day_data, "high_temp", 22)),
-                            "low_temp": int(getattr(day_data, "low_temp", 15)),
-                            "precipitation": getattr(day_data, "precipitation_probability", 0.0),
-                            "wind_speed": getattr(day_data, "wind_speed", 0.0),
-                        }
-                    )
+                    daily_forecasts.append({
+                        "icon": getattr(day_data, "icon", "01d"),
+                        "high_temp": int(getattr(day_data, "high_temp", 22)),
+                        "low_temp": int(getattr(day_data, "low_temp", 15)),
+                        "precipitation": getattr(day_data, "precipitation_probability", 0.0),
+                        "wind_speed": getattr(day_data, "wind_speed", 0.0),
+                    })
             elif hasattr(forecast_data, "list"):
                 # Parse OpenWeatherMap 5-day forecast format
                 daily_forecasts = self._parse_openweather_forecast(forecast_data.list)
             else:
                 # Fallback to sample data
+                from datetime import datetime, timedelta
                 for i in range(5):
-                    daily_forecasts.append(
-                        {
-                            "icon": ["01d", "02d", "03d", "04d", "09d"][i],
-                            "high_temp": 22 + (i * 2) - 2,
-                            "low_temp": 15 + i,
-                            "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
-                            "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
-                        }
-                    )
+                    date = datetime.now() + timedelta(days=i)
+                    
+                    # Generate sample hourly data for the day
+                    sample_hourly = []
+                    for hour in range(0, 24, 3):  # Every 3 hours
+                        sample_hourly.append({
+                            'time': f'{hour:02d}:00',
+                            'temp': 18 + (i * 2) + (hour // 6),
+                            'condition': ["Clear", "Partly Cloudy", "Cloudy", "Overcast", "Rain"][i],
+                            'icon': ["01d", "02d", "03d", "04d", "09d"][i],
+                            'precipitation': [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                            'wind_speed': [2.5, 3.0, 4.2, 3.8, 2.1][i]
+                        })
+                    
+                    confidence_level = max(95 - (i * 5), 60)
+                    
+                    daily_forecasts.append({
+                        "day": date.strftime("%a"),
+                        "date": date.strftime("%m/%d"),
+                        "icon": ["01d", "02d", "03d", "04d", "09d"][i],
+                        "high_temp": 22 + (i * 2) - 2,
+                        "low_temp": 15 + i,
+                        "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                        "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
+                        "description": ["Sunny", "Partly Cloudy", "Cloudy", "Overcast", "Rain"][i],
+                        "humidity": [45, 50, 65, 70, 80][i],
+                        "precipitation_amount": [0.0, 0.0, 0.0, 0.0, 2.5][i],
+                        "hourly_data": sample_hourly,
+                        "confidence_level": confidence_level,
+                        "last_update": datetime.now().strftime('%H:%M'),
+                        "provider": "Sample Data",
+                        "sunrise": "06:30",
+                        "sunset": "18:45",
+                        "uv_index": min(10, max(1, 5 + i))
+                    })
 
             return daily_forecasts
 
         except Exception as e:
             self.logger.error(f"Failed to parse daily forecasts: {e}")
             return []
+    
+    def _get_weather_icon_code(self, condition):
+        """Map weather condition to OpenWeather icon code."""
+        try:
+            # Map WeatherCondition enum to icon codes
+            condition_str = str(condition).lower() if condition else "clear"
+            
+            icon_mapping = {
+                "clear": "01d",
+                "sunny": "01d",
+                "partly_cloudy": "02d",
+                "cloudy": "03d",
+                "overcast": "04d",
+                "mist": "50d",
+                "fog": "50d",
+                "light_rain": "10d",
+                "rain": "10d",
+                "heavy_rain": "09d",
+                "thunderstorm": "11d",
+                "snow": "13d",
+                "light_snow": "13d",
+                "heavy_snow": "13d",
+                "sleet": "13d",
+                "drizzle": "09d",
+                "haze": "50d",
+                "smoke": "50d",
+                "dust": "50d",
+                "sand": "50d",
+                "ash": "50d",
+                "squall": "50d",
+                "tornado": "50d"
+            }
+            
+            # Try exact match first
+            if condition_str in icon_mapping:
+                return icon_mapping[condition_str]
+            
+            # Try partial matches
+            for key, icon in icon_mapping.items():
+                if key in condition_str or condition_str in key:
+                    return icon
+            
+            # Default fallback
+            return "01d"
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to map weather condition to icon: {e}")
+            return "01d"
 
     def _parse_openweather_forecast(self, forecast_list):
         """Parse OpenWeatherMap forecast list into daily summaries."""
@@ -3087,14 +3259,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.config_service.set_setting("quiet_end_time", self.quiet_end_var.get())
 
             # Show success message
-            self.status_manager.show_success("Auto-refresh settings saved successfully!")
+            self.status_manager.set_success_state("Auto-refresh settings saved successfully!")
 
             # Update refresh schedule
             if hasattr(self, "refresh_job") and self.refresh_job:
                 self._schedule_refresh()
 
         except Exception as e:
-            self.status_manager.show_error(f"Failed to save settings: {str(e)}")
+            self.status_manager.set_error_state(f"Failed to save settings: {str(e)}")
 
     def _test_refresh(self):
         """Test the refresh functionality."""
@@ -3652,7 +3824,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             
             # Show success message
             if hasattr(self, 'status_manager'):
-                self.status_manager.show_success("✅ Weather data refreshed successfully!")
+                self.status_manager.set_success_state("✅ Weather data refreshed successfully!")
             
             # Add success animation if available
             if hasattr(self, 'animation_manager'):
@@ -3662,7 +3834,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.logger.error(f"Error during manual refresh: {e}")
             # Show error message
             if hasattr(self, 'status_manager'):
-                self.status_manager.show_error(f"❌ Refresh failed: {str(e)}")
+                self.status_manager.set_error_state(f"❌ Refresh failed: {str(e)}")
             else:
                 self._show_error_state(f"Refresh failed: {str(e)}")
         
@@ -3791,7 +3963,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_success_pulse(self.github_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_success("GitHub repository opened!")
+                self.status_manager.set_success_state("GitHub repository opened!")
 
         except Exception as e:
             # Warning pulse for errors
@@ -3799,7 +3971,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_warning_pulse(self.github_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_error(f"Failed to open GitHub: {str(e)}")
+                self.status_manager.set_error_state(f"Failed to open GitHub: {str(e)}")
 
     def _open_github(self):
         """Open GitHub repository in browser."""
@@ -3891,7 +4063,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_success_pulse(self.export_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_success("Data exported successfully!")
+                self.status_manager.set_success_state("Data exported successfully!")
 
         except Exception as e:
             # Warning pulse for errors
@@ -3899,7 +4071,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_warning_pulse(self.export_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_error(f"Export failed: {str(e)}")
+                self.status_manager.set_error_state(f"Export failed: {str(e)}")
 
     def _export_data(self):
         """Export application data."""
@@ -3970,7 +4142,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_success_pulse(self.import_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_success("Data imported successfully!")
+                self.status_manager.set_success_state("Data imported successfully!")
 
         except Exception as e:
             # Warning pulse for errors
@@ -3978,7 +4150,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
                 self.micro_interactions.add_warning_pulse(self.import_button)
 
             if hasattr(self, "status_manager"):
-                self.status_manager.show_error(f"Import failed: {str(e)}")
+                self.status_manager.set_error_state(f"Import failed: {str(e)}")
 
     def _import_data(self):
         """Import application data."""
