@@ -287,8 +287,7 @@ class SettingsTabManager:
 
     def _create_theme_selector(self):
         """Create theme selector with preview cards for all 9 themes in 3x3 grid."""
-        from src.ui.theme_manager import theme_manager
-        
+
         # Get all available themes from theme manager - 9 themes for 3x3 grid
         themes = [
             ("Matrix", "#00FF41", "#0A0A0A", "matrix"),
@@ -310,8 +309,8 @@ class SettingsTabManager:
 
         for i, (name, primary, bg, theme_key) in enumerate(themes):
             row = i // 3  # 0, 1, 2 for rows
-            col = i % 3   # 0, 1, 2 for columns
-            
+            col = i % 3  # 0, 1, 2 for columns
+
             # Create theme button
             theme_btn = ctk.CTkButton(
                 self.theme_grid,
@@ -322,16 +321,12 @@ class SettingsTabManager:
                 hover_color=bg,
                 command=lambda key=theme_key: self._change_theme(key),
             )
-            theme_btn.grid(row=row*2, column=col, padx=8, pady=(5, 2), sticky="ew")
-            
+            theme_btn.grid(row=row * 2, column=col, padx=8, pady=(5, 2), sticky="ew")
+
             # Create color palette hint with actual color squares
-            palette_frame = ctk.CTkFrame(
-                self.theme_grid,
-                height=20,
-                fg_color="transparent"
-            )
-            palette_frame.grid(row=row*2+1, column=col, padx=8, pady=(0, 5), sticky="ew")
-            
+            palette_frame = ctk.CTkFrame(self.theme_grid, height=20, fg_color="transparent")
+            palette_frame.grid(row=row * 2 + 1, column=col, padx=8, pady=(0, 5), sticky="ew")
+
             # Primary color square
             primary_square = ctk.CTkLabel(
                 palette_frame,
@@ -339,10 +334,10 @@ class SettingsTabManager:
                 font=("Arial", 12, "bold"),
                 text_color=primary,
                 width=15,
-                height=15
+                height=15,
             )
             primary_square.pack(side="left", padx=(0, 2))
-            
+
             # Background color square
             bg_square = ctk.CTkLabel(
                 palette_frame,
@@ -350,20 +345,20 @@ class SettingsTabManager:
                 font=("Arial", 12, "bold"),
                 text_color=bg,
                 width=15,
-                height=15
+                height=15,
             )
             bg_square.pack(side="left", padx=(0, 5))
-            
+
             # Color codes text
             color_text = ctk.CTkLabel(
                 palette_frame,
                 text=f"{primary[:4]} {bg[:4]}",
                 font=("Courier", 9),
                 text_color=DataTerminalTheme.TEXT_SECONDARY,
-                height=15
+                height=15,
             )
             color_text.pack(side="left")
-        
+
         # Add restore to default button
         restore_btn = ctk.CTkButton(
             self.theme_grid,
@@ -550,41 +545,44 @@ class SettingsTabManager:
         """Change application theme."""
         if hasattr(self.parent, "apply_theme"):
             self.parent.apply_theme(theme_name)
-    
+
     def _restore_default_theme(self):
         """Restore theme to unique system default and reset all theme configurations."""
-        from src.ui.theme_manager import theme_manager
         import json
         import os
-        
+
+        from src.ui.theme_manager import theme_manager
+
         default_theme = "default_system"  # Unique system default theme
-        
+
         try:
             # Apply the System Default theme
-            if hasattr(self.parent, 'apply_theme'):
+            if hasattr(self.parent, "apply_theme"):
                 self.parent.apply_theme(default_theme)
-            
+
             # Update theme manager
             theme_manager.apply_theme(default_theme, self.parent)
-            
+
             # Reset theme config file to system default
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "config", "theme_config.json")
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+                "config",
+                "theme_config.json",
+            )
             if os.path.exists(config_path):
-                with open(config_path, 'w') as f:
+                with open(config_path, "w") as f:
                     json.dump({"current_theme": default_theme}, f, indent=2)
-            
+
             # Show success message
-            if hasattr(self.parent, 'status_message_manager'):
+            if hasattr(self.parent, "status_message_manager"):
                 self.parent.status_message_manager.show_message(
-                    "Theme restored to System Default (unique theme)", 
-                    "success"
+                    "Theme restored to System Default (unique theme)", "success"
                 )
         except Exception as e:
             # Show error message if restoration fails
-            if hasattr(self.parent, 'status_message_manager'):
+            if hasattr(self.parent, "status_message_manager"):
                 self.parent.status_message_manager.show_message(
-                    f"Failed to restore default theme: {str(e)}", 
-                    "error"
+                    f"Failed to restore default theme: {str(e)}", "error"
                 )
 
     def _change_units(self, unit):

@@ -594,7 +594,8 @@ class CityComparisonPanel(ctk.CTkFrame):
                     team_cities = self.github_service.force_refresh()
                     self.after(0, lambda: self._process_team_data(team_cities))
                 except Exception as e:
-                    self.after(0, lambda: self._handle_team_sync_error(str(e)))
+                    error_msg = str(e)
+                    self.after(0, lambda: self._handle_team_sync_error(error_msg))
 
             threading.Thread(target=fetch_data, daemon=True).start()
 
@@ -685,7 +686,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 if hasattr(team_city, "last_updated") and team_city.last_updated:
                     try:
                         # Try to parse the timestamp
-                        parsed_time = datetime.fromisoformat(
+                        datetime.fromisoformat(
                             team_city.last_updated.replace("Z", "+00:00")
                         )
                         last_updated = team_city.last_updated

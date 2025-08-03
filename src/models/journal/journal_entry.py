@@ -1,16 +1,15 @@
 """Journal entry model with weather integration and mood tracking."""
 
-import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 
 class Mood(Enum):
     """Mood enumeration for journal entries."""
+
     HAPPY = "happy"
     NEUTRAL = "neutral"
     SAD = "sad"
@@ -60,6 +59,7 @@ class Mood(Enum):
 @dataclass
 class WeatherSnapshot:
     """Weather data snapshot for journal entries."""
+
     temperature: float
     feels_like: float
     condition: str
@@ -72,7 +72,7 @@ class WeatherSnapshot:
     uv_index: Optional[float] = None
     cloudiness: Optional[int] = None
     icon: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -89,12 +89,12 @@ class WeatherSnapshot:
             "cloudiness": self.cloudiness,
             "icon": self.icon,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "WeatherSnapshot":
         """Create from dictionary."""
         return cls(**data)
-    
+
     @property
     def summary(self) -> str:
         """Get a human-readable weather summary."""
@@ -104,35 +104,36 @@ class WeatherSnapshot:
 @dataclass
 class JournalEntry:
     """Journal entry with weather integration and mood tracking."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    
+
     # Location and weather
     location: str = ""
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     weather_snapshot: Optional[WeatherSnapshot] = None
-    
+
     # Mood and content
     mood: Optional[Mood] = None
     title: str = ""
     content: str = ""
     formatted_content: str = ""  # Rich text HTML content
-    
+
     # Attachments and metadata
     photo_paths: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
     word_count: int = 0
-    
+
     # Auto-save tracking
     is_auto_saved: bool = False
     last_auto_save: Optional[datetime] = None
-    
+
     def __post_init__(self):
         """Post-initialization processing."""
         self.update_word_count()
-    
+
     def update_content(self, content: str, formatted_content: str = ""):
         """Update content and metadata."""
         self.content = content
@@ -140,28 +141,29 @@ class JournalEntry:
         self.updated_at = datetime.now()
         self.update_word_count()
         self.is_auto_saved = False
-    
+
     def update_word_count(self):
         """Update word count from content."""
         # Remove HTML tags for word counting
         import re
-        clean_text = re.sub(r'<[^>]+>', '', self.content)
+
+        clean_text = re.sub(r"<[^>]+>", "", self.content)
         self.word_count = len(clean_text.split())
-    
+
     def add_photo(self, photo_path: str):
         """Add photo attachment."""
         if photo_path not in self.photo_paths:
             self.photo_paths.append(photo_path)
             self.updated_at = datetime.now()
             self.is_auto_saved = False
-    
+
     def remove_photo(self, photo_path: str):
         """Remove photo attachment."""
         if photo_path in self.photo_paths:
             self.photo_paths.remove(photo_path)
             self.updated_at = datetime.now()
             self.is_auto_saved = False
-    
+
     def add_tag(self, tag: str):
         """Add tag to entry."""
         tag = tag.strip().lower()
@@ -169,7 +171,7 @@ class JournalEntry:
             self.tags.append(tag)
             self.updated_at = datetime.now()
             self.is_auto_saved = False
-    
+
     def remove_tag(self, tag: str):
         """Remove tag from entry."""
         tag = tag.strip().lower()
@@ -177,12 +179,12 @@ class JournalEntry:
             self.tags.remove(tag)
             self.updated_at = datetime.now()
             self.is_auto_saved = False
-    
+
     def mark_auto_saved(self):
         """Mark entry as auto-saved."""
         self.is_auto_saved = True
         self.last_auto_save = datetime.now()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -203,7 +205,7 @@ class JournalEntry:
             "is_auto_saved": self.is_auto_saved,
             "last_auto_save": self.last_auto_save.isoformat() if self.last_auto_save else None,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "JournalEntry":
         """Create from dictionary."""
@@ -211,20 +213,19 @@ class JournalEntry:
         created_at = datetime.fromisoformat(data["created_at"])
         updated_at = datetime.fromisoformat(data["updated_at"])
         last_auto_save = (
-            datetime.fromisoformat(data["last_auto_save"]) 
-            if data.get("last_auto_save") else None
+            datetime.fromisoformat(data["last_auto_save"]) if data.get("last_auto_save") else None
         )
-        
+
         # Parse weather snapshot
         weather_snapshot = None
         if data.get("weather_snapshot"):
             weather_snapshot = WeatherSnapshot.from_dict(data["weather_snapshot"])
-        
+
         # Parse mood
         mood = None
         if data.get("mood"):
             mood = Mood(data["mood"])
-        
+
         return cls(
             id=data["id"],
             created_at=created_at,
@@ -243,32 +244,33 @@ class JournalEntry:
             is_auto_saved=data.get("is_auto_saved", False),
             last_auto_save=last_auto_save,
         )
-    
+
     @property
     def preview_text(self) -> str:
         """Get preview text for entry list."""
         # Remove HTML tags and get first 100 characters
         import re
-        clean_text = re.sub(r'<[^>]+>', '', self.content)
+
+        clean_text = re.sub(r"<[^>]+>", "", self.content)
         return clean_text[:100] + "..." if len(clean_text) > 100 else clean_text
-    
+
     @property
     def date_str(self) -> str:
         """Get formatted date string."""
         return self.created_at.strftime("%B %d, %Y")
-    
+
     @property
     def time_str(self) -> str:
         """Get formatted time string."""
         return self.created_at.strftime("%I:%M %p")
-    
+
     @property
     def mood_display(self) -> str:
         """Get mood display with emoji."""
         if self.mood:
             return f"{self.mood.emoji} {self.mood.value.title()}"
         return "😐 No mood set"
-    
+
     @property
     def weather_display(self) -> str:
         """Get weather display string."""

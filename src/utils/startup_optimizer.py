@@ -187,19 +187,27 @@ class StartupOptimizer:
                 for name in remaining:
                     config = self.components[name]
                     for dep in config.dependencies:
-                        if dep not in self.loaded_components and dep not in resolved and dep in self.components:
+                        if (
+                            dep not in self.loaded_components
+                            and dep not in resolved
+                            and dep in self.components
+                        ):
                             dep_priority = self.components[dep].priority.value
                             current_priority = config.priority.value
                             if dep_priority <= current_priority:
                                 unmet_deps.add(dep)
-                
+
                 if unmet_deps:
-                    self.logger.debug(f"Dependencies {list(unmet_deps)} will be loaded in earlier priority groups")
+                    self.logger.debug(
+                        f"Dependencies {list(unmet_deps)} will be loaded in earlier priority groups"
+                    )
                     # Load remaining components anyway since dependencies will be satisfied later
                     ready = remaining
                 else:
                     # True circular dependency within same priority
-                    self.logger.warning(f"Circular dependencies detected within priority group: {remaining}")
+                    self.logger.warning(
+                        f"Circular dependencies detected within priority group: {remaining}"
+                    )
                     ready = remaining  # Load anyway
 
             resolved.extend(ready)

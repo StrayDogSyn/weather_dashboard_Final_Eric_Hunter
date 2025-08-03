@@ -108,7 +108,7 @@ class DashboardController(BaseDashboard):
         self.ml_comparison_tab_manager = MLComparisonTabManager(
             self.ml_comparison_tab, self.weather_service, self.github_service
         )
-        
+
         self.journal_tab_manager = JournalTabManager(
             self.journal_tab, self.weather_service, self.theme_manager
         )
@@ -129,7 +129,7 @@ class DashboardController(BaseDashboard):
         """Create journal tab content."""
         if self.journal_tab_manager:
             self.journal_tab_manager.create_journal_tab()
-    
+
     def _create_maps_tab(self):
         """Create maps tab content (placeholder for now)."""
         # This would be implemented with a dedicated maps tab manager

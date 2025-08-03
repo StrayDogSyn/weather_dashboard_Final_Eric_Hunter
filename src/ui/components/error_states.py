@@ -63,14 +63,16 @@ class OfflineIndicator(ErrorStateComponent):
         """Create the offline indicator frame."""
         # Get current theme colors
         current_theme = theme_manager.get_current_theme()
-        warning_bg = current_theme.get('WARNING', '#ffc107')
-        warning_text = current_theme.get('BACKGROUND', '#2b2b2b')
-        
+        warning_bg = current_theme.get("WARNING", "#ffc107")
+        warning_text = current_theme.get("BACKGROUND", "#2b2b2b")
+
         self.frame = tk.Frame(self.parent, bg=warning_bg, relief="solid", bd=1)
         self.frame.pack(fill="x", padx=5, pady=2)
 
         # Offline icon
-        icon_label = tk.Label(self.frame, text="📡", font=("Arial", 12), bg=warning_bg, fg=warning_text)
+        icon_label = tk.Label(
+            self.frame, text="📡", font=("Arial", 12), bg=warning_bg, fg=warning_text
+        )
         icon_label.pack(side="left", padx=(8, 4), pady=4)
 
         # Status message
@@ -163,10 +165,10 @@ class APIErrorDisplay(ErrorStateComponent):
         """Create the API error frame."""
         # Get current theme colors
         current_theme = theme_manager.get_current_theme()
-        error_bg = current_theme.get('ERROR', '#dc3545')
-        bg_color = current_theme.get('BACKGROUND', '#2b2b2b')
-        text_color = current_theme.get('TEXT', '#ffffff')
-        
+        error_bg = current_theme.get("ERROR", "#dc3545")
+        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
+        text_color = current_theme.get("TEXT", "#ffffff")
+
         self.frame = tk.Frame(self.parent, bg=bg_color, relief="solid", bd=1)
         self.frame.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -218,7 +220,7 @@ class APIErrorDisplay(ErrorStateComponent):
             button_frame,
             text="Dismiss",
             font=("Arial", 10),
-            bg=current_theme.get('SECONDARY', '#6c757d'),
+            bg=current_theme.get("SECONDARY", "#6c757d"),
             fg=text_color,
             relief="flat",
             padx=15,
@@ -274,13 +276,13 @@ class LoadingState(ErrorStateComponent):
         """Create the loading state frame."""
         # Get current theme colors
         current_theme = theme_manager.get_current_theme()
-        bg_color = current_theme.get('BACKGROUND', '#2b2b2b')
-        text_color = current_theme.get('TEXT', '#ffffff')
-        
+        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
+        text_color = current_theme.get("TEXT", "#ffffff")
+
         self.frame = tk.Frame(self.parent, bg=bg_color)
         # Use grid instead of pack to avoid geometry manager conflicts
         self.frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        
+
         # Configure grid weights for proper expansion
         self.frame.grid_columnconfigure(0, weight=1)
         self.frame.grid_rowconfigure(0, weight=1)
@@ -317,12 +319,12 @@ class LoadingState(ErrorStateComponent):
         """Create skeleton loading content."""
         # Get current theme colors
         current_theme = theme_manager.get_current_theme()
-        bg_color = current_theme.get('BACKGROUND', '#2b2b2b')
-        skeleton_color = current_theme.get('CARD_BG', '#3c3c3c')
-        
+        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
+        skeleton_color = current_theme.get("CARD_BG", "#3c3c3c")
+
         skeleton_frame = tk.Frame(self.frame, bg=bg_color)
         skeleton_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
-        
+
         # Configure skeleton frame grid
         skeleton_frame.grid_columnconfigure(0, weight=1)
 
@@ -330,7 +332,7 @@ class LoadingState(ErrorStateComponent):
         for i in range(3):
             skeleton_line = tk.Frame(skeleton_frame, bg=skeleton_color, height=15)
             skeleton_line.grid(row=i, column=0, sticky="ew", pady=2)
-            
+
             # Configure skeleton line grid
             skeleton_frame.grid_rowconfigure(i, weight=0)
 

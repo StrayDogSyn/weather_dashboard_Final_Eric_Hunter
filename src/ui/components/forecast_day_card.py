@@ -248,7 +248,7 @@ class ForecastDayCard(ctk.CTkFrame):
                 lightened = tuple(min(255, int(c + (255 - c) * factor)) for c in rgb)
                 return f"#{lightened[0]:02x}{lightened[1]:02x}{lightened[2]:02x}"
             return color
-        except:
+        except Exception:
             return color
 
     def _on_theme_changed(self, theme_data=None):
@@ -373,7 +373,7 @@ class ForecastDayCard(ctk.CTkFrame):
         # Remove theme observer
         try:
             theme_manager.remove_observer(self._on_theme_changed)
-        except:
+        except Exception:
             pass
 
         # Cancel any pending animations

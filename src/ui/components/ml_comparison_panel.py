@@ -660,7 +660,7 @@ class MLComparisonPanel(ctk.CTkFrame):
         if hasattr(self, "current_figure"):
             try:
                 plt.close(self.current_figure)
-            except:
+            except Exception:
                 pass
             self.current_figure = None
 

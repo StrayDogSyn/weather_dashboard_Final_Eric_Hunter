@@ -33,12 +33,12 @@ class ActivityService:
     EQUIPMENT_NONE = "none"
     EQUIPMENT_BASIC = "basic"
     EQUIPMENT_ADVANCED = "advanced"
-    
+
     # Cost levels
     COST_LOW = "$"  # Low cost activities
     COST_MEDIUM = "$$"  # Medium cost activities
     COST_HIGH = "$$$"  # High cost activities
-    
+
     # Accessibility levels
     ACCESSIBILITY_EASY = "Easy"  # Easy accessibility
     ACCESSIBILITY_MODERATE = "Moderate"  # Moderate accessibility
@@ -51,12 +51,12 @@ class ActivityService:
         # Cache for activity suggestions (1 hour as requested)
         self._cache = {}
         self._cache_duration = timedelta(hours=1)
-        
+
         # Request retry configuration
         self._max_retries = 3
         self._base_delay = 1.0  # Base delay for exponential backoff
         self._max_delay = 30.0  # Maximum delay between retries
-        
+
         # API quota tracking
         self._request_count = 0
         self._quota_reset_time = datetime.now() + timedelta(hours=1)
@@ -98,7 +98,9 @@ class ActivityService:
                 gemini_key = os.getenv("GEMINI_API_KEY")
 
             if not gemini_key:
-                self.logger.warning("🔑 GEMINI_API_KEY not found in configuration or environment variables")
+                self.logger.warning(
+                    "🔑 GEMINI_API_KEY not found in configuration or environment variables"
+                )
                 self._gemini_available = False
                 return
 
@@ -111,7 +113,7 @@ class ActivityService:
 
             # Configure Gemini with safety settings
             genai.configure(api_key=gemini_key)
-            
+
             # Use gemini-1.5-flash for better performance and lower cost
             generation_config = {
                 "temperature": 0.7,
@@ -119,10 +121,9 @@ class ActivityService:
                 "top_k": 40,
                 "max_output_tokens": 2048,
             }
-            
+
             self.model = genai.GenerativeModel(
-                "gemini-1.5-flash",
-                generation_config=generation_config
+                "gemini-1.5-flash", generation_config=generation_config
             )
 
             # Test the connection with a simple prompt
@@ -161,7 +162,12 @@ class ActivityService:
         """
         # Check cache first
         cache_key = self._generate_cache_key(
-            weather_data, location_type, duration_filter, equipment_filter, cost_filter, accessibility_filter
+            weather_data,
+            location_type,
+            duration_filter,
+            equipment_filter,
+            cost_filter,
+            accessibility_filter,
         )
         cached_result = self._get_cached_suggestions(cache_key)
         if cached_result:
@@ -175,7 +181,9 @@ class ActivityService:
             suggestions = self._get_fallback_suggestions(weather_data)
 
         # Apply filters
-        filtered_suggestions = self._apply_filters(suggestions, duration_filter, equipment_filter, cost_filter, accessibility_filter)
+        filtered_suggestions = self._apply_filters(
+            suggestions, duration_filter, equipment_filter, cost_filter, accessibility_filter
+        )
 
         # Cache the results
         self._cache_suggestions(cache_key, filtered_suggestions)
@@ -217,7 +225,7 @@ class ActivityService:
         """Make API request with exponential backoff retry logic."""
         if not self._gemini_available or not self.model:
             return None
-            
+
         # Check quota limits
         if self._request_count >= self._daily_quota_limit:
             if datetime.now() < self._quota_reset_time:
@@ -227,26 +235,26 @@ class ActivityService:
                 # Reset quota counter
                 self._request_count = 0
                 self._quota_reset_time = datetime.now() + timedelta(hours=24)
-        
+
         for attempt in range(self._max_retries):
             try:
                 self._request_count += 1
                 response = self.model.generate_content(prompt)
-                
+
                 if response and response.text:
                     return response.text
                 else:
                     self.logger.warning(f"Empty response from Gemini AI (attempt {attempt + 1})")
-                    
+
             except Exception as e:
                 self.logger.warning(f"API request failed (attempt {attempt + 1}): {e}")
-                
+
                 if attempt < self._max_retries - 1:
                     # Exponential backoff with jitter
-                    delay = min(self._base_delay * (2 ** attempt), self._max_delay)
+                    delay = min(self._base_delay * (2**attempt), self._max_delay)
                     jitter = random.uniform(0, 0.1) * delay
                     time.sleep(delay + jitter)
-                    
+
         self.logger.error("All API retry attempts failed")
         return None
 
@@ -268,7 +276,9 @@ class ActivityService:
                 time_context = "Start your day with energizing activities"
             elif 12 <= current_hour < 17:
                 time_of_day = "afternoon"
-                time_context = "Perfect time for outdoor exploration or productive indoor activities"
+                time_context = (
+                    "Perfect time for outdoor exploration or productive indoor activities"
+                )
             elif 17 <= current_hour < 21:
                 time_of_day = "evening"
                 time_context = "Wind down with relaxing or social activities"
@@ -293,7 +303,9 @@ class ActivityService:
             # Weather safety assessment
             safety_concerns = []
             if weather_data.temperature < 0:
-                safety_concerns.append("freezing temperatures - recommend warm clothing and indoor alternatives")
+                safety_concerns.append(
+                    "freezing temperatures - recommend warm clothing and indoor alternatives"
+                )
             elif weather_data.temperature > 30:
                 safety_concerns.append("high temperatures - emphasize hydration and shade")
             if weather_data.wind_speed > 25:
@@ -303,9 +315,15 @@ class ActivityService:
             if "rain" in weather_data.description.lower():
                 safety_concerns.append("wet conditions - prioritize indoor activities")
             if "snow" in weather_data.description.lower():
-                safety_concerns.append("snowy conditions - winter gear required for outdoor activities")
+                safety_concerns.append(
+                    "snowy conditions - winter gear required for outdoor activities"
+                )
 
-            safety_context = "\n- Safety considerations: " + "; ".join(safety_concerns) if safety_concerns else ""
+            safety_context = (
+                "\n- Safety considerations: " + "; ".join(safety_concerns)
+                if safety_concerns
+                else ""
+            )
 
             # Create comprehensive prompt
             prompt = f"""
@@ -375,7 +393,7 @@ Return ONLY a valid JSON array with this exact structure:
         try:
             # Clean response text and extract JSON
             cleaned_text = response_text.strip()
-            
+
             # Handle markdown code blocks
             if "```json" in cleaned_text:
                 json_start = cleaned_text.find("```json") + 7
@@ -387,7 +405,7 @@ Return ONLY a valid JSON array with this exact structure:
                 json_end = cleaned_text.find("```", json_start)
                 if json_end != -1:
                     cleaned_text = cleaned_text[json_start:json_end].strip()
-            
+
             # Find JSON array boundaries
             start_idx = cleaned_text.find("[")
             end_idx = cleaned_text.rfind("]") + 1
@@ -408,7 +426,10 @@ Return ONLY a valid JSON array with this exact structure:
             validated_suggestions = []
             required_fields = ["title", "category", "description", "duration", "items"]
             valid_categories = {
-                "outdoor_adventures", "indoor_activities", "social_activities", "weather_specific"
+                "outdoor_adventures",
+                "indoor_activities",
+                "social_activities",
+                "weather_specific",
             }
             valid_subcategories = {"Outdoor", "Indoor", "Social"}
             valid_equipment = {"none", "basic", "advanced"}
@@ -416,7 +437,7 @@ Return ONLY a valid JSON array with this exact structure:
             for suggestion in suggestions[:6]:  # Limit to 6
                 if not isinstance(suggestion, dict):
                     continue
-                    
+
                 if all(field in suggestion for field in required_fields):
                     # Validate and normalize category
                     category = suggestion.get("category", "")
@@ -438,7 +459,7 @@ Return ONLY a valid JSON array with this exact structure:
                     suggestion.setdefault(
                         "icon", self._get_default_icon(suggestion.get("category", ""))
                     )
-                    
+
                     subcategory = suggestion.get("subcategory", "")
                     if subcategory not in valid_subcategories:
                         # Auto-determine subcategory from category
@@ -448,11 +469,11 @@ Return ONLY a valid JSON array with this exact structure:
                             suggestion["subcategory"] = "Social"
                         else:
                             suggestion["subcategory"] = "Indoor"
-                    
+
                     equipment = suggestion.get("equipment", "basic")
                     if equipment not in valid_equipment:
                         suggestion["equipment"] = "basic"  # Default to basic if invalid
-                    
+
                     # Add cost and accessibility fields with defaults
                     suggestion.setdefault("cost", "$")
                     suggestion.setdefault("accessibility", "Easy")
@@ -460,7 +481,9 @@ Return ONLY a valid JSON array with this exact structure:
 
                     validated_suggestions.append(suggestion)
 
-            self.logger.info(f"✅ Successfully parsed {len(validated_suggestions)} activity suggestions")
+            self.logger.info(
+                f"✅ Successfully parsed {len(validated_suggestions)} activity suggestions"
+            )
             return validated_suggestions
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
@@ -514,7 +537,14 @@ Return ONLY a valid JSON array with this exact structure:
         duration_mapping = {
             self.DURATION_SHORT: ["30 minutes", "1 hour", "30-60 minutes", "1-2 hours"],
             self.DURATION_MEDIUM: ["1-2 hours", "2-3 hours", "1-3 hours", "2-4 hours"],
-            self.DURATION_LONG: ["3+ hours", "4+ hours", "3-4 hours", "3-6 hours", "4-6 hours", "all day"],
+            self.DURATION_LONG: [
+                "3+ hours",
+                "4+ hours",
+                "3-4 hours",
+                "3-6 hours",
+                "4-6 hours",
+                "all day",
+            ],
         }
 
         if duration_filter not in duration_mapping:
@@ -540,7 +570,7 @@ Return ONLY a valid JSON array with this exact structure:
         filtered = []
         for suggestion in suggestions:
             cost = suggestion.get("cost", "$")
-            
+
             # Filter based on cost level
             if cost_filter == "$" and cost == "$":
                 filtered.append(suggestion)
@@ -561,7 +591,7 @@ Return ONLY a valid JSON array with this exact structure:
         filtered = []
         for suggestion in suggestions:
             accessibility = suggestion.get("accessibility", "Easy")
-            
+
             # Filter based on accessibility level
             if accessibility_filter == "Easy" and accessibility == "Easy":
                 filtered.append(suggestion)
@@ -587,8 +617,8 @@ Return ONLY a valid JSON array with this exact structure:
         for suggestion in suggestions:
             equipment_level = suggestion.get("equipment", "basic").lower()
             items = suggestion.get("items", "").lower()
-            cost = suggestion.get("cost", "$")
-            accessibility = suggestion.get("accessibility", "Easy")
+            suggestion.get("cost", "$")
+            suggestion.get("accessibility", "Easy")
 
             # Determine equipment level based on items if not explicitly set
             if equipment_level == "basic" and items:
@@ -714,7 +744,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Sunscreen SPF 30+, beach towel, water bottle, swimwear, beach umbrella",
                     "safety_notes": "Apply sunscreen every 2 hours, stay hydrated, and check water conditions",
                     "cost": "$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Outdoor Picnic Adventure",
@@ -727,7 +757,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Picnic basket, waterproof blanket, food, drinks, cooler with ice",
                     "safety_notes": "Keep perishable food cold, bring hand sanitizer, and clean up thoroughly",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Swimming & Water Activities",
@@ -740,7 +770,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Swimsuit, towel, water bottle, goggles, sunscreen",
                     "safety_notes": "Swim in designated areas with lifeguards when possible, never swim alone",
                     "cost": "$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Outdoor Sports & Games",
@@ -753,7 +783,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Sports equipment, water bottle, sunscreen, athletic wear",
                     "safety_notes": "Take frequent water breaks, avoid peak sun hours, and warm up properly",
                     "cost": "$",
-                    "accessibility": "Moderate"
+                    "accessibility": "Moderate",
                 },
                 {
                     "title": "Photography Walk",
@@ -766,7 +796,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Camera or smartphone, extra batteries, comfortable walking shoes",
                     "safety_notes": "Be aware of surroundings, respect private property, and protect equipment",
                     "cost": "$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Ice Cream & Treats Tour",
@@ -779,8 +809,8 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Money, comfortable walking shoes, hat",
                     "safety_notes": "Stay in shaded areas when possible and stay hydrated",
                     "cost": "$",
-                    "accessibility": "Easy"
-                }
+                    "accessibility": "Easy",
+                },
             ]
             suggestions.extend(outdoor_warm)
         elif temp > 15:  # Mild weather
@@ -796,7 +826,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Hiking shoes, water bottle, trail map, light jacket, snacks",
                     "safety_notes": "Stay on marked trails, inform someone of your route, and check weather updates",
                     "cost": "$",
-                    "accessibility": "Moderate"
+                    "accessibility": "Moderate",
                 },
                 {
                     "title": "Cycling Adventure",
@@ -809,7 +839,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Bicycle, helmet, water bottle, repair kit, cycling clothes",
                     "safety_notes": "Always wear a helmet, follow traffic rules, and check bike condition",
                     "cost": "$",
-                    "accessibility": "Moderate"
+                    "accessibility": "Moderate",
                 },
                 {
                     "title": "Farmers Market Tour",
@@ -822,7 +852,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Money, reusable bags, comfortable walking shoes, market list",
                     "safety_notes": "Keep valuables secure, stay aware of surroundings, and handle food safely",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Outdoor Photography",
@@ -835,7 +865,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Camera, extra batteries, memory cards, tripod, lens cloth",
                     "safety_notes": "Protect equipment from moisture, respect wildlife, and be mindful of private property",
                     "cost": "$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Outdoor Café",
@@ -848,7 +878,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Light jacket (optional), book or laptop",
                     "safety_notes": "Keep belongings secure in public spaces",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Park Activities",
@@ -861,8 +891,8 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Blanket, snacks, frisbee or ball",
                     "safety_notes": "Stay hydrated and be mindful of other park users",
                     "cost": "$",
-                    "accessibility": "Easy"
-                }
+                    "accessibility": "Easy",
+                },
             ]
             suggestions.extend(outdoor_mild)
         else:  # Cold weather (15°C and below)
@@ -878,7 +908,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Warm layers, comfortable walking shoes, museum map, camera",
                     "safety_notes": "Dress in layers for temperature changes, wear comfortable shoes for walking",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Indoor Fitness Center",
@@ -891,7 +921,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Workout clothes, water bottle, towel, gym membership or day pass",
                     "safety_notes": "Warm up properly in cold weather, stay hydrated, and cool down gradually",
                     "cost": "$$",
-                    "accessibility": "Moderate"
+                    "accessibility": "Moderate",
                 },
                 {
                     "title": "Cozy Café Hopping",
@@ -904,7 +934,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Warm coat, scarf, money, book or laptop, comfortable shoes",
                     "safety_notes": "Dress warmly for travel between locations, check opening hours",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Indoor Shopping Mall",
@@ -917,7 +947,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Wallet, shopping list, comfortable shoes, reusable bags",
                     "safety_notes": "Keep track of spending, stay aware of surroundings, take breaks",
                     "cost": "$$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Library & Study Session",
@@ -930,7 +960,7 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Library card, notebook, laptop, reading materials, warm clothes",
                     "safety_notes": "Follow library rules, take breaks to rest eyes, stay quiet",
                     "cost": "$",
-                    "accessibility": "Easy"
+                    "accessibility": "Easy",
                 },
                 {
                     "title": "Indoor Rock Climbing",
@@ -943,8 +973,8 @@ Return ONLY a valid JSON array with this exact structure:
                     "items": "Climbing shoes, harness, chalk bag (often rentable), warm clothes for travel",
                     "safety_notes": "Follow all safety protocols, climb with proper supervision, dress warmly for travel",
                     "cost": "$$",
-                    "accessibility": "Moderate"
-                }
+                    "accessibility": "Moderate",
+                },
             ]
             suggestions.extend(cold_weather)
 

@@ -32,7 +32,10 @@ class GitHubTeamService:
     """Service for managing team collaboration and city data from GitHub."""
 
     REPO_URL = "https://github.com/StrayDogSyn/New_Team_Dashboard"
-    CSV_DATA_URL = "https://raw.githubusercontent.com/StrayDogSyn/New_Team_Dashboard/main/exports/team_weather_data.csv"
+    CSV_DATA_URL = (
+        "https://raw.githubusercontent.com/StrayDogSyn/New_Team_Dashboard/"
+        "main/exports/team_weather_data.csv"
+    )
 
     def __init__(self, github_token: Optional[str] = None):
         """Initialize the GitHub team service."""
@@ -209,7 +212,10 @@ class GitHubTeamService:
             }
 
             # Get the current file content
-            current_file_url = f"https://api.github.com/repos/StrayDogSyn/New_Team_Dashboard/contents/exports/team_weather_data.csv"
+            current_file_url = (
+                "https://api.github.com/repos/StrayDogSyn/New_Team_Dashboard/"
+                "contents/exports/team_weather_data.csv"
+            )
             response = requests.get(current_file_url, headers=headers)
             response.raise_for_status()
             current_content = response.json()

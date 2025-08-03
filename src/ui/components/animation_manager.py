@@ -319,7 +319,7 @@ class AnimationManager:
             original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
         except (tk.TclError, AttributeError):
             return
-            
+
         start_time = time.time()
         success_color = self.theme_colors.get("accent", "#00d4aa")  # Green success color
 
@@ -353,7 +353,7 @@ class AnimationManager:
                     sr = int(success_color[1:3], 16)
                     sg = int(success_color[3:5], 16)
                     sb = int(success_color[5:7], 16)
-                    
+
                     # Extract RGB from original color
                     if isinstance(original_color, str) and original_color.startswith("#"):
                         or_val = int(original_color[1:3], 16)
@@ -384,7 +384,9 @@ class AnimationManager:
 
         animate()
 
-    def pulse_animation(self, widget: ctk.CTkBaseClass, duration: int = 600, intensity: float = 0.15):
+    def pulse_animation(
+        self, widget: ctk.CTkBaseClass, duration: int = 600, intensity: float = 0.15
+    ):
         """Create a gentle pulse animation for user interactions."""
         if not hasattr(widget, "configure"):
             return
@@ -417,7 +419,7 @@ class AnimationManager:
                     pr = int(primary_color[1:3], 16)
                     pg = int(primary_color[3:5], 16)
                     pb = int(primary_color[5:7], 16)
-                    
+
                     # Extract RGB from original color
                     if isinstance(original_color, str) and original_color.startswith("#"):
                         or_val = int(original_color[1:3], 16)
@@ -476,7 +478,7 @@ class AnimationManager:
                     wr = int(warning_color[1:3], 16)
                     wg = int(warning_color[3:5], 16)
                     wb = int(warning_color[5:7], 16)
-                    
+
                     # Extract RGB from original color
                     if isinstance(original_color, str) and original_color.startswith("#"):
                         or_val = int(original_color[1:3], 16)
@@ -592,7 +594,6 @@ class MicroInteractions:
     def add_hover_glow(self, widget: ctk.CTkBaseClass, glow_color: Optional[str] = None):
         """Add glow effect on hover."""
         glow_color = glow_color or self.theme_colors["glow"]
-        original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
 
         def on_enter(event):
             try:

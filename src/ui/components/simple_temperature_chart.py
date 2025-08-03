@@ -176,7 +176,7 @@ class SimpleTemperatureChart(ctk.CTkFrame):
             b = min(255, max(0, int(b * factor)))
 
             return f"#{r:02x}{g:02x}{b:02x}"
-        except:
+        except Exception:
             return hex_color
 
     def _start_animation(self) -> None:

@@ -119,7 +119,7 @@ class CacheEntry:
                 )
             else:
                 return sys.getsizeof(obj)
-        except:
+        except Exception:
             return sys.getsizeof(obj)
 
     def _compress_value(self) -> None:
@@ -361,7 +361,7 @@ class CacheManager:
                 return CompressionType.GZIP
             elif size > self._compression_threshold:
                 return CompressionType.PICKLE
-        except:
+        except Exception:
             pass
 
         return CompressionType.NONE
@@ -700,31 +700,6 @@ class CacheManager:
         """
         with self._lock:
             return sum(entry.size_estimate() for entry in self._cache.values())
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics.
-
-        Returns:
-            Dict[str, Any]: Cache statistics
-        """
-        with self._lock:
-            total_requests = self._hits + self._misses
-            hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0
-
-            size_bytes = self.get_size()
-            return {
-                "entries": len(self._cache),
-                "size_bytes": size_bytes,
-                "memory_usage": size_bytes,  # Alias for compatibility
-                "size_mb": round(size_bytes / (1024 * 1024), 2),
-                "max_entries": self._max_entries,
-                "max_size_mb": round(self._max_size / (1024 * 1024), 2),
-                "hits": self._hits,
-                "misses": self._misses,
-                "hit_rate": round(hit_rate, 2),
-                "evictions": self._evictions,
-                "running": self._running,
-            }
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get cache statistics (alias for get_stats).

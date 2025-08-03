@@ -290,7 +290,7 @@ class BaseDashboard(ctk.CTk):
             # Force destroy if cleanup fails
             try:
                 self.destroy()
-            except:
+            except Exception:
                 pass
 
     def center_window(self):

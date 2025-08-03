@@ -527,13 +527,6 @@ class EnhancedWeatherService:
 
         return fallbacks.get(data_type, {"error": "No offline data available"})
 
-    def _check_offline_mode(self) -> None:
-        """Check if service should enter offline mode based on failed requests."""
-        time_since_success = time.time() - self._last_successful_request
-        if time_since_success > 30:  # 30 seconds without successful request
-            self._offline_mode = True
-            self.logger.warning("🔌 Entering offline mode due to connection issues")
-
     def _make_request(self, endpoint: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Make API request with robust error handling, fallback, and intelligent caching."""
         cache_key = f"{endpoint}_{str(sorted(params.items()))}"
@@ -592,7 +585,7 @@ class EnhancedWeatherService:
                 # Location not found - handle differently for air quality vs weather
                 if "air_pollution" in endpoint:
                     # Air quality data not available for this location - return None gracefully
-                    self.logger.debug(f"🌬️ Air quality data not available for this location")
+                    self.logger.debug("🌬️ Air quality data not available for this location")
                     return None
                 else:
                     # Weather/geocoding location not found - this is an error

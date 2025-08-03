@@ -14,17 +14,17 @@
           "region": null,
           "admin_area": null
         },
-        "timestamp": "2025-08-03 00:01:15.979468",
+        "timestamp": "2025-08-03 00:25:45.237212",
         "condition": "WeatherCondition.CLOUDS",
         "description": "Scattered Clouds",
-        "temperature": 13.4,
-        "feels_like": 13.0,
+        "temperature": 13.3,
+        "feels_like": 12.9,
         "humidity": 85,
         "pressure": 1018,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 0.9,
-        "wind_direction": 311,
+        "wind_speed": 2.2,
+        "wind_direction": 294,
         "wind_gust": null,
         "cloudiness": 44,
         "sunrise": null,
@@ -45,9 +45,9 @@
           ],
           "base": "stations",
           "main": {
-            "temp": 13.37,
-            "feels_like": 12.98,
-            "temp_min": 11.7,
+            "temp": 13.34,
+            "feels_like": 12.95,
+            "temp_min": 11.54,
             "temp_max": 14.49,
             "pressure": 1018,
             "humidity": 85,
@@ -56,14 +56,14 @@
           },
           "visibility": 10000,
           "wind": {
-            "speed": 0.89,
-            "deg": 311,
-            "gust": 3.13
+            "speed": 2.24,
+            "deg": 294,
+            "gust": 4.47
           },
           "clouds": {
             "all": 44
           },
-          "dt": 1754192990,
+          "dt": 1754194543,
           "sys": {
             "type": 2,
             "id": 2075535,
@@ -82,7 +82,7 @@
           "sunset": "2025-08-03 15:45:57",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.5589229039904746,
+          "moon_phase": 0.1786627911445149,
           "day_length": "15:18:36"
         }
       },
@@ -92,12 +92,12 @@
         "sunset": "2025-08-03T15:45:57",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.5589229039904746,
+        "moon_phase": 0.1786627911445149,
         "day_length": 55116.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-03T00:01:17.891429",
+    "timestamp": "2025-08-03T00:25:47.111839",
     "ttl": 600
   },
   "forecast_london": {

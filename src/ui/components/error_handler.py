@@ -248,9 +248,9 @@ class ErrorHandler:
             "error": self.show_error_toast,
             "warning": self.show_warning_toast,
             "success": self.show_success_toast,
-            "info": self.show_info_toast
+            "info": self.show_info_toast,
         }
-        
+
         toast_method = level_map.get(level.lower(), self.show_info_toast)
         toast_method(message, duration)
 

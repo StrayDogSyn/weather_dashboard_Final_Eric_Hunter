@@ -331,9 +331,9 @@ class EnhancedSearchBar(SearchBar):
             # Make clickable
             label.bind("<Button-1>", lambda e, s=suggestion: self._select_suggestion(s))
             label.bind(
-                "<Enter>", lambda e, l=label: l.configure(text_color=DataTerminalTheme.PRIMARY)
+                "<Enter>", lambda e, lbl=label: lbl.configure(text_color=DataTerminalTheme.PRIMARY)
             )
-            label.bind("<Leave>", lambda e, l=label: l.configure(text_color=DataTerminalTheme.TEXT))
+            label.bind("<Leave>", lambda e, lbl=label: lbl.configure(text_color=DataTerminalTheme.TEXT))
 
             self.suggestion_labels.append(label)
 

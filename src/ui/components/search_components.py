@@ -17,6 +17,7 @@ from typing import Callable, Dict, List, Optional
 import customtkinter as ctk
 
 from src.services.enhanced_weather_service import LocationResult
+
 from ...services.geocoding_service import GeocodingService
 
 
@@ -89,7 +90,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
             fg_color="transparent",
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        
+
         # Favorites button
         self.favorites_button = ctk.CTkButton(
             self.search_frame,
@@ -302,29 +303,26 @@ class EnhancedSearchBar(ctk.CTkFrame):
 
         # Country flag and location text with enhanced formatting
         flag = self.get_country_flag(result.country_code)
-        
+
         # Primary location name
         primary_text = f"{flag} {result.name}"
-        if hasattr(result, 'state') and result.state:
+        if hasattr(result, "state") and result.state:
             primary_text += f", {result.state}"
-        if hasattr(result, 'country') and result.country:
+        if hasattr(result, "country") and result.country:
             primary_text += f", {result.country}"
-            
+
         primary_label = ctk.CTkLabel(
-            content_frame, 
-            text=primary_text, 
-            font=("Arial", 11, "bold"), 
-            anchor="w"
+            content_frame, text=primary_text, font=("Arial", 11, "bold"), anchor="w"
         )
         primary_label.pack(anchor="w", padx=5)
-        
+
         # Secondary info (coordinates, type)
         secondary_info = []
-        if hasattr(result, 'latitude') and hasattr(result, 'longitude'):
+        if hasattr(result, "latitude") and hasattr(result, "longitude"):
             secondary_info.append(f"📍 {result.latitude:.2f}, {result.longitude:.2f}")
-        if hasattr(result, 'type') and result.type:
+        if hasattr(result, "type") and result.type:
             secondary_info.append(f"🏷️ {result.type}")
-            
+
         if secondary_info:
             secondary_text = " • ".join(secondary_info)
             secondary_label = ctk.CTkLabel(
@@ -332,7 +330,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 text=secondary_text,
                 font=("Arial", 9),
                 anchor="w",
-                text_color="#888888"
+                text_color="#888888",
             )
             secondary_label.pack(anchor="w", padx=5)
 
@@ -353,7 +351,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
         # Bind click events
         for widget in [item_frame, content_frame, primary_label]:
             widget.bind("<Button-1>", lambda e, idx=index: self.select_item(idx))
-            if hasattr(widget, 'winfo_children'):
+            if hasattr(widget, "winfo_children"):
                 for child in widget.winfo_children():
                     child.bind("<Button-1>", lambda e, idx=index: self.select_item(idx))
 
@@ -480,7 +478,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 self.on_location_selected(enhanced_result)
 
             self.hide_dropdown()
-            
+
             # Show success feedback
             self.show_selection_feedback(result.display_name)
 
@@ -534,32 +532,34 @@ class EnhancedSearchBar(ctk.CTkFrame):
     def use_current_location(self):
         """Use geolocation with browser API fallback and IP-based location."""
         self.geo_button.configure(text="⏳")
-        
+
         # Try browser geolocation first
         if not self.geolocation_permission_denied:
             self.try_browser_geolocation()
         else:
             # Fallback to IP-based location
             self.try_ip_based_location()
-    
+
     def try_browser_geolocation(self):
         """Attempt to use browser geolocation API."""
+
         def get_browser_location():
             try:
                 # Simulate browser geolocation request
                 # In a real web app, this would use navigator.geolocation
                 # For desktop app, we'll use IP-based location as fallback
                 self.after(0, self.try_ip_based_location)
-                
+
             except Exception as e:
                 print(f"Browser geolocation failed: {e}")
                 self.geolocation_permission_denied = True
                 self.after(0, self.try_ip_based_location)
-        
+
         threading.Thread(target=get_browser_location, daemon=True).start()
-    
+
     def try_ip_based_location(self):
         """Fallback to IP-based location detection."""
+
         def get_ip_location():
             try:
                 # Import custom exceptions for proper error handling
@@ -620,10 +620,10 @@ class EnhancedSearchBar(ctk.CTkFrame):
         self.geo_button.configure(text="📍")
         self.search_entry.delete(0, tk.END)
         self.search_entry.insert(0, location.display_name)
-        
+
         # Store detected location
         self.current_detected_location = location
-        
+
         # Show detected location indicator
         self.show_detected_location_indicator(location.display_name)
 
@@ -757,39 +757,39 @@ class EnhancedSearchBar(ctk.CTkFrame):
         }
 
         return flags.get(country_code.upper(), "🌍")
-    
+
     # Enhanced search validation and utility methods
     def validate_search_query(self, query: str) -> dict:
         """Validate search query and return validation result."""
         query = query.strip()
-        
+
         if not query:
             return {"valid": False, "error": "Please enter a location to search"}
-        
+
         if len(query) < 2:
             return {"valid": False, "error": "Search query must be at least 2 characters"}
-        
+
         if len(query) > 100:
             return {"valid": False, "error": "Search query is too long"}
-        
+
         # Check for invalid characters
-        invalid_chars = ['<', '>', '"', "'", '&', ';', '|']
+        invalid_chars = ["<", ">", '"', "'", "&", ";", "|"]
         if any(char in query for char in invalid_chars):
             return {"valid": False, "error": "Search contains invalid characters"}
-        
+
         return {"valid": True, "error": None}
-    
+
     def detect_search_type(self, query: str) -> str:
         """Detect the type of search query."""
         query = query.strip().upper()
-        
+
         # Airport codes (3 letters)
         if len(query) == 3 and query.isalpha():
             return "airport_code"
-        
+
         # Coordinates (decimal format)
-        if ',' in query:
-            parts = query.split(',')
+        if "," in query:
+            parts = query.split(",")
             if len(parts) == 2:
                 try:
                     lat = float(parts[0].strip())
@@ -798,86 +798,140 @@ class EnhancedSearchBar(ctk.CTkFrame):
                         return "coordinates"
                 except ValueError:
                     pass
-        
+
         # ZIP codes (US format)
         if query.isdigit() and len(query) == 5:
             return "zip_code"
-        
+
         # Postal codes (international format)
         if len(query) <= 10 and any(c.isdigit() for c in query):
             return "postal_code"
-        
+
         # Default to city name
         return "city_name"
-    
+
     def enhanced_location_search(self, query: str):
         """Enhanced location search with multiple format support."""
         search_type = self.detect_search_type(query)
-        
+
         if search_type == "airport_code":
             return self.search_airport_code(query)
         elif search_type == "coordinates":
             return self.search_coordinates(query)
         else:
             return self.weather_service.search_locations_advanced(query)
-    
+
     def search_airport_code(self, code: str):
         """Search for airport by IATA code."""
         # Common airport codes mapping
         airports = {
-            "LAX": {"name": "Los Angeles", "state": "CA", "country": "United States", "lat": 33.9425, "lon": -118.4081},
-            "JFK": {"name": "New York", "state": "NY", "country": "United States", "lat": 40.6413, "lon": -73.7781},
-            "LHR": {"name": "London", "state": "England", "country": "United Kingdom", "lat": 51.4700, "lon": -0.4543},
-            "CDG": {"name": "Paris", "state": "Île-de-France", "country": "France", "lat": 49.0097, "lon": 2.5479},
-            "NRT": {"name": "Tokyo", "state": "Tokyo", "country": "Japan", "lat": 35.7720, "lon": 140.3929},
-            "SYD": {"name": "Sydney", "state": "NSW", "country": "Australia", "lat": -33.9399, "lon": 151.1753},
-            "DXB": {"name": "Dubai", "state": "Dubai", "country": "UAE", "lat": 25.2532, "lon": 55.3657},
-            "SIN": {"name": "Singapore", "state": "Singapore", "country": "Singapore", "lat": 1.3644, "lon": 103.9915},
+            "LAX": {
+                "name": "Los Angeles",
+                "state": "CA",
+                "country": "United States",
+                "lat": 33.9425,
+                "lon": -118.4081,
+            },
+            "JFK": {
+                "name": "New York",
+                "state": "NY",
+                "country": "United States",
+                "lat": 40.6413,
+                "lon": -73.7781,
+            },
+            "LHR": {
+                "name": "London",
+                "state": "England",
+                "country": "United Kingdom",
+                "lat": 51.4700,
+                "lon": -0.4543,
+            },
+            "CDG": {
+                "name": "Paris",
+                "state": "Île-de-France",
+                "country": "France",
+                "lat": 49.0097,
+                "lon": 2.5479,
+            },
+            "NRT": {
+                "name": "Tokyo",
+                "state": "Tokyo",
+                "country": "Japan",
+                "lat": 35.7720,
+                "lon": 140.3929,
+            },
+            "SYD": {
+                "name": "Sydney",
+                "state": "NSW",
+                "country": "Australia",
+                "lat": -33.9399,
+                "lon": 151.1753,
+            },
+            "DXB": {
+                "name": "Dubai",
+                "state": "Dubai",
+                "country": "UAE",
+                "lat": 25.2532,
+                "lon": 55.3657,
+            },
+            "SIN": {
+                "name": "Singapore",
+                "state": "Singapore",
+                "country": "Singapore",
+                "lat": 1.3644,
+                "lon": 103.9915,
+            },
         }
-        
+
         airport = airports.get(code.upper())
         if airport:
             from src.services.enhanced_weather_service import LocationResult
-            return [LocationResult(
-                name=airport["name"],
-                display_name=f"{airport['name']}, {airport['state']}, {airport['country']} (Airport: {code.upper()})",
-                latitude=airport["lat"],
-                longitude=airport["lon"],
-                country=airport["country"],
-                country_code=self.get_country_code_from_name(airport["country"]),
-                state=airport["state"],
-                raw_address=f"{airport['name']}, {airport['state']}, {airport['country']}",
-                type="airport"
-            )]
-        
+
+            return [
+                LocationResult(
+                    name=airport["name"],
+                    display_name=f"{airport['name']}, {airport['state']}, {airport['country']} (Airport: {code.upper()})",
+                    latitude=airport["lat"],
+                    longitude=airport["lon"],
+                    country=airport["country"],
+                    country_code=self.get_country_code_from_name(airport["country"]),
+                    state=airport["state"],
+                    raw_address=f"{airport['name']}, {airport['state']}, {airport['country']}",
+                    type="airport",
+                )
+            ]
+
         # Fallback to regular search
-        return self.weather_service.search_locations_advanced(query)
-    
+        return self.weather_service.search_locations_advanced(code)
+
     def search_coordinates(self, query: str):
         """Search for location by coordinates."""
         try:
-            parts = query.split(',')
+            parts = query.split(",")
             lat = float(parts[0].strip())
             lon = float(parts[1].strip())
-            
+
             # Use reverse geocoding to get location name
             location_name = f"Location at {lat:.2f}, {lon:.2f}"
-            
+
             from ...models.location import LocationResult
-            return [LocationResult(
-                name=location_name,
-                display_name=location_name,
-                latitude=lat,
-                longitude=lon,
-                country="Unknown",
-                country_code="",
-                state="",
-                raw_address=f"{lat}, {lon}",
-                type="coordinates"
-            )]
+
+            return [
+                LocationResult(
+                    name=location_name,
+                    display_name=location_name,
+                    latitude=lat,
+                    longitude=lon,
+                    country="Unknown",
+                    country_code="",
+                    state="",
+                    raw_address=f"{lat}, {lon}",
+                    type="coordinates",
+                )
+            ]
         except (ValueError, IndexError):
             return []
-    
+
     def get_country_code_from_name(self, country_name: str) -> str:
         """Get country code from country name."""
         country_codes = {
@@ -890,35 +944,35 @@ class EnhancedSearchBar(ctk.CTkFrame):
             "Singapore": "SG",
         }
         return country_codes.get(country_name, "")
-    
+
     def enhance_location_result(self, result):
         """Enhance location result with additional data."""
         # Ensure all required fields are present
-        if not hasattr(result, 'type'):
-            result.type = self.detect_search_type(getattr(result, 'name', ''))
-        
+        if not hasattr(result, "type"):
+            result.type = self.detect_search_type(getattr(result, "name", ""))
+
         return result
-    
+
     def show_validation_error(self, error_message: str):
         """Show validation error to user."""
         self.validation_errors.append(error_message)
         # You could show this in a tooltip or status bar
         print(f"Validation error: {error_message}")
-    
+
     def clear_validation_errors(self):
         """Clear validation errors."""
         self.validation_errors.clear()
-    
+
     def show_selection_feedback(self, location_name: str):
         """Show feedback when location is selected."""
         # Could show a brief success message
         print(f"Selected location: {location_name}")
-    
+
     def show_detected_location_indicator(self, location_name: str):
         """Show indicator for detected location."""
         # Could show an icon or text indicating this is the detected location
         print(f"Detected location: {location_name}")
-    
+
     def get_ip_based_location(self):
         """Get location based on IP address as fallback."""
         try:
@@ -928,73 +982,80 @@ class EnhancedSearchBar(ctk.CTkFrame):
         except Exception as e:
             print(f"IP-based location failed: {e}")
             return None
-    
+
     # Favorites management methods
     def load_favorites(self) -> dict:
         """Load favorite locations from file."""
         try:
-            favorites_file = os.path.join(os.path.expanduser("~"), ".weather_dashboard_favorites.json")
+            favorites_file = os.path.join(
+                os.path.expanduser("~"), ".weather_dashboard_favorites.json"
+            )
             if os.path.exists(favorites_file):
                 with open(favorites_file, "r", encoding="utf-8") as f:
                     return json.load(f)
         except Exception as e:
             print(f"Error loading favorites: {e}")
-        
+
         return {"favorite_locations": []}
-    
+
     def save_favorites(self):
         """Save favorite locations to file."""
         try:
-            favorites_file = os.path.join(os.path.expanduser("~"), ".weather_dashboard_favorites.json")
+            favorites_file = os.path.join(
+                os.path.expanduser("~"), ".weather_dashboard_favorites.json"
+            )
             with open(favorites_file, "w", encoding="utf-8") as f:
                 json.dump(self.favorites, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"Error saving favorites: {e}")
-    
+
     def is_location_favorite(self, location) -> bool:
         """Check if location is in favorites."""
         location_key = f"{getattr(location, 'name', '')},{getattr(location, 'latitude', 0)},{getattr(location, 'longitude', 0)}"
-        return any(fav.get("key") == location_key for fav in self.favorites.get("favorite_locations", []))
-    
+        return any(
+            fav.get("key") == location_key for fav in self.favorites.get("favorite_locations", [])
+        )
+
     def toggle_location_favorite(self, location):
         """Toggle location favorite status."""
         location_key = f"{getattr(location, 'name', '')},{getattr(location, 'latitude', 0)},{getattr(location, 'longitude', 0)}"
         favorites_list = self.favorites.get("favorite_locations", [])
-        
+
         # Remove if exists
         favorites_list = [fav for fav in favorites_list if fav.get("key") != location_key]
-        
+
         # Add if not already favorite
         if not self.is_location_favorite(location):
             favorite_entry = {
                 "key": location_key,
-                "name": getattr(location, 'name', ''),
-                "display_name": getattr(location, 'display_name', ''),
-                "latitude": getattr(location, 'latitude', 0),
-                "longitude": getattr(location, 'longitude', 0),
-                "country": getattr(location, 'country', ''),
-                "state": getattr(location, 'state', ''),
-                "timestamp": datetime.now().isoformat()
+                "name": getattr(location, "name", ""),
+                "display_name": getattr(location, "display_name", ""),
+                "latitude": getattr(location, "latitude", 0),
+                "longitude": getattr(location, "longitude", 0),
+                "country": getattr(location, "country", ""),
+                "state": getattr(location, "state", ""),
+                "timestamp": datetime.now().isoformat(),
             }
             favorites_list.append(favorite_entry)
-        
+
         self.favorites["favorite_locations"] = favorites_list[:20]  # Keep max 20 favorites
         self.save_favorites()
-    
+
     def toggle_favorites(self):
         """Toggle favorites dropdown display."""
         if self.dropdown_visible:
             self.hide_dropdown()
         else:
             self.show_favorites_dropdown()
-    
+
     def show_favorites_dropdown(self):
         """Show favorites in dropdown."""
         self.autocomplete_results = []
-        
+
         # Convert favorites to LocationResult objects
         for fav in self.favorites.get("favorite_locations", []):
             from src.services.enhanced_weather_service import LocationResult
+
             location_result = LocationResult(
                 name=fav.get("name", ""),
                 display_name=fav.get("display_name", ""),
@@ -1004,39 +1065,41 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 country_code=self.get_country_code_from_name(fav.get("country", "")),
                 state=fav.get("state", ""),
                 raw_address=fav.get("display_name", ""),
-                type="favorite"
+                type="favorite",
             )
             self.autocomplete_results.append(location_result)
-        
+
         if self.autocomplete_results:
             self.update_autocomplete_results(self.autocomplete_results)
         else:
             # Show message about no favorites
             self.show_no_favorites_message()
-    
+
     def show_no_favorites_message(self):
-         """Show message when no favorites are available."""
-         # Create a simple message frame
-         if hasattr(self, 'autocomplete_frame') and self.autocomplete_frame:
-             # Clear existing content
-             for widget in self.autocomplete_scroll.winfo_children():
-                 widget.destroy()
-             
-             # Show no favorites message
-             message_frame = ctk.CTkFrame(self.autocomplete_scroll, fg_color="transparent", height=40)
-             message_frame.pack(fill="x", pady=5)
-             message_frame.pack_propagate(False)
-             
-             message_label = ctk.CTkLabel(
-                 message_frame, 
-                 text="⭐ No favorite locations saved", 
-                 font=("Arial", 11), 
-                 text_color="#888888",
-                 anchor="center"
-             )
-             message_label.pack(expand=True, fill="both", padx=10, pady=10)
-             
-             self.show_dropdown()
+        """Show message when no favorites are available."""
+        # Create a simple message frame
+        if hasattr(self, "autocomplete_frame") and self.autocomplete_frame:
+            # Clear existing content
+            for widget in self.autocomplete_scroll.winfo_children():
+                widget.destroy()
+
+            # Show no favorites message
+            message_frame = ctk.CTkFrame(
+                self.autocomplete_scroll, fg_color="transparent", height=40
+            )
+            message_frame.pack(fill="x", pady=5)
+            message_frame.pack_propagate(False)
+
+            message_label = ctk.CTkLabel(
+                message_frame,
+                text="⭐ No favorite locations saved",
+                font=("Arial", 11),
+                text_color="#888888",
+                anchor="center",
+            )
+            message_label.pack(expand=True, fill="both", padx=10, pady=10)
+
+            self.show_dropdown()
 
     def load_search_history(self) -> Dict:
         """Load search history from file."""
@@ -1077,13 +1140,15 @@ class EnhancedSearchBar(ctk.CTkFrame):
             "timestamp": datetime.now().isoformat(),
             "success": success,
             "is_geolocation": is_geolocation,
-            "search_type": self.detect_search_type(query)
+            "search_type": self.detect_search_type(query),
         }
-        
+
         self.search_history["recent_searches"].insert(0, search_entry)
 
         # Keep only last 10 successful searches
-        successful_searches = [item for item in self.search_history["recent_searches"] if item.get("success", True)]
+        successful_searches = [
+            item for item in self.search_history["recent_searches"] if item.get("success", True)
+        ]
         self.search_history["recent_searches"] = successful_searches[:10]
 
         # Save to file

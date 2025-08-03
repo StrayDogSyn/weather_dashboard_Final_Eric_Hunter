@@ -23,7 +23,6 @@ from src.ui.components.city_comparison_panel import CityComparisonPanel
 from src.ui.components.error_handler import ErrorHandler
 from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.components.ml_comparison_panel import MLComparisonPanel
-from src.ui.components.theme_preview_card import ThemePreviewCard
 from src.ui.dashboard.settings_tab_manager import SettingsTabManager
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
@@ -100,7 +99,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         theme_manager.add_observer(self.visual_polish_manager.update_theme)
 
         # Initialize settings tab manager
-        self.settings_tab_manager = SettingsTabManager(self, self.config_service, self.weather_service)
+        self.settings_tab_manager = SettingsTabManager(
+            self, self.config_service, self.weather_service
+        )
 
         # Weather icons mapping
         self.weather_icons = {
@@ -311,7 +312,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.PRIMARY,
             hover_color=DataTerminalTheme.SUCCESS,
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            corner_radius=8
+            corner_radius=8,
         )
         self.refresh_button.pack(side="left")
 
@@ -375,7 +376,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self.weather_tab.grid_columnconfigure(1, weight=2, minsize=520)  # Forecast chart
         self.weather_tab.grid_columnconfigure(2, weight=1, minsize=320)  # Additional metrics
         self.weather_tab.grid_rowconfigure(0, weight=1)
-        
+
         # Add uniform padding to prevent visual artifacts
         self.weather_tab.configure(corner_radius=0, fg_color=DataTerminalTheme.BACKGROUND)
 
@@ -527,7 +528,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             border_color=DataTerminalTheme.BORDER,
         )
         forecast_container.grid(row=0, column=1, sticky="nsew", padx=10, pady=15)
-        
+
         # Configure internal layout
         forecast_container.grid_columnconfigure(0, weight=1)
         forecast_container.grid_rowconfigure(0, weight=0)  # Title
@@ -537,7 +538,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Title with better styling
         title_frame = ctk.CTkFrame(forecast_container, fg_color="transparent")
         title_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
-        
+
         forecast_title = ctk.CTkLabel(
             title_frame,
             text="📊 Temperature Forecast",
@@ -545,7 +546,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             text_color=DataTerminalTheme.PRIMARY,
         )
         forecast_title.pack(side="left")
-        
+
         # Chart refresh button
         refresh_btn = ctk.CTkButton(
             title_frame,
@@ -555,7 +556,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             font=(DataTerminalTheme.FONT_FAMILY, 14),
             fg_color=DataTerminalTheme.CARD_BG,
             hover_color=DataTerminalTheme.HOVER,
-            command=self._refresh_chart_data
+            command=self._refresh_chart_data,
         )
         refresh_btn.pack(side="right")
 
@@ -565,17 +566,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
         chart_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 15))
-        
+
         # Import and create chart
         from src.ui.components.simple_temperature_chart import SimpleTemperatureChart
 
         self.temp_chart = SimpleTemperatureChart(
-            chart_frame, 
-            fg_color=DataTerminalTheme.BACKGROUND,
-            corner_radius=6
+            chart_frame, fg_color=DataTerminalTheme.BACKGROUND, corner_radius=6
         )
         self.temp_chart.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -624,50 +623,54 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Add staggered animation
             day_card.animate_in(delay=i * 100)
-    
+
     def _refresh_chart_data(self):
         """Refresh chart data with latest weather information."""
         try:
-            if hasattr(self, 'temp_chart') and hasattr(self, 'current_weather_data'):
+            if hasattr(self, "temp_chart") and hasattr(self, "current_weather_data"):
                 # Update chart with current weather data
                 self._update_temperature_chart(self.current_weather_data)
-                
+
                 # Show brief success message
-                if hasattr(self, 'status_message_manager'):
+                if hasattr(self, "status_message_manager"):
                     self.status_message_manager.show_success("Chart refreshed", duration=1500)
-                    
+
         except Exception as e:
             self.logger.error(f"Failed to refresh chart data: {e}")
-            if hasattr(self, 'status_message_manager'):
+            if hasattr(self, "status_message_manager"):
                 self.status_message_manager.show_error("Failed to refresh chart")
 
     def _on_forecast_card_click(self, card):
         """Handle forecast card click to show detailed forecast popup."""
         try:
             from .components.forecast_details_popup import ForecastDetailsPopup
-            
+
             # Get forecast data for the clicked card
             forecast_data = {
-                'day': getattr(card, 'day_text', 'Day'),
-                'date': getattr(card, 'date_text', '--/--'),
-                'icon': getattr(card, 'icon_code', '01d'),
-                'high_temp': getattr(card, 'high_temp', 22),
-                'low_temp': getattr(card, 'low_temp', 15),
-                'precipitation': getattr(card, 'precipitation', 0.0),
-                'wind_speed': getattr(card, 'wind_speed', 0.0),
-                'description': getattr(card, 'forecast_details', {}).get('description', 'Unknown'),
-                'humidity': getattr(card, 'forecast_details', {}).get('humidity', 0),
-                'precipitation_amount': getattr(card, 'forecast_details', {}).get('precipitation_amount', 0.0)
+                "day": getattr(card, "day_text", "Day"),
+                "date": getattr(card, "date_text", "--/--"),
+                "icon": getattr(card, "icon_code", "01d"),
+                "high_temp": getattr(card, "high_temp", 22),
+                "low_temp": getattr(card, "low_temp", 15),
+                "precipitation": getattr(card, "precipitation", 0.0),
+                "wind_speed": getattr(card, "wind_speed", 0.0),
+                "description": getattr(card, "forecast_details", {}).get("description", "Unknown"),
+                "humidity": getattr(card, "forecast_details", {}).get("humidity", 0),
+                "precipitation_amount": getattr(card, "forecast_details", {}).get(
+                    "precipitation_amount", 0.0
+                ),
             }
-            
+
             # Get hourly data if available (would be enhanced later)
-            hourly_data = getattr(card, 'hourly_data', [])
-            
+            hourly_data = getattr(card, "hourly_data", [])
+
             # Create and show popup
-            popup = ForecastDetailsPopup(self, forecast_data, hourly_data)
-            
-            self.logger.info(f"Opened forecast details for {forecast_data['day']} {forecast_data['date']}")
-            
+            ForecastDetailsPopup(self, forecast_data, hourly_data)
+
+            self.logger.info(
+                f"Opened forecast details for {forecast_data['day']} {forecast_data['date']}"
+            )
+
         except Exception as e:
             self.logger.error(f"Failed to open forecast details popup: {e}")
 
@@ -681,7 +684,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             border_color=DataTerminalTheme.BORDER,
         )
         metrics_container.grid(row=0, column=2, sticky="nsew", padx=(8, 15), pady=15)
-        
+
         # Configure internal grid to prevent bottom right corner artifacts
         metrics_container.grid_columnconfigure(0, weight=1)
         metrics_container.grid_rowconfigure(0, weight=0)  # Title
@@ -696,7 +699,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             text_color=DataTerminalTheme.PRIMARY,
         )
         metrics_title.grid(row=0, column=0, pady=(15, 10), sticky="ew")
-        
+
         # Content area frame
         content_area = ctk.CTkFrame(metrics_container, fg_color="transparent")
         content_area.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
@@ -784,7 +787,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
         self.alerts_label.pack(pady=(0, 8))
-        
+
         # Bottom spacer to prevent visual artifacts in bottom right corner
         bottom_spacer = ctk.CTkFrame(metrics_container, fg_color="transparent", height=10)
         bottom_spacer.grid(row=2, column=0, sticky="ew", pady=(0, 5))
@@ -927,26 +930,26 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                         wind_speed=daily_data.get("wind_speed", 0.0),
                         temp_unit=self.temp_unit,
                     )
-                    
+
                     # Store additional data for popup details
                     forecast_details = {
-                        'description': daily_data.get('description', 'Unknown'),
-                        'humidity': daily_data.get('humidity', 0),
-                        'precipitation_amount': daily_data.get('precipitation_amount', 0.0),
-                        'wind_speed': daily_data.get('wind_speed', 0.0),
-                        'confidence_level': daily_data.get('confidence_level', 85),
-                        'last_update': daily_data.get('last_update', 'Unknown'),
-                        'provider': daily_data.get('provider', 'OpenWeatherMap'),
-                        'sunrise': daily_data.get('sunrise', '06:30'),
-                        'sunset': daily_data.get('sunset', '18:45'),
-                        'uv_index': daily_data.get('uv_index', 5)
+                        "description": daily_data.get("description", "Unknown"),
+                        "humidity": daily_data.get("humidity", 0),
+                        "precipitation_amount": daily_data.get("precipitation_amount", 0.0),
+                        "wind_speed": daily_data.get("wind_speed", 0.0),
+                        "confidence_level": daily_data.get("confidence_level", 85),
+                        "last_update": daily_data.get("last_update", "Unknown"),
+                        "provider": daily_data.get("provider", "OpenWeatherMap"),
+                        "sunrise": daily_data.get("sunrise", "06:30"),
+                        "sunset": daily_data.get("sunset", "18:45"),
+                        "uv_index": daily_data.get("uv_index", 5),
                     }
-                    
-                    setattr(card, 'forecast_details', forecast_details)
-                    
+
+                    setattr(card, "forecast_details", forecast_details)
+
                     # Store hourly data for the day
-                    hourly_data = daily_data.get('hourly_data', [])
-                    setattr(card, 'hourly_data', hourly_data)
+                    hourly_data = daily_data.get("hourly_data", [])
+                    setattr(card, "hourly_data", hourly_data)
 
         except Exception as e:
             self.logger.error(f"Failed to update cards with forecast data: {e}")
@@ -985,116 +988,147 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             if hasattr(forecast_data, "daily_forecasts") and forecast_data.daily_forecasts:
                 # Use the enhanced ForecastData model
                 from datetime import datetime
-                
-                for i, day_forecast in enumerate(forecast_data.daily_forecasts[:5]):  # Get first 5 days
+
+                for i, day_forecast in enumerate(
+                    forecast_data.daily_forecasts[:5]
+                ):  # Get first 5 days
                     # Map weather condition to icon
                     icon_code = self._get_weather_icon_code(day_forecast.condition)
-                    
+
                     # Get hourly data for this day from the forecast_data
                     day_hourly_data = []
-                    if hasattr(forecast_data, 'hourly_forecasts'):
+                    if hasattr(forecast_data, "hourly_forecasts"):
                         # Filter hourly forecasts for this specific day
                         target_date = day_forecast.date.date()
                         for hourly in forecast_data.hourly_forecasts:
-                             if hourly.timestamp.date() == target_date:
-                                 day_hourly_data.append({
-                                     'time': hourly.timestamp.strftime('%H:%M'),
-                                    'temp': int(hourly.temp_f if self.temp_unit == 'F' else hourly.temp),
-                                    'condition': hourly.condition,
-                                    'icon': self._get_weather_icon_code(hourly.condition),
-                                    'precipitation': hourly.precipitation_probability or 0.0,
-                                    'wind_speed': hourly.wind_speed or 0.0
-                                })
-                    
+                            if hourly.timestamp.date() == target_date:
+                                day_hourly_data.append(
+                                    {
+                                        "time": hourly.timestamp.strftime("%H:%M"),
+                                        "temp": int(
+                                            hourly.temp_f if self.temp_unit == "F" else hourly.temp
+                                        ),
+                                        "condition": hourly.condition,
+                                        "icon": self._get_weather_icon_code(hourly.condition),
+                                        "precipitation": hourly.precipitation_probability or 0.0,
+                                        "wind_speed": hourly.wind_speed or 0.0,
+                                    }
+                                )
+
                     # Calculate forecast accuracy indicators
                     days_ahead = i
                     confidence_level = max(95 - (days_ahead * 5), 60)  # Decreasing confidence
-                    
-                    daily_forecasts.append({
-                        "day": day_forecast.date.strftime("%a"),
-                        "date": day_forecast.date.strftime("%m/%d"),
-                        "icon": icon_code,
-                        "high_temp": int(day_forecast.temp_max_f if self.temp_unit == "F" else day_forecast.temp_max),
-                        "low_temp": int(day_forecast.temp_min_f if self.temp_unit == "F" else day_forecast.temp_min),
-                        "precipitation": day_forecast.precipitation_probability or 0.0,
-                        "wind_speed": day_forecast.wind_speed or 0.0,
-                        "description": day_forecast.description,
-                        "humidity": day_forecast.humidity,
-                        "precipitation_amount": day_forecast.precipitation_amount or 0.0,
-                        "hourly_data": day_hourly_data,
-                        "confidence_level": confidence_level,
-                        "last_update": datetime.now().strftime('%H:%M'),
-                        "provider": "OpenWeatherMap",
-                        "sunrise": "06:30",  # Would be enhanced with real data
-                        "sunset": "18:45",   # Would be enhanced with real data
-                        "uv_index": min(10, max(1, 5 + i))  # Sample UV index
-                    })
+
+                    daily_forecasts.append(
+                        {
+                            "day": day_forecast.date.strftime("%a"),
+                            "date": day_forecast.date.strftime("%m/%d"),
+                            "icon": icon_code,
+                            "high_temp": int(
+                                day_forecast.temp_max_f
+                                if self.temp_unit == "F"
+                                else day_forecast.temp_max
+                            ),
+                            "low_temp": int(
+                                day_forecast.temp_min_f
+                                if self.temp_unit == "F"
+                                else day_forecast.temp_min
+                            ),
+                            "precipitation": day_forecast.precipitation_probability or 0.0,
+                            "wind_speed": day_forecast.wind_speed or 0.0,
+                            "description": day_forecast.description,
+                            "humidity": day_forecast.humidity,
+                            "precipitation_amount": day_forecast.precipitation_amount or 0.0,
+                            "hourly_data": day_hourly_data,
+                            "confidence_level": confidence_level,
+                            "last_update": datetime.now().strftime("%H:%M"),
+                            "provider": "OpenWeatherMap",
+                            "sunrise": "06:30",  # Would be enhanced with real data
+                            "sunset": "18:45",  # Would be enhanced with real data
+                            "uv_index": min(10, max(1, 5 + i)),  # Sample UV index
+                        }
+                    )
             elif hasattr(forecast_data, "get_daily_forecast"):
                 # Use the model's method to get daily forecast (legacy support)
                 daily_data = forecast_data.get_daily_forecast()
                 for day_data in daily_data[:5]:  # Get first 5 days
-                    daily_forecasts.append({
-                        "icon": getattr(day_data, "icon", "01d"),
-                        "high_temp": int(getattr(day_data, "high_temp", 22)),
-                        "low_temp": int(getattr(day_data, "low_temp", 15)),
-                        "precipitation": getattr(day_data, "precipitation_probability", 0.0),
-                        "wind_speed": getattr(day_data, "wind_speed", 0.0),
-                    })
+                    daily_forecasts.append(
+                        {
+                            "icon": getattr(day_data, "icon", "01d"),
+                            "high_temp": int(getattr(day_data, "high_temp", 22)),
+                            "low_temp": int(getattr(day_data, "low_temp", 15)),
+                            "precipitation": getattr(day_data, "precipitation_probability", 0.0),
+                            "wind_speed": getattr(day_data, "wind_speed", 0.0),
+                        }
+                    )
             elif hasattr(forecast_data, "list"):
                 # Parse OpenWeatherMap 5-day forecast format
                 daily_forecasts = self._parse_openweather_forecast(forecast_data.list)
             else:
                 # Fallback to sample data
                 from datetime import datetime, timedelta
+
                 for i in range(5):
                     date = datetime.now() + timedelta(days=i)
-                    
+
                     # Generate sample hourly data for the day
                     sample_hourly = []
                     for hour in range(0, 24, 3):  # Every 3 hours
-                        sample_hourly.append({
-                            'time': f'{hour:02d}:00',
-                            'temp': 18 + (i * 2) + (hour // 6),
-                            'condition': ["Clear", "Partly Cloudy", "Cloudy", "Overcast", "Rain"][i],
-                            'icon': ["01d", "02d", "03d", "04d", "09d"][i],
-                            'precipitation': [0.0, 0.1, 0.3, 0.2, 0.0][i],
-                            'wind_speed': [2.5, 3.0, 4.2, 3.8, 2.1][i]
-                        })
-                    
+                        sample_hourly.append(
+                            {
+                                "time": f"{hour:02d}:00",
+                                "temp": 18 + (i * 2) + (hour // 6),
+                                "condition": [
+                                    "Clear",
+                                    "Partly Cloudy",
+                                    "Cloudy",
+                                    "Overcast",
+                                    "Rain",
+                                ][i],
+                                "icon": ["01d", "02d", "03d", "04d", "09d"][i],
+                                "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                                "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
+                            }
+                        )
+
                     confidence_level = max(95 - (i * 5), 60)
-                    
-                    daily_forecasts.append({
-                        "day": date.strftime("%a"),
-                        "date": date.strftime("%m/%d"),
-                        "icon": ["01d", "02d", "03d", "04d", "09d"][i],
-                        "high_temp": 22 + (i * 2) - 2,
-                        "low_temp": 15 + i,
-                        "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
-                        "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
-                        "description": ["Sunny", "Partly Cloudy", "Cloudy", "Overcast", "Rain"][i],
-                        "humidity": [45, 50, 65, 70, 80][i],
-                        "precipitation_amount": [0.0, 0.0, 0.0, 0.0, 2.5][i],
-                        "hourly_data": sample_hourly,
-                        "confidence_level": confidence_level,
-                        "last_update": datetime.now().strftime('%H:%M'),
-                        "provider": "Sample Data",
-                        "sunrise": "06:30",
-                        "sunset": "18:45",
-                        "uv_index": min(10, max(1, 5 + i))
-                    })
+
+                    daily_forecasts.append(
+                        {
+                            "day": date.strftime("%a"),
+                            "date": date.strftime("%m/%d"),
+                            "icon": ["01d", "02d", "03d", "04d", "09d"][i],
+                            "high_temp": 22 + (i * 2) - 2,
+                            "low_temp": 15 + i,
+                            "precipitation": [0.0, 0.1, 0.3, 0.2, 0.0][i],
+                            "wind_speed": [2.5, 3.0, 4.2, 3.8, 2.1][i],
+                            "description": ["Sunny", "Partly Cloudy", "Cloudy", "Overcast", "Rain"][
+                                i
+                            ],
+                            "humidity": [45, 50, 65, 70, 80][i],
+                            "precipitation_amount": [0.0, 0.0, 0.0, 0.0, 2.5][i],
+                            "hourly_data": sample_hourly,
+                            "confidence_level": confidence_level,
+                            "last_update": datetime.now().strftime("%H:%M"),
+                            "provider": "Sample Data",
+                            "sunrise": "06:30",
+                            "sunset": "18:45",
+                            "uv_index": min(10, max(1, 5 + i)),
+                        }
+                    )
 
             return daily_forecasts
 
         except Exception as e:
             self.logger.error(f"Failed to parse daily forecasts: {e}")
             return []
-    
+
     def _get_weather_icon_code(self, condition):
         """Map weather condition to OpenWeather icon code."""
         try:
             # Map WeatherCondition enum to icon codes
             condition_str = str(condition).lower() if condition else "clear"
-            
+
             icon_mapping = {
                 "clear": "01d",
                 "sunny": "01d",
@@ -1118,21 +1152,21 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 "sand": "50d",
                 "ash": "50d",
                 "squall": "50d",
-                "tornado": "50d"
+                "tornado": "50d",
             }
-            
+
             # Try exact match first
             if condition_str in icon_mapping:
                 return icon_mapping[condition_str]
-            
+
             # Try partial matches
             for key, icon in icon_mapping.items():
                 if key in condition_str or condition_str in key:
                     return icon
-            
+
             # Default fallback
             return "01d"
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to map weather condition to icon: {e}")
             return "01d"
@@ -1206,18 +1240,6 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         except Exception as e:
             self.logger.error(f"Failed to parse OpenWeather forecast: {e}")
             return []
-
-    def _on_forecast_card_click(self, card):
-        """Handle forecast card click to show hourly breakdown."""
-        try:
-            # Get the card index
-            card_index = self.forecast_cards.index(card) if card in self.forecast_cards else 0
-
-            # Create hourly breakdown dialog
-            self._show_hourly_breakdown(card_index)
-
-        except Exception as e:
-            self.logger.error(f"Failed to handle forecast card click: {e}")
 
     def _show_hourly_breakdown(self, day_index):
         """Show hourly weather breakdown for selected day."""
@@ -1817,7 +1839,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             self.current_weather_data = weather_data
             # Track when weather data was last updated
             self.last_weather_data_timestamp = datetime.now()
-            
+
             # Update last refresh timestamp
             self._update_last_refresh_timestamp()
 
@@ -1879,32 +1901,32 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Validate weather data before processing."""
         if not weather_data:
             return False
-            
+
         # Check for required attributes
-        required_attrs = ['temperature', 'description']
+        required_attrs = ["temperature", "description"]
         for attr in required_attrs:
             if not hasattr(weather_data, attr) or getattr(weather_data, attr) is None:
                 self.logger.warning(f"Missing required weather attribute: {attr}")
                 return False
-                
+
         # Validate temperature range (-100°C to 60°C)
-        temp = getattr(weather_data, 'temperature', None)
+        temp = getattr(weather_data, "temperature", None)
         if temp is not None and (temp < -100 or temp > 60):
             self.logger.warning(f"Temperature out of valid range: {temp}°C")
             return False
-            
+
         return True
 
     def _show_data_unavailable_state(self):
         """Show UI state when weather data is unavailable."""
         try:
-            if hasattr(self, 'city_label'):
+            if hasattr(self, "city_label"):
                 self.city_label.configure(text="Location unavailable")
-            if hasattr(self, 'temp_label'):
+            if hasattr(self, "temp_label"):
                 self.temp_label.configure(text="--°")
-            if hasattr(self, 'condition_label'):
+            if hasattr(self, "condition_label"):
                 self.condition_label.configure(text="Weather data unavailable")
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text="⚠️ No weather data available")
         except Exception as e:
             self.logger.error(f"Error showing unavailable state: {e}")
@@ -1912,8 +1934,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _update_last_refresh_timestamp(self):
         """Update the last refresh timestamp display."""
         try:
-            timestamp = datetime.now().strftime('%H:%M:%S')
-            if hasattr(self, 'last_update_label'):
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            if hasattr(self, "last_update_label"):
                 self.last_update_label.configure(text=f"Last updated: {timestamp}")
         except Exception as e:
             self.logger.error(f"Error updating timestamp: {e}")
@@ -1922,15 +1944,15 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Safely update weather background with validation."""
         try:
             from src.ui.components.weather_effects import WeatherCondition
-            
+
             weather_condition = WeatherCondition(
-                condition=getattr(weather_data, 'description', 'clear'),
-                temperature=getattr(weather_data, 'temperature', 20),
-                humidity=getattr(weather_data, 'humidity', 50),
-                wind_speed=getattr(weather_data, 'wind_speed', 0),
+                condition=getattr(weather_data, "description", "clear"),
+                temperature=getattr(weather_data, "temperature", 20),
+                humidity=getattr(weather_data, "humidity", 50),
+                wind_speed=getattr(weather_data, "wind_speed", 0),
                 time_of_day="day" if 6 <= datetime.now().hour <= 18 else "night",
             )
-            if hasattr(self, 'weather_background_manager'):
+            if hasattr(self, "weather_background_manager"):
                 self.weather_background_manager.update_weather_background(weather_condition)
         except Exception as e:
             self.logger.error(f"Error updating weather background: {e}")
@@ -1939,19 +1961,21 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Safely update location display with validation."""
         try:
             location_name = "Unknown Location"
-            if hasattr(weather_data, 'location') and weather_data.location:
-                if hasattr(weather_data.location, 'name') and hasattr(weather_data.location, 'country'):
+            if hasattr(weather_data, "location") and weather_data.location:
+                if hasattr(weather_data.location, "name") and hasattr(
+                    weather_data.location, "country"
+                ):
                     location_name = f"{weather_data.location.name}, {weather_data.location.country}"
-                elif hasattr(weather_data.location, 'city'):
+                elif hasattr(weather_data.location, "city"):
                     location_name = weather_data.location.city
-            
-            if hasattr(self, 'animation_manager') and hasattr(self, 'city_label'):
+
+            if hasattr(self, "animation_manager") and hasattr(self, "city_label"):
                 self.animation_manager.fade_in(self.city_label)
                 self.city_label.configure(text=location_name)
-            elif hasattr(self, 'city_label'):
+            elif hasattr(self, "city_label"):
                 self.city_label.configure(text=location_name)
-                
-            if hasattr(self, 'location_label'):
+
+            if hasattr(self, "location_label"):
                 self.location_label.configure(text=f"📍 Current: {location_name}")
         except Exception as e:
             self.logger.error(f"Error updating location display: {e}")
@@ -1959,26 +1983,26 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _update_temperature_display_safe(self, weather_data):
         """Safely update temperature display with proper unit conversion."""
         try:
-            temp_celsius = getattr(weather_data, 'temperature', None)
+            temp_celsius = getattr(weather_data, "temperature", None)
             if temp_celsius is None:
                 temp_display = "--°"
             else:
                 temp_display = self._format_temperature(temp_celsius)
-            
-            if hasattr(self, 'animation_manager') and hasattr(self, 'temp_label'):
+
+            if hasattr(self, "animation_manager") and hasattr(self, "temp_label"):
                 self.animation_manager.animate_number_change(self.temp_label, temp_display)
-            elif hasattr(self, 'temp_label'):
+            elif hasattr(self, "temp_label"):
                 self.temp_label.configure(text=temp_display)
         except Exception as e:
             self.logger.error(f"Error updating temperature display: {e}")
-            if hasattr(self, 'temp_label'):
+            if hasattr(self, "temp_label"):
                 self.temp_label.configure(text="--°")
 
     def _format_temperature(self, temp_celsius):
         """Format temperature according to user preference."""
         try:
             if self.temp_unit == "F":
-                temp_f = (temp_celsius * 9/5) + 32
+                temp_f = (temp_celsius * 9 / 5) + 32
                 return f"{temp_f:.1f}°F"
             elif self.temp_unit == "K":
                 temp_k = temp_celsius + 273.15
@@ -1992,38 +2016,38 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _update_condition_display_safe(self, weather_data):
         """Safely update weather condition display."""
         try:
-            description = getattr(weather_data, 'description', 'Unknown')
-            
+            description = getattr(weather_data, "description", "Unknown")
+
             # Get weather icon
             icon = "🌤️"  # default
-            if hasattr(self, 'weather_icons'):
+            if hasattr(self, "weather_icons"):
                 condition_lower = description.lower()
                 for key, emoji in self.weather_icons.items():
                     if key in condition_lower:
                         icon = emoji
                         break
-            
+
             condition_text = f"{icon} {description.title()}"
-            
-            if hasattr(self, 'animation_manager') and hasattr(self, 'condition_label'):
+
+            if hasattr(self, "animation_manager") and hasattr(self, "condition_label"):
                 self.animation_manager.fade_in(self.condition_label)
                 self.condition_label.configure(text=condition_text)
-            elif hasattr(self, 'condition_label'):
+            elif hasattr(self, "condition_label"):
                 self.condition_label.configure(text=condition_text)
         except Exception as e:
             self.logger.error(f"Error updating condition display: {e}")
-            if hasattr(self, 'condition_label'):
+            if hasattr(self, "condition_label"):
                 self.condition_label.configure(text="Unknown condition")
 
     def _update_weather_metrics_safe(self, weather_data):
         """Safely update weather metrics with validation and proper conversions."""
         try:
-            if not hasattr(self, 'metric_labels'):
+            if not hasattr(self, "metric_labels"):
                 return
-                
+
             # Update humidity
             if "humidity" in self.metric_labels:
-                humidity = getattr(weather_data, 'humidity', None)
+                humidity = getattr(weather_data, "humidity", None)
                 if humidity is not None:
                     self.metric_labels["humidity"].configure(text=f"{humidity}%")
                 else:
@@ -2031,7 +2055,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update wind speed (convert from m/s to km/h)
             if "wind" in self.metric_labels:
-                wind_speed = getattr(weather_data, 'wind_speed', None)
+                wind_speed = getattr(weather_data, "wind_speed", None)
                 if wind_speed is not None:
                     wind_kmh = wind_speed * 3.6
                     self.metric_labels["wind"].configure(text=f"{wind_kmh:.1f} km/h")
@@ -2040,7 +2064,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update feels like temperature
             if "feels_like" in self.metric_labels:
-                feels_like = getattr(weather_data, 'feels_like', None)
+                feels_like = getattr(weather_data, "feels_like", None)
                 if feels_like is not None:
                     feels_like_display = self._format_temperature(feels_like)
                     self.metric_labels["feels_like"].configure(text=feels_like_display)
@@ -2049,7 +2073,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update visibility
             if "visibility" in self.metric_labels:
-                visibility = getattr(weather_data, 'visibility', None)
+                visibility = getattr(weather_data, "visibility", None)
                 if visibility is not None:
                     self.metric_labels["visibility"].configure(text=f"{visibility} km")
                 else:
@@ -2057,7 +2081,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update pressure
             if "pressure" in self.metric_labels:
-                pressure = getattr(weather_data, 'pressure', None)
+                pressure = getattr(weather_data, "pressure", None)
                 if pressure is not None:
                     self.metric_labels["pressure"].configure(text=f"{pressure} hPa")
                 else:
@@ -2065,20 +2089,20 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
             # Update cloudiness
             if "cloudiness" in self.metric_labels:
-                cloudiness = getattr(weather_data, 'cloudiness', None)
+                cloudiness = getattr(weather_data, "cloudiness", None)
                 if cloudiness is not None:
                     self.metric_labels["cloudiness"].configure(text=f"{cloudiness}%")
                 else:
                     self.metric_labels["cloudiness"].configure(text="N/A")
-                    
+
         except Exception as e:
             self.logger.error(f"Error updating weather metrics: {e}")
 
     def _update_status_success(self):
         """Update status display with success message."""
         try:
-            timestamp = datetime.now().strftime('%H:%M:%S')
-            if hasattr(self, 'status_label'):
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"✅ Updated: {timestamp}")
         except Exception as e:
             self.logger.error(f"Error updating status: {e}")
@@ -2087,9 +2111,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Handle display update errors gracefully."""
         try:
             error_msg = "Display update failed"
-            if hasattr(self, 'status_label'):
+            if hasattr(self, "status_label"):
                 self.status_label.configure(text=f"❌ {error_msg}")
-            if hasattr(self, 'error_handler'):
+            if hasattr(self, "error_handler"):
                 self.error_handler.show_error_toast(f"{error_msg}: {str(error)}")
         except Exception as e:
             self.logger.error(f"Error handling display error: {e}")
@@ -2660,14 +2684,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             if self.is_destroyed or not self.winfo_exists() or not self.auto_refresh_enabled:
                 return
-            
+
             # Load weather data asynchronously to prevent UI freezing
             self._load_weather_data_async()
-            
+
             # Schedule next refresh using milliseconds
             refresh_interval_ms = self.refresh_interval_minutes * 60 * 1000
             self.safe_after(refresh_interval_ms, lambda: self._schedule_refresh())
-            
+
         except tk.TclError:
             # Widget has been destroyed, stop the scheduler
             return
@@ -2697,53 +2721,53 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             # Show loading state on refresh button
             original_text = self.refresh_button.cget("text")
             self.refresh_button.configure(text="⏳ Loading...", state="disabled")
-            
+
             # Add micro-interaction effects if available
-            if hasattr(self, 'micro_interactions'):
+            if hasattr(self, "micro_interactions"):
                 self.micro_interactions.add_ripple_effect(self.refresh_button)
-            
+
             # Show loading state in UI
             self._show_loading_state()
-            
+
             # Update status
-            if hasattr(self, 'status_manager'):
+            if hasattr(self, "status_manager"):
                 self.status_manager.show_info("🔄 Refreshing weather data...")
-            
+
             # Schedule the actual refresh to allow UI to update
             self.after(100, self._perform_manual_refresh, original_text)
-            
+
         except Exception as e:
             self.logger.error(f"Error starting manual refresh: {e}")
             # Reset button state on error
-            if hasattr(self, 'refresh_button'):
+            if hasattr(self, "refresh_button"):
                 self.refresh_button.configure(text="🔄 Refresh", state="normal")
-    
+
     def _perform_manual_refresh(self, original_text):
         """Perform the actual manual refresh operation."""
         try:
             # Clear any cached data to force fresh fetch
-            if hasattr(self, 'current_weather_data'):
+            if hasattr(self, "current_weather_data"):
                 self.current_weather_data = None
-            
+
             # Load fresh weather data
             self._load_weather_data()
-            
+
             # Show success message
-            if hasattr(self, 'status_manager'):
+            if hasattr(self, "status_manager"):
                 self.status_manager.set_success_state("✅ Weather data refreshed successfully!")
-            
+
             # Add success animation if available
-            if hasattr(self, 'animation_manager'):
+            if hasattr(self, "animation_manager"):
                 self.animation_manager.success_pulse(self.refresh_button)
-            
+
         except Exception as e:
             self.logger.error(f"Error during manual refresh: {e}")
             # Show error message
-            if hasattr(self, 'status_manager'):
+            if hasattr(self, "status_manager"):
                 self.status_manager.set_error_state(f"❌ Refresh failed: {str(e)}")
             else:
                 self._show_error_state(f"Refresh failed: {str(e)}")
-        
+
         finally:
             # Always restore button state
             try:
@@ -2798,19 +2822,19 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         try:
             # If we have current weather data, refresh the display with new units
-            if hasattr(self, 'current_weather_data') and self.current_weather_data:
+            if hasattr(self, "current_weather_data") and self.current_weather_data:
                 self._update_temperature_display_safe(self.current_weather_data)
                 self._update_weather_metrics_safe(self.current_weather_data)
-                
+
                 # Update forecast cards if they exist
-                if hasattr(self, "forecast_cards") and hasattr(self, 'current_forecast_data'):
+                if hasattr(self, "forecast_cards") and hasattr(self, "current_forecast_data"):
                     self._update_forecast_cards(self.current_forecast_data)
-                    
+
                 self.logger.info(f"Temperature units converted from {from_unit} to {to_unit}")
             else:
                 # Fallback to old method if no stored data
                 self._convert_temperatures_fallback(from_unit, to_unit)
-                
+
         except Exception as e:
             self.logger.error(f"Error converting temperatures: {e}")
             self._convert_temperatures_fallback(from_unit, to_unit)
@@ -2845,7 +2869,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             if hasattr(self, "current_city") and self.current_city:
                 self._load_weather_data()
-            elif hasattr(self, 'current_weather_data') and self.current_weather_data:
+            elif hasattr(self, "current_weather_data") and self.current_weather_data:
                 # Just update the display with current data in new units
                 self._update_weather_display(self.current_weather_data)
         except Exception as e:
@@ -2994,12 +3018,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_status_bar(self):
         """Create enhanced status bar."""
         self.status_frame = ctk.CTkFrame(
-            self, height=40, fg_color=DataTerminalTheme.CARD_BG, corner_radius=0,
-            border_width=1, border_color=DataTerminalTheme.BORDER
+            self,
+            height=40,
+            fg_color=DataTerminalTheme.CARD_BG,
+            corner_radius=0,
+            border_width=1,
+            border_color=DataTerminalTheme.BORDER,
         )
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
         self.status_frame.grid_propagate(False)
-        
+
         # Ensure status frame fills the bottom properly
         self.status_frame.grid_columnconfigure(0, weight=1)
 
@@ -3230,7 +3258,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Initialize background data loading."""
         try:
             # Load background weather data and cache
-            if hasattr(self, 'current_weather_data') and self.current_weather_data:
+            if hasattr(self, "current_weather_data") and self.current_weather_data:
                 # Update background components with current data
                 self._update_background_components()
             else:
@@ -3243,7 +3271,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Update background UI components."""
         try:
             # Update weather background if available
-            if hasattr(self, 'weather_background_manager'):
+            if hasattr(self, "weather_background_manager"):
                 self.weather_background_manager.update_background(self.current_weather_data)
         except Exception as e:
             self.logger.error(f"Failed to update background components: {e}")
@@ -3370,8 +3398,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             )
 
             # Make optimized request
-            request_id = self.api_optimizer.submit_request(api_request)
-            
+            self.api_optimizer.submit_request(api_request)
+
             # For now, fallback to direct weather service call
             # TODO: Implement proper async handling for API optimizer responses
             response = self.weather_service.get_weather(self.current_city)
@@ -3510,7 +3538,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             # Store weather data for unit conversions and refreshes
             self.current_weather_data = weather_data
-            
+
             self._hide_loading_state()
             self._update_weather_display(weather_data)
             self.logger.info("Weather display updated successfully")
@@ -3715,9 +3743,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Use new error handler for comprehensive error display
         self.error_handler.show_api_error(
-            error_message,
-            "weather data loading",
-            retry_callback=lambda: self._load_weather_data()
+            error_message, "weather data loading", retry_callback=lambda: self._load_weather_data()
         )
 
         # Update labels with animation
@@ -3738,52 +3764,54 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         try:
             # Apply theme using theme manager
             theme_manager.apply_theme(theme_name, self)
-            
+
             # Trigger success animation
-            if hasattr(self, 'animation_manager'):
+            if hasattr(self, "animation_manager"):
                 self.animation_manager.success_pulse(self)
-                
+
         except Exception as e:
             self.logger.error(f"Error applying theme {theme_name}: {e}")
-            if hasattr(self, 'error_handler'):
+            if hasattr(self, "error_handler"):
                 self.error_handler.show_error_toast(f"Failed to apply theme: {theme_name}")
-    
+
     def _on_theme_changed(self, theme_data=None):
         """Handle theme change notifications from DataTerminalTheme."""
         try:
             # Get current theme data
             current_theme = theme_data if theme_data else theme_manager.get_current_theme()
-            
+
             # Update main window colors
             self.configure(fg_color=current_theme.get("bg", "#0A0A0A"))
-            
+
             # Update any tab views if they exist
-            if hasattr(self, 'tabview'):
+            if hasattr(self, "tabview"):
                 self.tabview.configure(
                     fg_color=current_theme.get("card", "#1A1A1A"),
                     segmented_button_fg_color=current_theme.get("card", "#1A1A1A"),
                     segmented_button_selected_color=current_theme.get("primary", "#00FF41"),
                     segmented_button_selected_hover_color=current_theme.get("secondary", "#008F11"),
-                    text_color=current_theme.get("text", "#E0E0E0")
+                    text_color=current_theme.get("text", "#E0E0E0"),
                 )
-            
+
             # Update any existing components that have theme methods
             components_to_update = [
-                'city_comparison_panel', 'ml_comparison_panel', 'forecast_cards'
+                "city_comparison_panel",
+                "ml_comparison_panel",
+                "forecast_cards",
             ]
-            
+
             for component_name in components_to_update:
                 if hasattr(self, component_name):
                     component = getattr(self, component_name)
-                    if hasattr(component, '_apply_theme'):
+                    if hasattr(component, "_apply_theme"):
                         component._apply_theme()
-                    elif hasattr(component, 'update_theme'):
+                    elif hasattr(component, "update_theme"):
                         component.update_theme()
                     elif isinstance(component, list):  # Handle forecast_cards list
                         for item in component:
-                            if hasattr(item, '_on_theme_changed'):
+                            if hasattr(item, "_on_theme_changed"):
                                 item._on_theme_changed(current_theme)
-                                
+
         except Exception as e:
             self.logger.error(f"Error in _on_theme_changed: {e}")
 
@@ -3819,7 +3847,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_maps_tab(self):
         """Create Maps tab with enhanced weather visualization."""
         self._create_enhanced_maps_tab()
-    
+
     def _create_enhanced_maps_tab(self):
         """Create enhanced maps tab with weather visualization."""
         # Main container
@@ -3855,7 +3883,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         # Left column - Weather layers and controls
         self._create_weather_layers_panel(content_frame)
-        
+
         # Right column - Regional weather overview
         self._create_regional_weather_panel(content_frame)
 
@@ -3875,48 +3903,48 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             layers_frame,
             text="🌡️ Weather Layers",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.ACCENT
+            text_color=DataTerminalTheme.ACCENT,
         )
         title.pack(pady=(20, 15))
 
         # Location input
         location_frame = ctk.CTkFrame(layers_frame, fg_color="transparent")
         location_frame.pack(fill="x", padx=20, pady=(0, 20))
-        
+
         ctk.CTkLabel(
             location_frame,
             text="📍 Location:",
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
+            text_color=DataTerminalTheme.TEXT,
         ).pack(anchor="w", pady=(0, 5))
-        
+
         self.maps_location_entry = ctk.CTkEntry(
             location_frame,
             placeholder_text="Enter city name...",
             height=35,
-            font=(DataTerminalTheme.FONT_FAMILY, 12)
+            font=(DataTerminalTheme.FONT_FAMILY, 12),
         )
         self.maps_location_entry.pack(fill="x", pady=(0, 10))
-        
+
         search_btn = ctk.CTkButton(
             location_frame,
             text="🔍 Search Weather",
             command=self._search_maps_location,
             height=35,
             fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.SUCCESS
+            hover_color=DataTerminalTheme.SUCCESS,
         )
         search_btn.pack(fill="x")
 
         # Weather layers
         layers_list_frame = ctk.CTkFrame(layers_frame, fg_color="transparent")
         layers_list_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        
+
         ctk.CTkLabel(
             layers_list_frame,
             text="Available Layers:",
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color=DataTerminalTheme.TEXT
+            text_color=DataTerminalTheme.TEXT,
         ).pack(anchor="w", pady=(0, 10))
 
         # Layer options
@@ -3926,31 +3954,31 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             ("💨 Wind Speed", "Wind patterns and gusts"),
             ("☁️ Cloud Cover", "Satellite cloud imagery"),
             ("📊 Pressure", "Atmospheric pressure maps"),
-            ("⚡ Weather Alerts", "Severe weather warnings")
+            ("⚡ Weather Alerts", "Severe weather warnings"),
         ]
-        
+
         for layer_name, description in layers:
             layer_card = ctk.CTkFrame(
                 layers_list_frame,
                 fg_color=DataTerminalTheme.BACKGROUND,
                 corner_radius=8,
                 border_width=1,
-                border_color=DataTerminalTheme.BORDER
+                border_color=DataTerminalTheme.BORDER,
             )
             layer_card.pack(fill="x", pady=5)
-            
+
             ctk.CTkLabel(
                 layer_card,
                 text=layer_name,
                 font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.TEXT
+                text_color=DataTerminalTheme.TEXT,
             ).pack(anchor="w", padx=15, pady=(10, 2))
-            
+
             ctk.CTkLabel(
                 layer_card,
                 text=description,
                 font=(DataTerminalTheme.FONT_FAMILY, 10),
-                text_color=DataTerminalTheme.TEXT_SECONDARY
+                text_color=DataTerminalTheme.TEXT_SECONDARY,
             ).pack(anchor="w", padx=15, pady=(0, 10))
 
     def _create_regional_weather_panel(self, parent):
@@ -3969,7 +3997,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             regional_frame,
             text="🌍 Regional Weather Overview",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.ACCENT
+            text_color=DataTerminalTheme.ACCENT,
         )
         title.pack(pady=(20, 15))
 
@@ -3979,7 +4007,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER
+            border_color=DataTerminalTheme.BORDER,
         )
         map_display_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
@@ -3991,86 +4019,80 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         # Current location weather
         current_weather_frame = ctk.CTkFrame(parent, fg_color="transparent")
         current_weather_frame.pack(fill="x", padx=15, pady=15)
-        
+
         ctk.CTkLabel(
             current_weather_frame,
             text="📍 Current Location Weather",
             font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.ACCENT
+            text_color=DataTerminalTheme.ACCENT,
         ).pack(pady=(0, 10))
-        
+
         # Weather grid
         weather_grid = ctk.CTkFrame(current_weather_frame, fg_color="transparent")
         weather_grid.pack(fill="x")
         weather_grid.grid_columnconfigure((0, 1), weight=1)
-        
+
         # Temperature card
-        temp_card = ctk.CTkFrame(
-            weather_grid,
-            fg_color=DataTerminalTheme.PRIMARY,
-            corner_radius=8
-        )
+        temp_card = ctk.CTkFrame(weather_grid, fg_color=DataTerminalTheme.PRIMARY, corner_radius=8)
         temp_card.grid(row=0, column=0, sticky="ew", padx=(0, 5), pady=5)
-        
+
         ctk.CTkLabel(
             temp_card,
             text="🌡️ Temperature",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            text_color="white"
+            text_color="white",
         ).pack(pady=(10, 2))
-        
+
         self.maps_temp_label = ctk.CTkLabel(
             temp_card,
             text="--°C",
             font=(DataTerminalTheme.FONT_FAMILY, 20, "bold"),
-            text_color="white"
+            text_color="white",
         )
         self.maps_temp_label.pack(pady=(0, 10))
-        
+
         # Conditions card
         conditions_card = ctk.CTkFrame(
-            weather_grid,
-            fg_color=DataTerminalTheme.SUCCESS,
-            corner_radius=8
+            weather_grid, fg_color=DataTerminalTheme.SUCCESS, corner_radius=8
         )
         conditions_card.grid(row=0, column=1, sticky="ew", padx=(5, 0), pady=5)
-        
+
         ctk.CTkLabel(
             conditions_card,
             text="☁️ Conditions",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            text_color="white"
+            text_color="white",
         ).pack(pady=(10, 2))
-        
+
         self.maps_condition_label = ctk.CTkLabel(
             conditions_card,
             text="--",
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-            text_color="white"
+            text_color="white",
         )
         self.maps_condition_label.pack(pady=(0, 10))
-        
+
         # Radar simulation
         radar_frame = ctk.CTkFrame(parent, fg_color="transparent")
         radar_frame.pack(fill="both", expand=True, padx=15, pady=(10, 15))
-        
+
         ctk.CTkLabel(
             radar_frame,
             text="📡 Weather Radar Simulation",
             font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.ACCENT
+            text_color=DataTerminalTheme.ACCENT,
         ).pack(pady=(0, 10))
-        
+
         # Radar display
         radar_display = ctk.CTkFrame(
             radar_frame,
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
             border_width=2,
-            border_color=DataTerminalTheme.PRIMARY
+            border_color=DataTerminalTheme.PRIMARY,
         )
         radar_display.pack(fill="both", expand=True)
-        
+
         # Radar content
         self._create_radar_simulation(radar_display)
 
@@ -4078,36 +4100,28 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         """Create weather radar simulation."""
         radar_content = ctk.CTkFrame(parent, fg_color="transparent")
         radar_content.pack(fill="both", expand=True, padx=20, pady=20)
-        
+
         # Radar circles (concentric)
         radar_circles = ctk.CTkFrame(
-            radar_content,
-            fg_color="#001122",
-            corner_radius=100,
-            width=200,
-            height=200
+            radar_content, fg_color="#001122", corner_radius=100, width=200, height=200
         )
         radar_circles.pack(expand=True)
-        
+
         # Center dot
         center_dot = ctk.CTkFrame(
-            radar_circles,
-            fg_color=DataTerminalTheme.PRIMARY,
-            corner_radius=5,
-            width=10,
-            height=10
+            radar_circles, fg_color=DataTerminalTheme.PRIMARY, corner_radius=5, width=10, height=10
         )
         center_dot.place(relx=0.5, rely=0.5, anchor="center")
-        
+
         # Radar info
         info_frame = ctk.CTkFrame(radar_content, fg_color="transparent")
         info_frame.pack(fill="x", pady=(10, 0))
-        
+
         ctk.CTkLabel(
             info_frame,
             text="🎯 Radar Range: 100km | 🔄 Last Update: Now",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
-            text_color=DataTerminalTheme.TEXT_SECONDARY
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
         ).pack()
 
     def _search_maps_location(self):
@@ -4115,24 +4129,24 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         location = self.maps_location_entry.get().strip()
         if location:
             # Update the main weather display with this location
-            self.location_entry.delete(0, 'end')
+            self.location_entry.delete(0, "end")
             self.location_entry.insert(0, location)
             self._search_weather()
-            
+
             # Update maps display
             self._update_maps_weather_display()
-    
+
     def _update_maps_weather_display(self):
         """Update the maps weather display with current weather data."""
         try:
-            if hasattr(self, 'current_weather_data') and self.current_weather_data:
+            if hasattr(self, "current_weather_data") and self.current_weather_data:
                 # Update temperature
                 temp = self.current_weather_data.temperature
                 unit = "°C" if self.config_service.get_temperature_unit() == "celsius" else "°F"
                 if self.config_service.get_temperature_unit() == "fahrenheit":
-                    temp = (temp * 9/5) + 32
+                    temp = (temp * 9 / 5) + 32
                 self.maps_temp_label.configure(text=f"{temp:.1f}{unit}")
-                
+
                 # Update conditions
                 condition = self.current_weather_data.condition
                 self.maps_condition_label.configure(text=condition.title())
