@@ -2,7 +2,10 @@
   "recent_searches": [
     {
       "query": "Pawtucket, Rhode Island, US",
-      "timestamp": "2025-08-02T19:38:17.178900"
+      "timestamp": "2025-08-02T20:46:19.795834",
+      "success": true,
+      "is_geolocation": true,
+      "search_type": "city_name"
     }
   ],
   "favorites": []
