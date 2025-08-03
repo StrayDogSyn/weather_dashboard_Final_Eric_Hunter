@@ -24,6 +24,7 @@ from src.ui.components.error_handler import ErrorHandler
 from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.components.ml_comparison_panel import MLComparisonPanel
 from src.ui.components.theme_preview_card import ThemePreviewCard
+from src.ui.dashboard.settings_tab_manager import SettingsTabManager
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.api_optimizer import APIOptimizer
@@ -97,6 +98,9 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         theme_manager.add_observer(self.error_manager.update_theme)
         theme_manager.add_observer(self.status_manager.update_theme)
         theme_manager.add_observer(self.visual_polish_manager.update_theme)
+
+        # Initialize settings tab manager
+        self.settings_tab_manager = SettingsTabManager(self, self.config_service, self.weather_service)
 
         # Weather icons mapping
         self.weather_icons = {
@@ -358,7 +362,7 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         self._create_ml_comparison_tab()
         self._create_activities_tab()
         self._create_maps_tab()
-        self._create_settings_tab()
+        self.settings_tab_manager.create_settings_tab(self.settings_tab)
 
     def _create_weather_tab(self):
         """Create enhanced weather tab with proper layout."""
@@ -2417,532 +2421,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
     # _create_data_settings removed - handled by SettingsTabManager
 
-    def _create_auto_refresh_settings(self, parent):
-        """Create auto-refresh configuration section."""
-        # Section frame
-        refresh_frame = ctk.CTkFrame(
-            parent,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        refresh_frame.grid(row=4, column=0, sticky="ew", pady=(0, 15))
-        refresh_frame.grid_columnconfigure(0, weight=1)
+    # _create_auto_refresh_settings and _create_about_section removed - handled by SettingsTabManager
 
-        # Section header
-        header_frame = ctk.CTkFrame(refresh_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
-        header_frame.grid_columnconfigure(1, weight=1)
+    # Settings methods now handled by SettingsTabManager
+    # _toggle_api_visibility, _save_api_keys, _change_theme, _change_units, _test_api_key, _update_usage_stats removed
 
-        # Icon and title
-        icon_label = ctk.CTkLabel(header_frame, text="🔄", font=(DataTerminalTheme.FONT_FAMILY, 18))
-        icon_label.grid(row=0, column=0, padx=(0, 10))
-
-        title_label = ctk.CTkLabel(
-            header_frame,
-            text="Auto-Refresh Configuration",
-            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.TEXT,
-        )
-        title_label.grid(row=0, column=1, sticky="w")
-
-        # Content frame
-        content_frame = ctk.CTkFrame(refresh_frame, fg_color="transparent")
-        content_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
-        content_frame.grid_columnconfigure(1, weight=1)
-
-        # Refresh interval setting
-        interval_label = ctk.CTkLabel(
-            content_frame,
-            text="Refresh Interval (minutes):",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        interval_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
-
-        # Interval slider with value display
-        interval_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        interval_frame.grid(row=0, column=1, sticky="ew", padx=(20, 0), pady=(0, 10))
-        interval_frame.grid_columnconfigure(0, weight=1)
-
-        self.refresh_interval_var = tk.IntVar(
-            value=self.config_service.get_setting("refresh_interval", 5)
-        )
-        self.refresh_interval_label = ctk.CTkLabel(
-            interval_frame,
-            text=f"{self.refresh_interval_var.get()} min",
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            text_color=DataTerminalTheme.PRIMARY,
-        )
-        self.refresh_interval_label.grid(row=0, column=1, padx=(10, 0))
-
-        self.refresh_interval_slider = ctk.CTkSlider(
-            interval_frame,
-            from_=1,
-            to=60,
-            number_of_steps=59,
-            variable=self.refresh_interval_var,
-            command=self._on_refresh_interval_changed,
-            button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY,
-        )
-        self.refresh_interval_slider.grid(row=0, column=0, sticky="ew")
-
-        # Quiet hours setting
-        quiet_label = ctk.CTkLabel(
-            content_frame,
-            text="Quiet Hours:",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        quiet_label.grid(row=1, column=0, sticky="w", pady=(10, 0))
-
-        quiet_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        quiet_frame.grid(row=1, column=1, sticky="ew", padx=(20, 0), pady=(10, 0))
-        quiet_frame.grid_columnconfigure(2, weight=1)
-
-        # Enable quiet hours toggle
-        self.quiet_hours_var = tk.BooleanVar(
-            value=self.config_service.get_setting("quiet_hours_enabled", False)
-        )
-        quiet_toggle = ctk.CTkSwitch(
-            quiet_frame,
-            text="Enable",
-            variable=self.quiet_hours_var,
-            command=self._on_quiet_hours_changed,
-            button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY,
-        )
-        quiet_toggle.grid(row=0, column=0, sticky="w")
-
-        # Start time
-        start_label = ctk.CTkLabel(
-            quiet_frame,
-            text="From:",
-            font=(DataTerminalTheme.FONT_FAMILY, 10),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        start_label.grid(row=0, column=1, padx=(20, 5))
-
-        self.quiet_start_var = tk.StringVar(
-            value=self.config_service.get_setting("quiet_start_time", "22:00")
-        )
-        start_entry = ctk.CTkEntry(
-            quiet_frame, textvariable=self.quiet_start_var, width=60, placeholder_text="22:00"
-        )
-        start_entry.grid(row=0, column=2, padx=(0, 10))
-
-        # End time
-        end_label = ctk.CTkLabel(
-            quiet_frame,
-            text="To:",
-            font=(DataTerminalTheme.FONT_FAMILY, 10),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        end_label.grid(row=0, column=3, padx=(0, 5))
-
-        self.quiet_end_var = tk.StringVar(
-            value=self.config_service.get_setting("quiet_end_time", "07:00")
-        )
-        end_entry = ctk.CTkEntry(
-            quiet_frame, textvariable=self.quiet_end_var, width=60, placeholder_text="07:00"
-        )
-        end_entry.grid(row=0, column=4)
-
-        # Network awareness setting
-        network_label = ctk.CTkLabel(
-            content_frame,
-            text="Network Awareness:",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-        )
-        network_label.grid(row=2, column=0, sticky="w", pady=(15, 0))
-
-        network_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        network_frame.grid(row=2, column=1, sticky="ew", padx=(20, 0), pady=(15, 0))
-
-        # WiFi only toggle
-        self.wifi_only_var = tk.BooleanVar(
-            value=self.config_service.get_setting("wifi_only_refresh", False)
-        )
-        wifi_toggle = ctk.CTkSwitch(
-            network_frame,
-            text="WiFi Only (disable on mobile data)",
-            variable=self.wifi_only_var,
-            command=self._on_wifi_only_changed,
-            button_color=DataTerminalTheme.PRIMARY,
-            progress_color=DataTerminalTheme.PRIMARY,
-        )
-        wifi_toggle.grid(row=0, column=0, sticky="w")
-
-        # Action buttons
-        button_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        button_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(20, 0))
-        button_frame.grid_columnconfigure(1, weight=1)
-
-        # Save settings button
-        save_btn = ctk.CTkButton(
-            button_frame,
-            text="💾 Save Settings",
-            command=self._save_refresh_settings,
-            fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.HOVER,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            height=35,
-        )
-        save_btn.grid(row=0, column=0, padx=(0, 10))
-
-        # Test refresh button
-        test_btn = ctk.CTkButton(
-            button_frame,
-            text="🔄 Test Refresh",
-            command=self._test_refresh,
-            fg_color=DataTerminalTheme.ACCENT,
-            hover_color=DataTerminalTheme.HOVER,
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
-            height=35,
-        )
-        test_btn.grid(row=0, column=1, sticky="w")
-
-        # Add micro-interactions
-        for btn in [save_btn, test_btn]:
-            self.micro_interactions.add_hover_effect(btn)
-            self.micro_interactions.add_click_effect(btn)
-
-    def _on_refresh_interval_changed(self, value):
-        """Handle refresh interval slider change."""
-        interval = int(value)
-        self.refresh_interval_label.configure(text=f"{interval} min")
-        # Auto-save the setting
-        self.config_service.set_setting("refresh_interval", interval)
-
-    def _on_quiet_hours_changed(self):
-        """Handle quiet hours toggle change."""
-        enabled = self.quiet_hours_var.get()
-        self.config_service.set_setting("quiet_hours_enabled", enabled)
-        # Update refresh schedule if needed
-        if hasattr(self, "refresh_job") and self.refresh_job:
-            self._schedule_refresh()
-
-    def _on_wifi_only_changed(self):
-        """Handle WiFi only toggle change."""
-        wifi_only = self.wifi_only_var.get()
-        self.config_service.set_setting("wifi_only_refresh", wifi_only)
-
-    def _save_refresh_settings(self):
-        """Save all refresh settings."""
-        try:
-            # Save quiet hours times
-            self.config_service.set_setting("quiet_start_time", self.quiet_start_var.get())
-            self.config_service.set_setting("quiet_end_time", self.quiet_end_var.get())
-
-            # Show success message
-            self.status_manager.set_success_state("Auto-refresh settings saved successfully!")
-
-            # Update refresh schedule
-            if hasattr(self, "refresh_job") and self.refresh_job:
-                self._schedule_refresh()
-
-        except Exception as e:
-            self.status_manager.set_error_state(f"Failed to save settings: {str(e)}")
-
-    def _test_refresh(self):
-        """Test the refresh functionality."""
-        self.status_manager.show_info("Testing refresh...")
-        self._load_weather_data()
-
-    def _create_about_section(self, parent):
-        """Create about section."""
-        about_frame = ctk.CTkFrame(
-            parent,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        about_frame.grid(row=4, column=0, sticky="ew", pady=(0, 8))
-        about_frame.grid_columnconfigure(0, weight=1)
-
-        # Header
-        header = ctk.CTkLabel(
-            about_frame,
-            text="ℹ️ About",
-            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.PRIMARY,
-        )
-        header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
-
-        # App info
-        info_text = """PROJECT CODEFRONT - Weather Dashboard v3.2.56
-
-Advanced Weather Intelligence System
-Built with Python, CustomTkinter, and AI Integration
-
-Features:
-- Real-time weather data from OpenWeatherMap
-- AI-powered activity suggestions (Google Gemini)
-- Weather journal with mood tracking
-- Interactive temperature forecasting
-- Professional data visualization
-
-Created for Justice Through Code Capstone Project
-Designer & Programmer: Eric Hunter Petross
-Tech Pathways - Justice Through Code - 2025 Cohort
-© 2025 - All Rights Reserved"""
-
-        info_label = ctk.CTkLabel(
-            about_frame,
-            text=info_text,
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
-            justify="left",
-        )
-        info_label.grid(row=1, column=0, sticky="w", padx=15, pady=(0, 12))
-
-        # Links
-        links_frame = ctk.CTkFrame(about_frame, fg_color="transparent")
-        links_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 15))
-        links_frame.grid_columnconfigure((0, 1), weight=1)
-
-        github_btn = ctk.CTkButton(
-            links_frame,
-            text="📁 GitHub Repository",
-            width=140,
-            height=32,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            border_width=1,
-            border_color=DataTerminalTheme.PRIMARY,
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            command=self._enhanced_open_github,
-        )
-        github_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
-
-        # Add micro-interactions to GitHub button
-        self.micro_interactions.add_hover_effect(github_btn)
-        self.micro_interactions.add_click_effect(github_btn)
-
-        docs_btn = ctk.CTkButton(
-            links_frame,
-            text="📚 Documentation",
-            width=140,
-            height=32,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            border_width=1,
-            border_color=DataTerminalTheme.PRIMARY,
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            command=self._open_documentation,
-        )
-        docs_btn.grid(row=0, column=1, sticky="w")
-
-    def _toggle_api_visibility(self, entry):
-        """Toggle API key visibility."""
-        current = entry.cget("show")
-        entry.configure(show="" if current == "*" else "*")
-
-    def _save_api_keys(self):
-        """Save API keys to environment."""
-        # Implementation to save keys
-        if hasattr(self, "status_label"):
-            self.status_label.configure(text="✅ API keys saved successfully")
-        else:
-            print("✅ API keys saved successfully")
-
-    def _change_theme(self, theme_name):
-        """Legacy theme change method - redirects to new theme system."""
-        # Map old theme names to new theme keys
-        theme_map = {"Dark Terminal": "matrix", "Light Mode": "arctic", "Midnight Blue": "midnight"}
-
-        new_theme_key = theme_map.get(theme_name, "matrix")
-        self.apply_theme(new_theme_key)
-
-    def _change_units(self, unit):
-        """Change temperature units and update entire application."""
-        # Map settings units to internal format
-        unit_map = {"Celsius": "C", "Fahrenheit": "F", "Kelvin": "K"}
-
-        new_unit = unit_map.get(unit, "C")
-
-        # Only proceed if unit actually changed
-        if hasattr(self, "temp_unit") and self.temp_unit == new_unit:
-            return
-
-        # Store old unit for conversion
-        old_unit = getattr(self, "temp_unit", "C")
-
-        # Update internal temperature unit
-        self.temp_unit = new_unit
-
-        # Update toggle button text if it exists
-        if hasattr(self, "temp_toggle_btn"):
-            symbol_map = {"C": "°C", "F": "°F", "K": "K"}
-            self.temp_toggle_btn.configure(text=symbol_map.get(new_unit, "°C"))
-
-        # Update temperature chart unit
-        if hasattr(self, "temp_chart") and hasattr(self.temp_chart, "set_temperature_unit"):
-            self.temp_chart.set_temperature_unit(new_unit)
-
-        # Convert and update all temperature displays
-        self._convert_all_temperatures(old_unit, new_unit)
-
-        # Update status
-        if hasattr(self, "status_label"):
-            self.status_label.configure(text=f"🌡️ Units changed to {unit}")
-        else:
-            print(f"🌡️ Units changed to {unit}")
-
-        # Refresh weather data with new units if weather service is available
-        if hasattr(self, "weather_service") and self.weather_service:
-            self.after(100, self._refresh_weather_with_new_units)
-
-    def _test_api_key(self):
-        """Test API key validity."""
-        try:
-            # Test with a simple weather request
-            if hasattr(self, "weather_service") and self.weather_service:
-                # Use a known location for testing
-                test_result = self.weather_service.get_weather("London")
-                if test_result:
-                    self.status_label.configure(text="✅ API key is valid")
-                    return True
-                else:
-                    self.status_label.configure(text="❌ API key test failed")
-                    return False
-            else:
-                self.status_label.configure(text="⚠️ Weather service not available")
-                return False
-        except Exception as e:
-            self.status_label.configure(text=f"❌ API test error: {str(e)}")
-            return False
-
-    def _update_usage_stats(self):
-        """Update API usage statistics display."""
-        try:
-            # Mock usage data - in real implementation, get from API provider
-            usage_data = {
-                "requests_today": 150,
-                "daily_limit": 1000,
-                "requests_month": 4500,
-                "monthly_limit": 30000,
-            }
-
-            daily_percent = (usage_data["requests_today"] / usage_data["daily_limit"]) * 100
-            monthly_percent = (usage_data["requests_month"] / usage_data["monthly_limit"]) * 100
-
-            # Update usage labels if they exist
-            if hasattr(self, "daily_usage_label"):
-                self.daily_usage_label.configure(
-                    text=f"Daily: {usage_data['requests_today']}/{usage_data['daily_limit']} ({daily_percent:.1f}%)"
-                )
-            if hasattr(self, "monthly_usage_label"):
-                self.monthly_usage_label.configure(
-                    text=f"Monthly: {usage_data['requests_month']}/{usage_data['monthly_limit']} ({monthly_percent:.1f}%)"
-                )
-        except Exception as e:
-            print(f"Error updating usage stats: {e}")
-
-    def _encrypt_api_keys(self):
-        """Encrypt stored API keys."""
-        try:
-            # In real implementation, use proper encryption
-            self.status_label.configure(text="🔒 API keys encrypted successfully")
-            print("API keys encrypted (mock implementation)")
-        except Exception as e:
-            self.status_label.configure(text=f"❌ Encryption failed: {str(e)}")
-
-    def _set_key_rotation_reminder(self):
-        """Set API key rotation reminder."""
-        try:
-            # In real implementation, set up actual reminders
-            self.status_label.configure(text="⏰ Key rotation reminder set for 90 days")
-            print("Key rotation reminder set (mock implementation)")
-        except Exception as e:
-            self.status_label.configure(text=f"❌ Failed to set reminder: {str(e)}")
-
-    def _setup_key_rotation(self):
-        """Setup API key rotation schedule."""
-        try:
-            # Create rotation setup dialog
-            dialog = ctk.CTkToplevel(self)
-            dialog.title("Setup Key Rotation")
-            dialog.geometry("450x300")
-            dialog.transient(self)
-            dialog.grab_set()
-
-            # Main frame
-            main_frame = ctk.CTkFrame(dialog)
-            main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-            # Title
-            title_label = ctk.CTkLabel(
-                main_frame,
-                text="API Key Rotation Setup",
-                font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            )
-            title_label.pack(pady=(0, 20))
-
-            # Rotation interval
-            interval_frame = ctk.CTkFrame(main_frame)
-            interval_frame.pack(fill="x", pady=10)
-
-            ctk.CTkLabel(
-                interval_frame,
-                text="Rotation Interval (days):",
-                font=(DataTerminalTheme.FONT_FAMILY, 12),
-            ).pack(side="left", padx=10, pady=10)
-
-            interval_var = ctk.StringVar(value="30")
-            interval_entry = ctk.CTkEntry(interval_frame, textvariable=interval_var, width=100)
-            interval_entry.pack(side="right", padx=10, pady=10)
-
-            # Email notifications
-            email_frame = ctk.CTkFrame(main_frame)
-            email_frame.pack(fill="x", pady=10)
-
-            email_var = ctk.BooleanVar(value=True)
-            email_check = ctk.CTkCheckBox(
-                email_frame, text="Email notifications", variable=email_var
-            )
-            email_check.pack(side="left", padx=10, pady=10)
-
-            # Buttons
-            button_frame = ctk.CTkFrame(main_frame)
-            button_frame.pack(fill="x", pady=20)
-
-            def save_rotation_settings():
-                try:
-                    interval = int(interval_var.get())
-                    email_enabled = email_var.get()
-
-                    if self.config_service:
-                        self.config_service.set_setting("api.rotation_interval_days", interval)
-                        self.config_service.set_setting("api.rotation_email_enabled", email_enabled)
-
-                    self.logger.info(
-                        f"Key rotation set for {interval} days, email: {email_enabled}"
-                    )
-                    dialog.destroy()
-                except ValueError:
-                    self.logger.error("Invalid rotation interval")
-
-            save_btn = ctk.CTkButton(
-                button_frame,
-                text="Save Settings",
-                command=save_rotation_settings,
-                fg_color=DataTerminalTheme.SUCCESS,
-            )
-            save_btn.pack(side="left", padx=10)
-
-            cancel_btn = ctk.CTkButton(
-                button_frame,
-                text="Cancel",
-                command=dialog.destroy,
-                fg_color=DataTerminalTheme.ERROR,
-            )
-            cancel_btn.pack(side="right", padx=10)
-
-        except Exception as e:
-            self.logger.error(f"Failed to setup key rotation: {e}")
+    # _encrypt_api_keys, _set_key_rotation_reminder, and _setup_key_rotation methods removed - now handled by SettingsTabManager
 
     def _update_cache_size(self):
         """Update cache size display."""
@@ -3118,15 +2602,7 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         # Call original method for core functionality
         self._toggle_auto_refresh()
 
-    def _toggle_auto_refresh(self):
-        """Toggle auto-refresh functionality."""
-        enabled = self.auto_refresh_switch.get()
-        self.auto_refresh_enabled = enabled
-        status_text = "🔄 Auto-refresh enabled" if enabled else "⏸️ Auto-refresh disabled"
-        if hasattr(self, "status_label"):
-            self.status_label.configure(text=status_text)
-        else:
-            print(status_text)
+    # _toggle_auto_refresh method removed - now handled by SettingsTabManager
 
     def _schedule_refresh(self):
         """Schedule automatic weather refresh."""
@@ -3387,121 +2863,8 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             else:
                 print(f"❌ Failed to open documentation: {e}")
 
-    def _clear_cache(self):
-        """Clear application cache."""
-        try:
-            import os
-
-            # Clear cache directories
-            cache_dirs = ["cache", "src/cache"]
-            files_cleared = 0
-
-            for cache_dir in cache_dirs:
-                if os.path.exists(cache_dir):
-                    for filename in os.listdir(cache_dir):
-                        if filename.endswith(".json") or filename.endswith(".cache"):
-                            file_path = os.path.join(cache_dir, filename)
-                            try:
-                                os.remove(file_path)
-                                files_cleared += 1
-                            except Exception:
-                                pass
-
-            # Clear weather service cache if available
-            if hasattr(self, "weather_service") and hasattr(self.weather_service, "clear_cache"):
-                self.weather_service.clear_cache()
-
-            if hasattr(self, "status_label"):
-                self.status_label.configure(
-                    text=f"🗑️ Cache cleared successfully ({files_cleared} files)"
-                )
-            else:
-                print(f"🗑️ Cache cleared successfully ({files_cleared} files)")
-
-        except Exception as e:
-            if hasattr(self, "status_label"):
-                self.status_label.configure(text=f"❌ Failed to clear cache: {str(e)}")
-            else:
-                print(f"❌ Failed to clear cache: {e}")
-
-    def _enhanced_export_data(self):
-        """Enhanced export with micro-interactions."""
-        # Add ripple effect to export button
-        if hasattr(self, "export_button"):
-            self.micro_interactions.add_ripple_effect(self.export_button)
-
-        # Show loading animation
-        if hasattr(self, "status_manager"):
-            self.status_manager.show_loading("Preparing export...")
-
-        try:
-            self._export_data()
-
-            # Success pulse animation
-            if hasattr(self, "export_button"):
-                self.micro_interactions.add_success_pulse(self.export_button)
-
-            if hasattr(self, "status_manager"):
-                self.status_manager.set_success_state("Data exported successfully!")
-
-        except Exception as e:
-            # Warning pulse for errors
-            if hasattr(self, "export_button"):
-                self.micro_interactions.add_warning_pulse(self.export_button)
-
-            if hasattr(self, "status_manager"):
-                self.status_manager.set_error_state(f"Export failed: {str(e)}")
-
-    def _export_data(self):
-        """Export application data."""
-        try:
-            import json
-            from datetime import datetime
-            from tkinter import filedialog
-
-            # Prepare export data
-            export_data = {
-                "export_timestamp": datetime.now().isoformat(),
-                "app_version": "1.0.0",
-                "current_city": getattr(self, "current_city", None),
-                "temp_unit": getattr(self, "temp_unit", "C"),
-                "settings": {
-                    "theme": "Dark",  # Current theme
-                    "auto_refresh": (
-                        getattr(self, "auto_refresh_switch", None)
-                        and self.auto_refresh_switch.get()
-                        if hasattr(self, "auto_refresh_switch")
-                        else False
-                    ),
-                },
-            }
-
-            # Ask user for save location
-            filename = filedialog.asksaveasfilename(
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                title="Export Weather Dashboard Data",
-            )
-
-            if filename:
-                with open(filename, "w") as f:
-                    json.dump(export_data, f, indent=2)
-
-                if hasattr(self, "status_label"):
-                    self.status_label.configure(text="📊 Data exported successfully")
-                else:
-                    print("📊 Data exported successfully")
-            else:
-                if hasattr(self, "status_label"):
-                    self.status_label.configure(text="📊 Export cancelled")
-                else:
-                    print("📊 Export cancelled")
-
-        except Exception as e:
-            if hasattr(self, "status_label"):
-                self.status_label.configure(text=f"❌ Failed to export data: {str(e)}")
-            else:
-                print(f"❌ Failed to export data: {e}")
+    # Cache and export methods now handled by SettingsTabManager
+    # _clear_cache, _enhanced_export_data, _export_data removed
 
     def _enhanced_import_data(self):
         """Enhanced import with micro-interactions."""
@@ -4318,6 +3681,60 @@ Tech Pathways - Justice Through Code - 2025 Cohort
             self.status_label.configure(
                 text=f"❌ Error: {error_message}", text_color=DataTerminalTheme.ERROR
             )
+
+    def apply_theme(self, theme_name: str):
+        """Apply theme to the dashboard."""
+        try:
+            # Apply theme using theme manager
+            theme_manager.apply_theme(theme_name, self)
+            
+            # Trigger success animation
+            if hasattr(self, 'animation_manager'):
+                self.animation_manager.success_pulse(self)
+                
+        except Exception as e:
+            self.logger.error(f"Error applying theme {theme_name}: {e}")
+            if hasattr(self, 'error_manager'):
+                self.error_manager.show_error_toast(f"Failed to apply theme: {theme_name}")
+    
+    def _on_theme_changed(self, theme_data=None):
+        """Handle theme change notifications from DataTerminalTheme."""
+        try:
+            # Get current theme data
+            current_theme = theme_data if theme_data else theme_manager.get_current_theme()
+            
+            # Update main window colors
+            self.configure(fg_color=current_theme.get("bg", "#0A0A0A"))
+            
+            # Update any tab views if they exist
+            if hasattr(self, 'tabview'):
+                self.tabview.configure(
+                    fg_color=current_theme.get("card", "#1A1A1A"),
+                    segmented_button_fg_color=current_theme.get("card", "#1A1A1A"),
+                    segmented_button_selected_color=current_theme.get("primary", "#00FF41"),
+                    segmented_button_selected_hover_color=current_theme.get("secondary", "#008F11"),
+                    text_color=current_theme.get("text", "#E0E0E0")
+                )
+            
+            # Update any existing components that have theme methods
+            components_to_update = [
+                'city_comparison_panel', 'ml_comparison_panel', 'forecast_cards'
+            ]
+            
+            for component_name in components_to_update:
+                if hasattr(self, component_name):
+                    component = getattr(self, component_name)
+                    if hasattr(component, '_apply_theme'):
+                        component._apply_theme()
+                    elif hasattr(component, 'update_theme'):
+                        component.update_theme()
+                    elif isinstance(component, list):  # Handle forecast_cards list
+                        for item in component:
+                            if hasattr(item, '_on_theme_changed'):
+                                item._on_theme_changed(current_theme)
+                                
+        except Exception as e:
+            self.logger.error(f"Error in _on_theme_changed: {e}")
 
     def _show_rate_limit_message(self):
         """Show user-friendly rate limit message."""

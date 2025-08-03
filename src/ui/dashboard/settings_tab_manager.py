@@ -286,14 +286,27 @@ class SettingsTabManager:
         units_menu.grid(row=3, column=1, sticky="w", padx=(8, 15), pady=6)
 
     def _create_theme_selector(self):
-        """Create theme selector with preview cards."""
+        """Create theme selector with preview cards for all 6 themes."""
+        from src.ui.theme_manager import theme_manager
+        
+        # Get all available themes from theme manager
         themes = [
-            ("Data Terminal", "#00ff41", "#0a0a0a"),
-            ("Ocean Blue", "#4fc3f7", "#1a237e"),
-            ("Sunset Orange", "#ff7043", "#bf360c"),
+            ("Matrix", "#00FF41", "#0A0A0A", "matrix"),
+            ("Cyberpunk 2077", "#FF006E", "#0F0F23", "cyberpunk"),
+            ("Arctic Terminal", "#00D9FF", "#0A0E27", "arctic"),
+            ("Solar Flare", "#FFA500", "#1A0F0A", "solar"),
+            ("Classic Terminal", "#00FF00", "#000000", "terminal"),
+            ("Midnight Purple", "#BD00FF", "#0D0221", "midnight"),
         ]
 
-        for i, (name, primary, bg) in enumerate(themes):
+        # Configure grid for 2 rows of 3 themes each
+        self.theme_grid.grid_rowconfigure(0, weight=1)
+        self.theme_grid.grid_rowconfigure(1, weight=1)
+
+        for i, (name, primary, bg, theme_key) in enumerate(themes):
+            row = i // 3  # 0 for first 3, 1 for last 3
+            col = i % 3   # 0, 1, 2 for column position
+            
             theme_btn = ctk.CTkButton(
                 self.theme_grid,
                 text=name,
@@ -301,9 +314,9 @@ class SettingsTabManager:
                 height=40,
                 fg_color=primary,
                 hover_color=bg,
-                command=lambda n=name: self._change_theme(n),
+                command=lambda key=theme_key: self._change_theme(key),
             )
-            theme_btn.grid(row=0, column=i, padx=5, pady=5)
+            theme_btn.grid(row=row, column=col, padx=5, pady=5)
 
     def _create_data_settings(self, parent):
         """Create data management settings."""

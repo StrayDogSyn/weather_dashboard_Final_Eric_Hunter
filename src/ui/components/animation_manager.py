@@ -310,6 +310,183 @@ class AnimationManager:
 
         animate()
 
+    def success_pulse(self, widget: ctk.CTkBaseClass, duration: int = 800, intensity: float = 0.2):
+        """Create success pulse effect with green tint."""
+        if not hasattr(widget, "configure"):
+            return
+
+        original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
+        start_time = time.time()
+        success_color = self.theme_colors.get("accent", "#00d4aa")  # Green success color
+
+        def animate():
+            if self.is_destroyed:
+                return
+
+            current_time = time.time()
+            if current_time - start_time >= duration / 1000:
+                # Restore original color and finish
+                try:
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, original_color)
+                except tk.TclError:
+                    pass
+                return
+
+            progress = ((current_time - start_time) * 1000) % 1000 / 1000
+            alpha = intensity * math.sin(progress * math.pi * 2)
+
+            # Calculate success pulsed color with green tint
+            try:
+                if isinstance(success_color, str) and success_color.startswith("#"):
+                    # Extract RGB from success color
+                    sr = int(success_color[1:3], 16)
+                    sg = int(success_color[3:5], 16)
+                    sb = int(success_color[5:7], 16)
+                    
+                    # Extract RGB from original color
+                    if isinstance(original_color, str) and original_color.startswith("#"):
+                        or_val = int(original_color[1:3], 16)
+                        og = int(original_color[3:5], 16)
+                        ob = int(original_color[5:7], 16)
+                    else:
+                        or_val, og, ob = 42, 42, 42  # Default gray
+
+                    # Blend original with success color based on pulse
+                    r = min(255, int(or_val + (sr - or_val) * alpha))
+                    g = min(255, int(og + (sg - og) * alpha))
+                    b = min(255, int(ob + (sb - ob) * alpha))
+
+                    pulsed_color = f"#{r:02x}{g:02x}{b:02x}"
+
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, pulsed_color)
+            except (ValueError, AttributeError, tk.TclError):
+                pass
+
+            # Schedule next frame
+            self.safe_after(widget.master, 50, animate)
+
+        animate()
+
+    def pulse_animation(self, widget: ctk.CTkBaseClass, duration: int = 600, intensity: float = 0.15):
+        """Create a gentle pulse animation for user interactions."""
+        if not hasattr(widget, "configure"):
+            return
+
+        original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
+        start_time = time.time()
+        primary_color = self.theme_colors.get("primary", "#1f538d")
+
+        def animate():
+            if self.is_destroyed:
+                return
+
+            current_time = time.time()
+            if current_time - start_time >= duration / 1000:
+                # Restore original color and finish
+                try:
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, original_color)
+                except tk.TclError:
+                    pass
+                return
+
+            progress = ((current_time - start_time) * 1000) % 800 / 800
+            alpha = intensity * math.sin(progress * math.pi * 2)
+
+            # Calculate pulsed color with primary theme color
+            try:
+                if isinstance(primary_color, str) and primary_color.startswith("#"):
+                    # Extract RGB from primary color
+                    pr = int(primary_color[1:3], 16)
+                    pg = int(primary_color[3:5], 16)
+                    pb = int(primary_color[5:7], 16)
+                    
+                    # Extract RGB from original color
+                    if isinstance(original_color, str) and original_color.startswith("#"):
+                        or_val = int(original_color[1:3], 16)
+                        og = int(original_color[3:5], 16)
+                        ob = int(original_color[5:7], 16)
+                    else:
+                        or_val, og, ob = 42, 42, 42  # Default gray
+
+                    # Blend original with primary color based on pulse
+                    r = min(255, int(or_val + (pr - or_val) * alpha))
+                    g = min(255, int(og + (pg - og) * alpha))
+                    b = min(255, int(ob + (pb - ob) * alpha))
+
+                    pulsed_color = f"#{r:02x}{g:02x}{b:02x}"
+
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, pulsed_color)
+            except (ValueError, AttributeError, tk.TclError):
+                pass
+
+            # Schedule next frame
+            self.safe_after(widget.master, 50, animate)
+
+        animate()
+
+    def warning_pulse(self, widget: ctk.CTkBaseClass, duration: int = 1200, intensity: float = 0.3):
+        """Create warning pulse effect with red/orange tint."""
+        if not hasattr(widget, "configure"):
+            return
+
+        original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
+        start_time = time.time()
+        warning_color = "#ff6b6b"  # Red warning color
+
+        def animate():
+            if self.is_destroyed:
+                return
+
+            current_time = time.time()
+            if current_time - start_time >= duration / 1000:
+                # Restore original color and finish
+                try:
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, original_color)
+                except tk.TclError:
+                    pass
+                return
+
+            progress = ((current_time - start_time) * 1000) % 1200 / 1200
+            alpha = intensity * math.sin(progress * math.pi * 2)
+
+            # Calculate warning pulsed color with red tint
+            try:
+                if isinstance(warning_color, str) and warning_color.startswith("#"):
+                    # Extract RGB from warning color
+                    wr = int(warning_color[1:3], 16)
+                    wg = int(warning_color[3:5], 16)
+                    wb = int(warning_color[5:7], 16)
+                    
+                    # Extract RGB from original color
+                    if isinstance(original_color, str) and original_color.startswith("#"):
+                        or_val = int(original_color[1:3], 16)
+                        og = int(original_color[3:5], 16)
+                        ob = int(original_color[5:7], 16)
+                    else:
+                        or_val, og, ob = 42, 42, 42  # Default gray
+
+                    # Blend original with warning color based on pulse
+                    r = min(255, int(or_val + (wr - or_val) * alpha))
+                    g = min(255, int(og + (wg - og) * alpha))
+                    b = min(255, int(ob + (wb - ob) * alpha))
+
+                    pulsed_color = f"#{r:02x}{g:02x}{b:02x}"
+
+                    if widget.winfo_exists():
+                        self._set_widget_color(widget, pulsed_color)
+            except (ValueError, AttributeError, tk.TclError):
+                pass
+
+            # Schedule next frame
+            self.safe_after(widget.master, 50, animate)
+
+        animate()
+
     def number_transition(
         self,
         label: ctk.CTkLabel,
