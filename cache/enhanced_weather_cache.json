@@ -14,19 +14,19 @@
           "region": null,
           "admin_area": null
         },
-        "timestamp": "2025-08-03 00:25:45.237212",
+        "timestamp": "2025-08-03 01:03:36.565140",
         "condition": "WeatherCondition.CLOUDS",
-        "description": "Scattered Clouds",
-        "temperature": 13.3,
-        "feels_like": 12.9,
-        "humidity": 85,
+        "description": "Broken Clouds",
+        "temperature": 13.1,
+        "feels_like": 12.7,
+        "humidity": 86,
         "pressure": 1018,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 2.2,
-        "wind_direction": 294,
+        "wind_speed": 3.1,
+        "wind_direction": 240,
         "wind_gust": null,
-        "cloudiness": 44,
+        "cloudiness": 55,
         "sunrise": null,
         "sunset": null,
         "alerts": [],
@@ -37,33 +37,32 @@
           },
           "weather": [
             {
-              "id": 802,
+              "id": 803,
               "main": "Clouds",
-              "description": "scattered clouds",
-              "icon": "03n"
+              "description": "broken clouds",
+              "icon": "04d"
             }
           ],
           "base": "stations",
           "main": {
-            "temp": 13.34,
-            "feels_like": 12.95,
-            "temp_min": 11.54,
+            "temp": 13.13,
+            "feels_like": 12.74,
+            "temp_min": 11.06,
             "temp_max": 14.49,
             "pressure": 1018,
-            "humidity": 85,
+            "humidity": 86,
             "sea_level": 1018,
             "grnd_level": 1014
           },
           "visibility": 10000,
           "wind": {
-            "speed": 2.24,
-            "deg": 294,
-            "gust": 4.47
+            "speed": 3.09,
+            "deg": 240
           },
           "clouds": {
-            "all": 44
+            "all": 55
           },
-          "dt": 1754194543,
+          "dt": 1754197135,
           "sys": {
             "type": 2,
             "id": 2075535,
@@ -78,26 +77,26 @@
         },
         "air_quality": null,
         "astronomical": {
-          "sunrise": "2025-08-03 00:27:21",
+          "sunrise": "2025-08-03 00:27:20",
           "sunset": "2025-08-03 15:45:57",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.1786627911445149,
-          "day_length": "15:18:36"
+          "moon_phase": 0.13329732955526752,
+          "day_length": "15:18:37"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-03T00:27:21",
+        "sunrise": "2025-08-03T00:27:20",
         "sunset": "2025-08-03T15:45:57",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.1786627911445149,
-        "day_length": 55116.0
+        "moon_phase": 0.13329732955526752,
+        "day_length": 55117.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-03T00:25:47.111839",
+    "timestamp": "2025-08-03T01:03:38.350173",
     "ttl": 600
   },
   "forecast_london": {
@@ -109,26 +108,26 @@
         {
           "dt": 1754200800,
           "main": {
-            "temp": 13.53,
-            "feels_like": 13.08,
-            "temp_min": 13.53,
-            "temp_max": 13.65,
+            "temp": 13.13,
+            "feels_like": 12.74,
+            "temp_min": 13.13,
+            "temp_max": 13.35,
             "pressure": 1018,
             "sea_level": 1018,
             "grnd_level": 1014,
-            "humidity": 82,
-            "temp_kf": -0.12
+            "humidity": 86,
+            "temp_kf": -0.22
           },
           "weather": [
             {
-              "id": 802,
+              "id": 803,
               "main": "Clouds",
-              "description": "scattered clouds",
-              "icon": "03d"
+              "description": "broken clouds",
+              "icon": "04d"
             }
           ],
           "clouds": {
-            "all": 36
+            "all": 63
           },
           "wind": {
             "speed": 3.25,
@@ -145,15 +144,15 @@
         {
           "dt": 1754211600,
           "main": {
-            "temp": 17.88,
-            "feels_like": 17.63,
-            "temp_min": 17.88,
-            "temp_max": 20.09,
-            "pressure": 1019,
-            "sea_level": 1019,
+            "temp": 15.15,
+            "feels_like": 14.84,
+            "temp_min": 15.15,
+            "temp_max": 19.2,
+            "pressure": 1018,
+            "sea_level": 1018,
             "grnd_level": 1014,
-            "humidity": 73,
-            "temp_kf": -2.21
+            "humidity": 81,
+            "temp_kf": -4.05
           },
           "weather": [
             {
@@ -164,7 +163,7 @@
             }
           ],
           "clouds": {
-            "all": 72
+            "all": 74
           },
           "wind": {
             "speed": 3.6,
@@ -181,15 +180,15 @@
         {
           "dt": 1754222400,
           "main": {
-            "temp": 22.48,
-            "feels_like": 22.48,
-            "temp_min": 22.48,
+            "temp": 19.36,
+            "feels_like": 19.23,
+            "temp_min": 19.36,
             "temp_max": 22.48,
             "pressure": 1018,
             "sea_level": 1018,
             "grnd_level": 1014,
-            "humidity": 65,
-            "temp_kf": 0
+            "humidity": 72,
+            "temp_kf": -3.12
           },
           "weather": [
             {
@@ -200,7 +199,7 @@
             }
           ],
           "clouds": {
-            "all": 98
+            "all": 86
           },
           "wind": {
             "speed": 5.57,
@@ -1573,7 +1572,7 @@
         "sunset": 1754250357
       }
     },
-    "timestamp": "2025-08-03T00:01:12.169918",
+    "timestamp": "2025-08-03T01:03:32.698859",
     "ttl": 3600
   },
   "enhanced_austin": {
@@ -17468,17 +17467,17 @@
           "region": null,
           "admin_area": null
         },
-        "timestamp": "2025-08-02 23:05:02.560801",
+        "timestamp": "2025-08-03 01:03:51.549178",
         "condition": "WeatherCondition.CLEAR",
         "description": "Clear Sky",
-        "temperature": 16.1,
-        "feels_like": 15.9,
-        "humidity": 82,
+        "temperature": 14.3,
+        "feels_like": 14.0,
+        "humidity": 85,
         "pressure": 1022,
         "visibility": 10,
         "uv_index": null,
-        "wind_speed": 0,
-        "wind_direction": 0,
+        "wind_speed": 2.6,
+        "wind_direction": 260,
         "wind_gust": null,
         "cloudiness": 0,
         "sunrise": null,
@@ -17499,30 +17498,30 @@
           ],
           "base": "stations",
           "main": {
-            "temp": 16.12,
-            "feels_like": 15.93,
-            "temp_min": 14.45,
-            "temp_max": 17.73,
+            "temp": 14.31,
+            "feels_like": 14.02,
+            "temp_min": 12.79,
+            "temp_max": 16.3,
             "pressure": 1022,
-            "humidity": 82,
+            "humidity": 85,
             "sea_level": 1022,
             "grnd_level": 1016
           },
           "visibility": 10000,
           "wind": {
-            "speed": 0,
-            "deg": 0
+            "speed": 2.57,
+            "deg": 260
           },
           "clouds": {
             "all": 0
           },
-          "dt": 1754190301,
+          "dt": 1754197430,
           "sys": {
             "type": 2,
             "id": 2006275,
             "country": "US",
-            "sunrise": 1754127627,
-            "sunset": 1754179379
+            "sunrise": 1754214089,
+            "sunset": 1754265710
           },
           "timezone": -14400,
           "id": 5223869,
@@ -17531,26 +17530,26 @@
         },
         "air_quality": null,
         "astronomical": {
-          "sunrise": "2025-08-02 05:40:27",
-          "sunset": "2025-08-02 20:02:59",
+          "sunrise": "2025-08-03 05:41:29",
+          "sunset": "2025-08-03 20:01:50",
           "moonrise": null,
           "moonset": null,
-          "moon_phase": 0.7512517874657065,
-          "day_length": "14:22:32"
+          "moon_phase": 0.49524825351360113,
+          "day_length": "14:20:21"
         }
       },
       "air_quality": null,
       "astronomical": {
-        "sunrise": "2025-08-02T05:40:27",
-        "sunset": "2025-08-02T20:02:59",
+        "sunrise": "2025-08-03T05:41:29",
+        "sunset": "2025-08-03T20:01:50",
         "moonrise": null,
         "moonset": null,
-        "moon_phase": 0.7512517874657065,
-        "day_length": 51752.0
+        "moon_phase": 0.49524825351360113,
+        "day_length": 51621.0
       },
       "alerts": []
     },
-    "timestamp": "2025-08-02T23:05:04.550516",
+    "timestamp": "2025-08-03T01:03:53.537070",
     "ttl": 600
   }
 }

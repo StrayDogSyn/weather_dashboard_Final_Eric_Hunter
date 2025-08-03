@@ -1184,9 +1184,9 @@ class EnhancedWeatherService:
         """Make geocoding request with proper error handling."""
         try:
             # Use the new geocoding request method
-        data = self._make_geocoding_request(
-            "geo/1.0/direct", {"q": query, "limit": limit}
-        )
+            data = self._make_geocoding_request(
+                "geo/1.0/direct", {"q": query, "limit": limit}
+            )
 
             return data if data else []
 
