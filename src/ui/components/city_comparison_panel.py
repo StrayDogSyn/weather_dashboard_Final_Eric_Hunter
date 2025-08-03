@@ -686,9 +686,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                 if hasattr(team_city, "last_updated") and team_city.last_updated:
                     try:
                         # Try to parse the timestamp
-                        datetime.fromisoformat(
-                            team_city.last_updated.replace("Z", "+00:00")
-                        )
+                        datetime.fromisoformat(team_city.last_updated.replace("Z", "+00:00"))
                         last_updated = team_city.last_updated
                     except (ValueError, AttributeError):
                         logger.warning(f"Invalid timestamp for {city_name}, using current time")

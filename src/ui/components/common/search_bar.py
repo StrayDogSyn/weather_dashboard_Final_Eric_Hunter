@@ -333,7 +333,9 @@ class EnhancedSearchBar(SearchBar):
             label.bind(
                 "<Enter>", lambda e, lbl=label: lbl.configure(text_color=DataTerminalTheme.PRIMARY)
             )
-            label.bind("<Leave>", lambda e, lbl=label: lbl.configure(text_color=DataTerminalTheme.TEXT))
+            label.bind(
+                "<Leave>", lambda e, lbl=label: lbl.configure(text_color=DataTerminalTheme.TEXT)
+            )
 
             self.suggestion_labels.append(label)
 

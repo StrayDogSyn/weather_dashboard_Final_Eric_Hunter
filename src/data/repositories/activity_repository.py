@@ -187,15 +187,19 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
 
             # Create indexes for better performance
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_activity_type ON activity_recommendations(activity_type)"
+                "CREATE INDEX IF NOT EXISTS idx_activity_type "
+                "ON activity_recommendations(activity_type)"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_activity_location ON activity_recommendations(location)"
+                "CREATE INDEX IF NOT EXISTS idx_activity_location "
+                "ON activity_recommendations(location)"
             )
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_recommendations(user_id)"
             )
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_history_user ON activity_history(user_id)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_history_user ON activity_history(user_id)"
+            )
 
             conn.commit()
 
@@ -240,14 +244,19 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
     async def create(self, entity: ActivityRecommendation) -> ActivityRecommendation:
         """Create new activity recommendation."""
         if not entity.id:
-            entity.id = f"activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(entity.activity_name) % 10000}"
+            entity.id = (
+                f"activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
+                f"{hash(entity.activity_name) % 10000}"
+            )
 
         entity.created_at = datetime.now()
         activity_dict = entity.to_dict()
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO activity_recommendations (id, activity_data, activity_type, suitability, confidence_score, location, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO activity_recommendations "
+                "(id, activity_data, activity_type, suitability, confidence_score, "
+                "location, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     entity.id,
                     json.dumps(activity_dict),
@@ -273,7 +282,9 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "UPDATE activity_recommendations SET activity_data = ?, activity_type = ?, suitability = ?, confidence_score = ?, location = ?, user_id = ? WHERE id = ?",
+                "UPDATE activity_recommendations SET activity_data = ?, "
+                "activity_type = ?, suitability = ?, confidence_score = ?, "
+                "location = ?, user_id = ? WHERE id = ?",
                 (
                     json.dumps(activity_dict),
                     entity.activity_type.value,
@@ -356,7 +367,13 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
         """Get activity recommendations based on current weather conditions."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT activity_data FROM activity_recommendations WHERE (min_temperature IS NULL OR min_temperature <= ?) AND (max_temperature IS NULL OR max_temperature >= ?) AND (max_wind_speed IS NULL OR max_wind_speed >= ?) AND (max_precipitation IS NULL OR max_precipitation >= ?) AND (min_visibility IS NULL OR min_visibility <= ?) ORDER BY confidence_score DESC",
+                "SELECT activity_data FROM activity_recommendations WHERE "
+                "(min_temperature IS NULL OR min_temperature <= ?) AND "
+                "(max_temperature IS NULL OR max_temperature >= ?) AND "
+                "(max_wind_speed IS NULL OR max_wind_speed >= ?) AND "
+                "(max_precipitation IS NULL OR max_precipitation >= ?) AND "
+                "(min_visibility IS NULL OR min_visibility <= ?) "
+                "ORDER BY confidence_score DESC",
                 (temperature, temperature, wind_speed, precipitation, visibility),
             )
             rows = cursor.fetchall()
@@ -367,13 +384,17 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
         self, activity_type: ActivityType, limit: int = 10
     ) -> List[ActivityRecommendation]:
         """Get recommendations by activity type."""
-        return await self.find_by_criteria({"activity_type": activity_type.value, "limit": limit})
+        return await self.find_by_criteria(
+            {"activity_type": activity_type.value, "limit": limit}
+        )
 
     async def get_user_recommendations(
         self, user_id: str, limit: int = 20
     ) -> List[ActivityRecommendation]:
         """Get personalized recommendations for user."""
-        return await self.find_by_criteria({"user_id": user_id, "limit": limit})
+        return await self.find_by_criteria(
+            {"user_id": user_id, "limit": limit}
+        )
 
     async def set_user_activity_preference(
         self, user_id: str, activity_type: ActivityType, preference_score: float
@@ -381,7 +402,9 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
         """Set user preference score for activity type."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO user_activity_preferences (user_id, activity_type, preference_score, last_updated) VALUES (?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO user_activity_preferences "
+                "(user_id, activity_type, preference_score, last_updated) "
+                "VALUES (?, ?, ?, ?)",
                 (user_id, activity_type.value, preference_score, datetime.now().isoformat()),
             )
             conn.commit()
@@ -391,7 +414,8 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
         """Get user activity preferences."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT activity_type, preference_score FROM user_activity_preferences WHERE user_id = ?",
+                "SELECT activity_type, preference_score FROM user_activity_preferences "
+                "WHERE user_id = ?",
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -409,7 +433,8 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
         """Log completed activity for learning user preferences."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO activity_history (user_id, activity_name, activity_type, weather_conditions, user_rating) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO activity_history (user_id, activity_name, activity_type, "
+                "weather_conditions, user_rating) VALUES (?, ?, ?, ?, ?)",
                 (
                     user_id,
                     activity_name,
@@ -421,7 +446,9 @@ class ActivityRepository(BaseRepository[ActivityRecommendation, str]):
             conn.commit()
             return True
 
-    async def get_activity_history(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_activity_history(
+        self, user_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
         """Get user activity history."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(

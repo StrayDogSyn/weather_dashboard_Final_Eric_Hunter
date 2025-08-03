@@ -92,7 +92,9 @@ class RateLimiter:
             elapsed = now - self.last_update
 
             # Add tokens based on elapsed time
-            self.tokens = min(self.burst_size, self.tokens + elapsed * self.requests_per_second)
+            self.tokens = min(
+                self.burst_size, self.tokens + elapsed * self.requests_per_second
+            )
             self.last_update = now
 
             if self.tokens >= tokens:
@@ -253,7 +255,9 @@ class APIOptimizer:
                     if not response:
                         raise
 
-            elif request.cache_strategy in [CacheStrategy.API_ONLY, CacheStrategy.REFRESH]:
+            elif request.cache_strategy in [
+                CacheStrategy.API_ONLY, CacheStrategy.REFRESH
+            ]:
                 response = self._make_api_call(request)
 
             # Update statistics
@@ -269,7 +273,9 @@ class APIOptimizer:
                 try:
                     request.callback(response.data)
                 except Exception as e:
-                    self.logger.error(f"Callback error for request {request.request_id}: {e}")
+                    self.logger.error(
+                        f"Callback error for request {request.request_id}: {e}"
+                    )
 
         except Exception as e:
             # Create error response
@@ -329,7 +335,11 @@ class APIOptimizer:
         # Mock successful response
         response = APIResponse(
             request_id=request.request_id,
-            data={"mock": "data", "endpoint": request.endpoint, "params": request.params},
+            data={
+                "mock": "data",
+                "endpoint": request.endpoint,
+                "params": request.params
+            },
             success=True,
             response_time=0.1,
         )
@@ -343,7 +353,8 @@ class APIOptimizer:
             if len(self._request_cache) >= self._cache_size:
                 # Remove oldest entry
                 oldest_key = min(
-                    self._request_cache.keys(), key=lambda k: self._request_cache[k].timestamp
+                    self._request_cache.keys(),
+                    key=lambda k: self._request_cache[k].timestamp
                 )
                 self._request_cache.pop(oldest_key, None)
 
@@ -358,7 +369,9 @@ class APIOptimizer:
             self._stats["failed_requests"] += 1
 
         # Update average response time
-        total_responses = self._stats["successful_requests"] + self._stats["failed_requests"]
+        total_responses = (
+            self._stats["successful_requests"] + self._stats["failed_requests"]
+        )
         current_avg = self._stats["average_response_time"]
         self._stats["average_response_time"] = (
             current_avg * (total_responses - 1) + response_time
@@ -368,7 +381,10 @@ class APIOptimizer:
         """Get status of a specific request."""
         # Check if request is active
         if request_id in self._active_requests:
-            return {"status": "processing", "request": self._active_requests[request_id]}
+            return {
+                "status": "processing",
+                "request": self._active_requests[request_id]
+            }
 
         # Check if request is in queue
         with self._queue_lock:
@@ -379,7 +395,10 @@ class APIOptimizer:
         # Check if response is cached
         with self._cache_lock:
             if request_id in self._request_cache:
-                return {"status": "completed", "response": self._request_cache[request_id]}
+                return {
+                    "status": "completed",
+                    "response": self._request_cache[request_id]
+                }
 
         return None
 
@@ -413,7 +432,9 @@ class APIOptimizer:
         with self._cache_lock:
             if pattern:
                 # Clear entries matching pattern
-                to_remove = [key for key in self._request_cache.keys() if pattern in key]
+                to_remove = [
+                    key for key in self._request_cache.keys() if pattern in key
+                ]
                 for key in to_remove:
                     self._request_cache.pop(key, None)
                 cleared = len(to_remove)

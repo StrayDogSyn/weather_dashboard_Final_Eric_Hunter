@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 
 from src.services.activity_service import ActivityService
 from src.services.config_service import ConfigService
-from src.services.enhanced_weather_service import EnhancedWeatherService
+from src.services.enhanced_weather_service import (
+    EnhancedWeatherService
+)
 from src.services.github_team_service import GitHubTeamService
 from src.ui.components import (
     AnimationManager,

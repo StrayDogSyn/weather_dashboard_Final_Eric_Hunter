@@ -35,9 +35,15 @@ class WeatherTabManager:
     def _create_weather_tab_content(self):
         """Create enhanced weather tab with proper layout."""
         # Configure grid for 3-column layout with better proportions
-        self.weather_tab.grid_columnconfigure(0, weight=1, minsize=350)  # Current weather
-        self.weather_tab.grid_columnconfigure(1, weight=2, minsize=500)  # Forecast chart
-        self.weather_tab.grid_columnconfigure(2, weight=1, minsize=300)  # Additional metrics
+        self.weather_tab.grid_columnconfigure(
+            0, weight=1, minsize=350
+        )  # Current weather
+        self.weather_tab.grid_columnconfigure(
+            1, weight=2, minsize=500
+        )  # Forecast chart
+        self.weather_tab.grid_columnconfigure(
+            2, weight=1, minsize=300
+        )  # Additional metrics
         self.weather_tab.grid_rowconfigure(0, weight=1)
 
         # Left column - Current weather card with glassmorphic styling
@@ -58,7 +64,9 @@ class WeatherTabManager:
             border_width=1,
             border_color=DataTerminalTheme.BORDER,
         )
-        self.weather_card.grid(row=0, column=0, sticky="nsew", padx=(15, 8), pady=15)
+        self.weather_card.grid(
+            row=0, column=0, sticky="nsew", padx=(15, 8), pady=15
+        )
 
         # Weather icon and city
         self.city_label = ctk.CTkLabel(

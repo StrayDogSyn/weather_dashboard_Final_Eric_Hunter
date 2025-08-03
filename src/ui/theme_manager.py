@@ -6,7 +6,8 @@ import customtkinter as ctk
 
 
 class ThemeManager:
-    """Manages multiple themes for the weather dashboard with live switching capability."""
+    """Manages multiple themes for the weather dashboard with live switching
+    capability."""
 
     THEMES = {
         "matrix": {

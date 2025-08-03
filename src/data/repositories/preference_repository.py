@@ -113,7 +113,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO user_preferences (user_id, preferences_data, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO user_preferences (user_id, preferences_data, created_at, "
+                "updated_at, version) VALUES (?, ?, ?, ?, ?)",
                 (
                     entity.user_id,
                     json.dumps(preferences_dict),
@@ -140,7 +141,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "UPDATE user_preferences SET preferences_data = ?, updated_at = ?, version = ? WHERE user_id = ?",
+                "UPDATE user_preferences SET preferences_data = ?, updated_at = ?, "
+                "version = ? WHERE user_id = ?",
                 (
                     json.dumps(preferences_dict),
                     entity.updated_at.isoformat(),
@@ -254,7 +256,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
         # Store detailed location data
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO favorite_locations (user_id, location_name, location_data) VALUES (?, ?, ?)",
+                "INSERT OR REPLACE INTO favorite_locations (user_id, location_name, "
+                "location_data) VALUES (?, ?, ?)",
                 (user_id, location_name, json.dumps(location_data)),
             )
             conn.commit()
@@ -275,7 +278,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
         # Remove detailed location data
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "DELETE FROM favorite_locations WHERE user_id = ? AND location_name = ?",
+                "DELETE FROM favorite_locations WHERE user_id = ? AND "
+                "location_name = ?",
                 (user_id, location_name),
             )
             conn.commit()
@@ -287,7 +291,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
         """Get detailed favorite location data for user."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT location_name, location_data FROM favorite_locations WHERE user_id = ? ORDER BY added_at",
+                "SELECT location_name, location_data FROM favorite_locations "
+                "WHERE user_id = ? ORDER BY added_at",
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -304,11 +309,14 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
         updated = await self.update(user_id, preferences)
         return updated is not None
 
-    async def get_preference_history(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_preference_history(
+        self, user_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
         """Get preference change history for user."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT change_type, old_value, new_value, changed_at FROM preference_history WHERE user_id = ? ORDER BY changed_at DESC LIMIT ?",
+                "SELECT change_type, old_value, new_value, changed_at FROM "
+                "preference_history WHERE user_id = ? ORDER BY changed_at DESC LIMIT ?",
                 (user_id, limit),
             )
             rows = cursor.fetchall()
@@ -374,7 +382,8 @@ class PreferenceRepository(BaseRepository[UserPreferences, str]):
             with sqlite3.connect(self.db_path) as conn:
                 for change in changes:
                     conn.execute(
-                        "INSERT INTO preference_history (user_id, change_type, old_value, new_value) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO preference_history (user_id, change_type, "
+                        "old_value, new_value) VALUES (?, ?, ?, ?)",
                         (user_id, change["change_type"], change["old_value"], change["new_value"]),
                     )
                 conn.commit()

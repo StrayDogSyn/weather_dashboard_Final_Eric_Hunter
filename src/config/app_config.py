@@ -187,7 +187,8 @@ class AppConfig:
         if api_key := os.getenv("OPENWEATHER_API_KEY"):
             self.api.openweather_api_key = api_key
             print(
-                f"Debug - AppConfig: Loaded OPENWEATHER_API_KEY: {'[SET]' if api_key else '[EMPTY]'}"
+                f"Debug - AppConfig: Loaded OPENWEATHER_API_KEY: "
+                f"{'[SET]' if api_key else '[EMPTY]'}"
             )
 
         # AI Service API Keys

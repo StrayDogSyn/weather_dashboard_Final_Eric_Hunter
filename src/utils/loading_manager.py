@@ -8,7 +8,11 @@ from typing import Any, Callable, Dict, Set
 
 
 class LoadingManager:
-    """Manages loading operations with timeout, progress tracking, and error handling."""
+    """Manages loading operations with timeout, progress tracking, and error handling.
+    
+    Provides methods for executing tasks with different priorities, timeout handling,
+    and proper cleanup of resources.
+    """
 
     def __init__(self, max_workers: int = 4):
         """Initialize the LoadingManager.
@@ -94,7 +98,9 @@ class LoadingManager:
                     try:
                         on_success(result)
                     except Exception as e:
-                        self.logger.error(f"Success callback failed for {task_name}: {e}")
+                        self.logger.error(
+                            f"Success callback failed for {task_name}: {e}"
+                        )
 
             except TimeoutError:
                 elapsed = time.time() - start_time
@@ -125,7 +131,9 @@ class LoadingManager:
                 self._active_tasks.pop(task_id, None)
 
         # Start the task in a thread
-        thread = threading.Thread(target=task_wrapper, daemon=True, name=f"LoadingTask-{task_name}")
+        thread = threading.Thread(
+            target=task_wrapper, daemon=True, name=f"LoadingTask-{task_name}"
+        )
         self._active_tasks[task_id] = {
             "thread": thread,
             "start_time": time.time(),

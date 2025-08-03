@@ -62,9 +62,12 @@ class MigrationManager:
                 version="002",
                 description="Add performance indexes",
                 sql="""
-            CREATE INDEX IF NOT EXISTS idx_weather_location_temp ON weather_history(location, temperature);
-            CREATE INDEX IF NOT EXISTS idx_activity_user_date ON activity_log(user_id, selected_at);
-            CREATE INDEX IF NOT EXISTS idx_journal_user_mood ON journal_entries(user_id, mood_score);
+            CREATE INDEX IF NOT EXISTS idx_weather_location_temp 
+                ON weather_history(location, temperature);
+            CREATE INDEX IF NOT EXISTS idx_activity_user_date 
+                ON activity_log(user_id, selected_at);
+            CREATE INDEX IF NOT EXISTS idx_journal_user_mood 
+                ON journal_entries(user_id, mood_score);
             """,
             )
         )
@@ -86,8 +89,9 @@ class MigrationManager:
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-            
-            CREATE INDEX IF NOT EXISTS idx_alerts_user_active ON weather_alerts(user_id, is_active);
+
+            CREATE INDEX IF NOT EXISTS idx_alerts_user_active 
+                ON weather_alerts(user_id, is_active);
             CREATE INDEX IF NOT EXISTS idx_alerts_location ON weather_alerts(location);
             """,
             )
@@ -107,9 +111,11 @@ class MigrationManager:
                 expires_at DATETIME NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-            
-            CREATE INDEX IF NOT EXISTS idx_comparison_cache_key ON weather_comparison_cache(cache_key);
-            CREATE INDEX IF NOT EXISTS idx_comparison_expires ON weather_comparison_cache(expires_at);
+
+            CREATE INDEX IF NOT EXISTS idx_comparison_cache_key 
+                ON weather_comparison_cache(cache_key);
+            CREATE INDEX IF NOT EXISTS idx_comparison_expires 
+                ON weather_comparison_cache(expires_at);
             """,
             )
         )
@@ -147,7 +153,8 @@ class MigrationManager:
                 # Check if migrations table exists
                 result = await session.execute(
                     text(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='database_migrations'"
+                        "SELECT name FROM sqlite_master WHERE type='table' "
+                        "AND name='database_migrations'"
                     )
                 )
 
@@ -156,7 +163,10 @@ class MigrationManager:
 
                 # Get latest migration
                 result = await session.execute(
-                    text("SELECT version FROM database_migrations ORDER BY applied_at DESC LIMIT 1")
+                    text(
+                        "SELECT version FROM database_migrations "
+                        "ORDER BY applied_at DESC LIMIT 1"
+                    )
                 )
 
                 row = result.fetchone()
@@ -177,7 +187,8 @@ class MigrationManager:
                 # Check if migrations table exists
                 result = await session.execute(
                     text(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='database_migrations'"
+                        "SELECT name FROM sqlite_master WHERE type='table' "
+                        "AND name='database_migrations'"
                     )
                 )
 
@@ -218,7 +229,9 @@ class MigrationManager:
             applied_versions = {m.version for m in applied_migrations}
 
             # Find pending migrations
-            pending_migrations = [m for m in self._migrations if m.version not in applied_versions]
+            pending_migrations = [
+                m for m in self._migrations if m.version not in applied_versions
+            ]
 
             if not pending_migrations:
                 self._logger.info("No pending migrations")
@@ -235,7 +248,8 @@ class MigrationManager:
                 for migration in pending_migrations:
                     await self._apply_migration(session, migration)
                     self._logger.info(
-                        f"Applied migration {migration.version}: {migration.description}"
+                        f"Applied migration {migration.version}: "
+                        f"{migration.description}"
                     )
 
                 await session.commit()

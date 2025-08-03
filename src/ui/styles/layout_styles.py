@@ -26,8 +26,22 @@ class LayoutStyles:
             "padx": 10,
             "pady": 10,
         },
-        "metrics": {"row": 1, "column": 0, "columnspan": 2, "sticky": "ew", "padx": 10, "pady": 5},
-        "forecast": {"row": 2, "column": 0, "columnspan": 2, "sticky": "ew", "padx": 10, "pady": 5},
+        "metrics": {
+            "row": 1,
+            "column": 0,
+            "columnspan": 2,
+            "sticky": "ew",
+            "padx": 10,
+            "pady": 5
+        },
+        "forecast": {
+            "row": 2,
+            "column": 0,
+            "columnspan": 2,
+            "sticky": "ew",
+            "padx": 10,
+            "pady": 5
+        },
         "additional_metrics": {
             "row": 3,
             "column": 0,
@@ -48,7 +62,13 @@ class LayoutStyles:
             "padx": 20,
             "pady": (15, 5),
         },
-        "temperature_label": {"row": 1, "column": 0, "sticky": "w", "padx": 20, "pady": 5},
+        "temperature_label": {
+            "row": 1,
+            "column": 0,
+            "sticky": "w",
+            "padx": 20,
+            "pady": 5
+        },
         "unit_toggle": {"row": 1, "column": 1, "sticky": "e", "padx": 20, "pady": 5},
         "condition_label": {
             "row": 2,
@@ -69,25 +89,45 @@ class LayoutStyles:
     # Settings Tab Layout
     SETTINGS_SECTIONS = {
         "api_settings": {"row": 0, "column": 0, "sticky": "ew", "padx": 10, "pady": 5},
-        "appearance_settings": {"row": 1, "column": 0, "sticky": "ew", "padx": 10, "pady": 5},
+        "appearance_settings": {
+            "row": 1,
+            "column": 0,
+            "sticky": "ew",
+            "padx": 10,
+            "pady": 5
+        },
         "data_settings": {"row": 2, "column": 0, "sticky": "ew", "padx": 10, "pady": 5},
-        "auto_refresh_settings": {"row": 3, "column": 0, "sticky": "ew", "padx": 10, "pady": 5},
+        "auto_refresh_settings": {
+            "row": 3,
+            "column": 0,
+            "sticky": "ew",
+            "padx": 10,
+            "pady": 5
+        },
         "about_section": {"row": 4, "column": 0, "sticky": "ew", "padx": 10, "pady": 5},
     }
 
     # Activities Tab Layout
     ACTIVITIES_LAYOUT = {
         "header": {"row": 0, "column": 0, "sticky": "ew", "padx": 20, "pady": (20, 10)},
-        "content": {"row": 1, "column": 0, "sticky": "nsew", "padx": 20, "pady": (0, 20)},
+        "content": {
+            "row": 1, "column": 0, "sticky": "nsew", "padx": 20, "pady": (0, 20)
+        },
     }
 
     # Comparison Tab Layout
-    COMPARISON_LAYOUT = {"panel": {"row": 0, "column": 0, "sticky": "nsew", "padx": 20, "pady": 20}}
+    COMPARISON_LAYOUT = {
+        "panel": {"row": 0, "column": 0, "sticky": "nsew", "padx": 20, "pady": 20}
+    }
 
     # Maps Tab Layout
     MAPS_LAYOUT = {
-        "controls": {"row": 0, "column": 0, "sticky": "ew", "padx": 20, "pady": (20, 10)},
-        "map_display": {"row": 1, "column": 0, "sticky": "nsew", "padx": 20, "pady": (0, 20)},
+        "controls": {
+            "row": 0, "column": 0, "sticky": "ew", "padx": 20, "pady": (20, 10)
+        },
+        "map_display": {
+            "row": 1, "column": 0, "sticky": "nsew", "padx": 20, "pady": (0, 20)
+        },
     }
 
     # Padding Configurations
@@ -133,7 +173,10 @@ class LayoutStyles:
     }
 
     # Header Layout
-    HEADER_LAYOUT = {"title": {"side": "left", "padx": 0}, "search": {"side": "right", "padx": 0}}
+    HEADER_LAYOUT = {
+        "title": {"side": "left", "padx": 0},
+        "search": {"side": "right", "padx": 0}
+    }
 
     # Status Bar Layout
     STATUS_BAR_LAYOUT = {

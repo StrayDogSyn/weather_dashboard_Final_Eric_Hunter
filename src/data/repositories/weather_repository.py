@@ -103,7 +103,9 @@ class WeatherRepository(BaseRepository[WeatherData, str]):
             cursor = conn.execute(query, params)
             rows = cursor.fetchall()
 
-            return [self._dict_to_weather_data(json.loads(row[0])) for row in rows]
+            return [
+                self._dict_to_weather_data(json.loads(row[0])) for row in rows
+            ]
 
     async def create(self, entity: WeatherData) -> WeatherData:
         """Cache weather data."""
@@ -117,7 +119,8 @@ class WeatherRepository(BaseRepository[WeatherData, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO weather_cache (location_key, weather_data, expires_at) VALUES (?, ?, ?)",
+                "INSERT OR REPLACE INTO weather_cache (location_key, weather_data, "
+                "expires_at) VALUES (?, ?, ?)",
                 (location_key, json.dumps(weather_dict), expires_at.isoformat()),
             )
             conn.commit()
@@ -279,7 +282,8 @@ class ForecastRepository(BaseRepository[ForecastData, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT forecast_data FROM forecast_cache WHERE location_key = ? AND expires_at > ?",
+                "SELECT forecast_data FROM forecast_cache WHERE location_key = ? "
+                "AND expires_at > ?",
                 (location_key, datetime.now().isoformat()),
             )
             row = cursor.fetchone()
@@ -295,7 +299,10 @@ class ForecastRepository(BaseRepository[ForecastData, str]):
     async def get_all(self, limit: Optional[int] = None, offset: int = 0) -> List[ForecastData]:
         """Get all cached forecast data."""
         with sqlite3.connect(self.db_path) as conn:
-            query = "SELECT forecast_data FROM forecast_cache WHERE expires_at > ? ORDER BY cached_at DESC"
+            query = (
+                "SELECT forecast_data FROM forecast_cache WHERE expires_at > ? "
+                "ORDER BY cached_at DESC"
+            )
             params = [datetime.now().isoformat()]
 
             if limit:
@@ -305,7 +312,9 @@ class ForecastRepository(BaseRepository[ForecastData, str]):
             cursor = conn.execute(query, params)
             rows = cursor.fetchall()
 
-            return [self._dict_to_forecast_data(json.loads(row[0])) for row in rows]
+            return [
+                self._dict_to_forecast_data(json.loads(row[0])) for row in rows
+            ]
 
     async def create(self, entity: ForecastData) -> ForecastData:
         """Cache forecast data."""
@@ -319,7 +328,8 @@ class ForecastRepository(BaseRepository[ForecastData, str]):
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO forecast_cache (location_key, forecast_data, expires_at) VALUES (?, ?, ?)",
+                "INSERT OR REPLACE INTO forecast_cache (location_key, forecast_data, "
+                "expires_at) VALUES (?, ?, ?)",
                 (location_key, json.dumps(forecast_dict), expires_at.isoformat()),
             )
             conn.commit()

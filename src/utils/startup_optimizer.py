@@ -95,7 +95,9 @@ class StartupOptimizer:
 
         with self._lock:
             self.components[name] = config
-            self.logger.debug(f"Registered component '{name}' with priority {priority.name}")
+            self.logger.debug(
+                f"Registered component '{name}' with priority {priority.name}"
+            )
 
     def start_progressive_loading(
         self,
@@ -115,7 +117,9 @@ class StartupOptimizer:
                 self._execute_progressive_loading(on_component_loaded)
 
                 # Update performance stats
-                self._performance_stats["total_load_time"] = time.time() - start_time
+                self._performance_stats["total_load_time"] = (
+                    time.time() - start_time
+                )
 
                 if on_complete:
                     on_complete()
@@ -136,7 +140,9 @@ class StartupOptimizer:
         # Sort components by priority and dependencies
         load_order = self._calculate_load_order()
 
-        self.logger.info(f"Starting progressive loading of {len(load_order)} components")
+        self.logger.info(
+            f"Starting progressive loading of {len(load_order)} components"
+        )
 
         # Load components in priority order
         for priority_group in load_order:
@@ -175,7 +181,9 @@ class StartupOptimizer:
             for name in remaining:
                 config = self.components[name]
                 deps_satisfied = all(
-                    dep in self.loaded_components or dep in resolved or dep not in self.components
+                    dep in self.loaded_components
+                    or dep in resolved
+                    or dep not in self.components
                     for dep in config.dependencies
                 )
                 if deps_satisfied:
@@ -199,14 +207,16 @@ class StartupOptimizer:
 
                 if unmet_deps:
                     self.logger.debug(
-                        f"Dependencies {list(unmet_deps)} will be loaded in earlier priority groups"
+                        f"Dependencies {list(unmet_deps)} will be loaded in "
+                        f"earlier priority groups"
                     )
                     # Load remaining components anyway since dependencies will be satisfied later
                     ready = remaining
                 else:
                     # True circular dependency within same priority
                     self.logger.warning(
-                        f"Circular dependencies detected within priority group: {remaining}"
+                        f"Circular dependencies detected within priority group: "
+                        f"{remaining}"
                     )
                     ready = remaining  # Load anyway
 
@@ -229,7 +239,10 @@ class StartupOptimizer:
         # For medium and below, load in parallel
         first_component = self.components[component_names[0]]
 
-        if first_component.priority in [ComponentPriority.CRITICAL, ComponentPriority.HIGH]:
+        if first_component.priority in [
+            ComponentPriority.CRITICAL,
+            ComponentPriority.HIGH,
+        ]:
             self._load_sequential(component_names, on_component_loaded)
         else:
             self._load_parallel(component_names, on_component_loaded)
@@ -339,7 +352,8 @@ class StartupOptimizer:
         self._performance_stats["components_failed"] += 1
 
         self.logger.error(
-            f"✗ Component '{name}' failed to load after {config.retry_count + 1} attempts"
+            f"✗ Component '{name}' failed to load after "
+            f"{config.retry_count + 1} attempts"
         )
         return result
 
@@ -425,7 +439,9 @@ class StartupOptimizer:
             if component_name:
                 self._cache.pop(component_name, None)
                 self.loaded_components.pop(component_name, None)
-                self.logger.debug(f"Invalidated cache for component '{component_name}'")
+                self.logger.debug(
+                    f"Invalidated cache for component '{component_name}'"
+                )
             else:
                 self._cache.clear()
                 self.loaded_components.clear()

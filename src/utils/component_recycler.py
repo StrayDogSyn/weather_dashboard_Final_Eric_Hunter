@@ -154,7 +154,9 @@ class ComponentPool:
         with self._lock:
             cleared_count = len(self._pool)
             self._pool.clear()
-            self.logger.debug(f"Cleared {cleared_count} {self.component_type.__name__} components")
+            self.logger.debug(
+                f"Cleared {cleared_count} {self.component_type.__name__} components"
+            )
             return cleared_count
 
 
@@ -171,7 +173,9 @@ class ComponentRecycler:
         self.logger = logging.getLogger(__name__)
 
         # Start background cleanup thread
-        self._cleanup_thread = threading.Thread(target=self._background_cleanup, daemon=True)
+        self._cleanup_thread = threading.Thread(
+            target=self._background_cleanup, daemon=True
+        )
         self._cleanup_thread.start()
 
         # Track memory usage
@@ -188,7 +192,9 @@ class ComponentRecycler:
         """Register a component type for recycling."""
         with self._lock:
             if component_type in self._pools:
-                self.logger.warning(f"Component type {component_type.__name__} already registered")
+                self.logger.warning(
+                    f"Component type {component_type.__name__} already registered"
+                )
                 return
 
             pool = ComponentPool(
@@ -200,7 +206,10 @@ class ComponentRecycler:
             )
 
             self._pools[component_type] = pool
-            self.logger.info(f"Registered component type {component_type.__name__} for recycling")
+            self.logger.info(
+                f"Registered component type {component_type.__name__} "
+                f"for recycling"
+            )
 
     def acquire_component(self, component_type: Type) -> Any:
         """Acquire a component of the specified type."""
@@ -216,7 +225,9 @@ class ComponentRecycler:
         component_type = type(component)
 
         if component_type not in self._pools:
-            self.logger.warning(f"No pool found for component type {component_type.__name__}")
+            self.logger.warning(
+                f"No pool found for component type {component_type.__name__}"
+            )
             return False
 
         success = self._pools[component_type].release(component)
@@ -231,11 +242,16 @@ class ComponentRecycler:
         """Get statistics for component pools."""
         if component_type:
             if component_type in self._pools:
-                return {component_type.__name__: self._pools[component_type].get_stats()}
+                return {
+                    component_type.__name__: self._pools[component_type].get_stats()
+                }
             else:
                 return {}
 
-        return {pool_type.__name__: pool.get_stats() for pool_type, pool in self._pools.items()}
+        return {
+            pool_type.__name__: pool.get_stats()
+            for pool_type, pool in self._pools.items()
+        }
 
     def cleanup_pools(self, force: bool = False) -> Dict[str, int]:
         """Clean up all component pools."""

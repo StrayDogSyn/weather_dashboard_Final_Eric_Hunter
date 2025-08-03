@@ -772,7 +772,8 @@ class CacheManager:
             self._enforce_limits()
 
             self._logger.info(
-                f"Cache config updated: size={self._max_size}, entries={self._max_entries}, ttl={self._default_ttl}"
+                f"Cache config updated: size={self._max_size}, "
+                f"entries={self._max_entries}, ttl={self._default_ttl}"
             )
 
     def _enforce_limits(self) -> None:

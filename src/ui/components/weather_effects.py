@@ -73,7 +73,9 @@ class TemperatureGradient:
 
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    def get_gradient_colors(self, temperature: float, time_of_day: str) -> Tuple[str, str]:
+    def get_gradient_colors(
+        self, temperature: float, time_of_day: str
+    ) -> Tuple[str, str]:
         """Get gradient colors for background based on temperature and time."""
         base_color = self.get_temperature_color(temperature)
 
@@ -313,7 +315,9 @@ class ParticleSystem:
 class WeatherBackgroundManager:
     """Manages dynamic weather-based backgrounds."""
 
-    def __init__(self, parent: ctk.CTkBaseClass, theme_colors: Optional[Dict[str, str]] = None):
+    def __init__(
+        self, parent: ctk.CTkBaseClass, theme_colors: Optional[Dict[str, str]] = None
+    ):
         self.parent = parent
         self.theme_colors = theme_colors or {}
         self.gradient_generator = TemperatureGradient()
@@ -332,7 +336,11 @@ class WeatherBackgroundManager:
 
         # Create particle canvas
         self.particle_canvas = tk.Canvas(
-            self.background_frame, width=width, height=height, highlightthickness=0, bg="#1a1a1a"
+            self.background_frame,
+            width=width,
+            height=height,
+            highlightthickness=0,
+            bg="#1a1a1a"
         )
         self.particle_canvas.place(x=0, y=0)
 
