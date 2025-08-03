@@ -20,7 +20,7 @@ class DataTerminalTheme:
 
     # Additional colors
     SUCCESS = "#00cc66"
-    ACCENT = "#444444"
+    ACCENT = "#00d4ff"  # Changed to bright cyan for better visibility
     HOVER = "#555555"
     ERROR = "#ff4444"
     WARNING = "#ffaa00"

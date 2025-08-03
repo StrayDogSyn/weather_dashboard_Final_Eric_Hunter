@@ -82,6 +82,10 @@ geopy==2.4.1                  # Geocoding library
 geocoder==1.38.1              # Alternative geocoding service
 timezonefinder==6.2.0         # Timezone lookup by coordinates
 pytz==2023.3                  # World timezone definitions
+folium==0.15.0                # Interactive maps
+tkinterweb==3.24.7            # Web browser widget for tkinter
+branca==0.6.0                 # HTML/JS generation for folium
+jinja2>=2.9                   # Template engine for folium
 
 # =============================================================================
 # AI AND MACHINE LEARNING

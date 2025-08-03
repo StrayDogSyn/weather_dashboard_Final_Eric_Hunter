@@ -48,6 +48,18 @@ A modern weather dashboard application featuring **AI-powered analytics**, **mac
 - **Temperature units** (Celsius/Fahrenheit toggle) with persistent preferences
 - **Location detection** for automatic local weather updates
 - **🆕 Enhanced Features**: Air quality data, UV index, astronomical information, weather alerts
+
+### 🗺️ Interactive Weather Maps (NEW)
+
+- **🌡️ Temperature Heat Maps**: Real-time temperature visualization with customizable opacity
+- **🌧️ Precipitation Radar**: Live precipitation data with intensity mapping
+- **💨 Wind Speed Vectors**: Wind direction and speed visualization
+- **🌫️ Cloud Coverage**: Real-time cloud layer visualization
+- **📊 Atmospheric Pressure**: Pressure system mapping and analysis
+- **🏠 Weather Stations**: Interactive weather station data points
+- **⚠️ Weather Alerts**: Severe weather warnings and notifications
+- **🛠️ Map Tools**: Drawing tools, location controls, and measurement utilities
+- **💾 Map Export**: Save interactive maps as HTML files for sharing
 - **🆕 Advanced Search**: Autocomplete, recent searches, intelligent favorites management
 - **🆕 Multi-location Support**: Compare weather across unlimited cities with ML insights
 
@@ -160,18 +172,27 @@ A modern weather dashboard application featuring **AI-powered analytics**, **mac
 git clone <repository-url>
 cd weather_dashboard_Final_Eric_Hunter
 
-# 2. Install dependencies
+# 2. Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 3. Configure API keys (create .env file in root directory)
+# 4. Install additional mapping dependencies (if not automatically installed)
+pip install folium==0.15.0 branca==0.6.0 jinja2>=2.9
+
+# 5. Configure API keys (create .env file in root directory)
 OPENWEATHER_API_KEY=your_openweather_key_here
 OPENAI_API_KEY=your_openai_key_here  # Optional for AI activity suggestions
 GEMINI_API_KEY=your_gemini_key_here  # Optional for enhanced AI features
+SPOTIFY_CLIENT_ID=your_spotify_client_id  # Optional for music integration
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret  # Optional for music integration
 
-# 4. Install optional dependencies
+# 6. Install optional dependencies
 pip install streamlit  # For web interface (optional)
 
-# 5. Run application
+# 7. Run application
 python main.py
 ```
 

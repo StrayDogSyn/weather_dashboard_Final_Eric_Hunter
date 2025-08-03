@@ -2406,448 +2406,14 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             except Exception as e:
                 self.logger.error(f"Error refreshing activity suggestions: {e}")
 
-    def _create_settings_tab(self):
-        """Create settings tab."""
-        self._create_settings_tab_content()
+    # Settings tab is now managed by SettingsTabManager
+    # Removed duplicate settings methods to avoid conflicts
 
-    def _create_settings_tab_content(self):
-        """Create comprehensive settings tab."""
-        # Configure main grid
-        self.settings_tab.grid_columnconfigure(0, weight=1)
-        self.settings_tab.grid_rowconfigure(0, weight=1)
+    # _create_api_settings removed - handled by SettingsTabManager
 
-        # Create scrollable container
-        settings_scroll = ctk.CTkScrollableFrame(
-            self.settings_tab, fg_color="transparent", corner_radius=0
-        )
-        settings_scroll.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+    # _create_appearance_settings removed - handled by SettingsTabManager
 
-        # Configure scroll frame grid
-        settings_scroll.grid_columnconfigure(0, weight=1)
-
-        # Title
-        title = ctk.CTkLabel(
-            settings_scroll,
-            text="⚙️ Settings & Configuration",
-            font=(DataTerminalTheme.FONT_FAMILY, 22, "bold"),
-            text_color=DataTerminalTheme.PRIMARY,
-        )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 15))
-
-        # API Configuration Section
-        self._create_api_settings(settings_scroll)
-
-        # Appearance Settings
-        self._create_appearance_settings(settings_scroll)
-
-        # Data Management
-        self._create_data_settings(settings_scroll)
-
-        # Auto-refresh Configuration
-        self._create_auto_refresh_settings(settings_scroll)
-
-        # About Section
-        self._create_about_section(settings_scroll)
-
-    def _create_api_settings(self, parent):
-        """Create enhanced API configuration section."""
-        # Section frame
-        api_frame = ctk.CTkFrame(
-            parent,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        api_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        api_frame.grid_columnconfigure(0, weight=1)
-
-        # Section header
-        header = ctk.CTkLabel(
-            api_frame,
-            text="🔑 API Configuration",
-            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.PRIMARY,
-        )
-        header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
-
-        # API key entries with enhanced features
-        apis = [
-            ("OpenWeather API", "OPENWEATHER_API_KEY", "✅ Valid", "Last rotated: 30 days ago"),
-            ("Google Gemini API", "GEMINI_API_KEY", "✅ Valid", "Last rotated: 15 days ago"),
-            ("Google Maps API", "GOOGLE_MAPS_API_KEY", "⚠️ Expires Soon", "Expires in 7 days"),
-        ]
-
-        self.api_entries = {}
-
-        # Container for API entries
-        entries_frame = ctk.CTkFrame(api_frame, fg_color="transparent")
-        entries_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 8))
-        entries_frame.grid_columnconfigure(1, weight=1)
-
-        for i, (api_name, env_key, status, rotation_info) in enumerate(apis):
-            # Label
-            label = ctk.CTkLabel(
-                entries_frame,
-                text=api_name,
-                font=(DataTerminalTheme.FONT_FAMILY, 13),
-                width=140,
-                anchor="w",
-            )
-            label.grid(row=i, column=0, sticky="w", pady=3)
-
-            # Entry
-            entry = ctk.CTkEntry(
-                entries_frame,
-                placeholder_text="Enter API key...",
-                width=200,
-                height=32,
-                fg_color=DataTerminalTheme.BACKGROUND,
-                border_color=DataTerminalTheme.BORDER,
-                show="*",  # Hide API key
-            )
-            entry.grid(row=i, column=1, sticky="ew", padx=(8, 4), pady=3)
-
-            # Show/Hide button
-            show_btn = ctk.CTkButton(
-                entries_frame,
-                text="👁️",
-                width=32,
-                height=32,
-                fg_color=DataTerminalTheme.BACKGROUND,
-                hover_color=DataTerminalTheme.HOVER,
-                command=lambda e=entry: self._toggle_api_visibility(e),
-            )
-            show_btn.grid(row=i, column=2, padx=2, pady=3)
-
-            # Test button
-            test_btn = ctk.CTkButton(
-                entries_frame,
-                text="🧪",
-                width=32,
-                height=32,
-                fg_color=DataTerminalTheme.INFO,
-                hover_color=DataTerminalTheme.HOVER,
-                command=lambda k=env_key: self._test_api_key(k),
-            )
-            test_btn.grid(row=i, column=3, padx=2, pady=3)
-
-            # Status indicator
-            status_label = ctk.CTkLabel(
-                entries_frame, text=status, font=(DataTerminalTheme.FONT_FAMILY, 11)
-            )
-            status_label.grid(row=i, column=4, padx=4, pady=3)
-
-            self.api_entries[env_key] = (entry, status_label, test_btn)
-
-        # Usage statistics frame
-        usage_frame = ctk.CTkFrame(api_frame, fg_color=DataTerminalTheme.BACKGROUND)
-        usage_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(8, 0))
-        usage_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
-        usage_header = ctk.CTkLabel(
-            usage_frame,
-            text="📊 API Usage Statistics",
-            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
-        )
-        usage_header.grid(row=0, column=0, columnspan=3, sticky="w", padx=10, pady=(10, 5))
-
-        # Usage stats
-        self.usage_labels = {}
-        usage_stats = [
-            ("Today's Calls:", "42/1000"),
-            ("This Month:", "1,247/60,000"),
-            ("Rate Limit:", "60 calls/min"),
-        ]
-
-        for i, (label_text, value) in enumerate(usage_stats):
-            label = ctk.CTkLabel(
-                usage_frame,
-                text=label_text,
-                font=(DataTerminalTheme.FONT_FAMILY, 12),
-            )
-            label.grid(row=1, column=i, sticky="w", padx=10, pady=5)
-
-            value_label = ctk.CTkLabel(
-                usage_frame,
-                text=value,
-                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-                text_color=DataTerminalTheme.SUCCESS,
-            )
-            value_label.grid(row=2, column=i, sticky="w", padx=10, pady=(0, 10))
-
-            self.usage_labels[label_text] = value_label
-
-        # Action buttons frame
-        buttons_frame = ctk.CTkFrame(api_frame, fg_color="transparent")
-        buttons_frame.grid(row=3, column=0, sticky="ew", padx=15, pady=(8, 15))
-        buttons_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
-        # Save button
-        save_btn = ctk.CTkButton(
-            buttons_frame,
-            text="💾 Save Keys",
-            width=120,
-            height=32,
-            fg_color=DataTerminalTheme.SUCCESS,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._save_api_keys,
-        )
-        save_btn.grid(row=0, column=0, padx=4, sticky="w")
-
-        # Encrypt button
-        encrypt_btn = ctk.CTkButton(
-            buttons_frame,
-            text="🔒 Encrypt",
-            width=120,
-            height=32,
-            fg_color=DataTerminalTheme.WARNING,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._encrypt_api_keys,
-        )
-        encrypt_btn.grid(row=0, column=1, padx=4, sticky="w")
-
-        # Rotate reminder button
-        rotate_btn = ctk.CTkButton(
-            buttons_frame,
-            text="🔄 Set Rotation",
-            width=120,
-            height=32,
-            fg_color=DataTerminalTheme.INFO,
-            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
-            command=self._setup_key_rotation,
-        )
-        rotate_btn.grid(row=0, column=2, padx=4, sticky="w")
-
-    def _create_appearance_settings(self, parent):
-        """Create enhanced appearance settings section."""
-        appearance_frame = ctk.CTkFrame(
-            parent,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        appearance_frame.grid(row=2, column=0, sticky="ew", pady=(0, 8))
-        appearance_frame.grid_columnconfigure(1, weight=1)
-
-        # Header
-        header = ctk.CTkLabel(
-            appearance_frame,
-            text="🎨 Appearance",
-            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
-            text_color=DataTerminalTheme.PRIMARY,
-        )
-        header.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(15, 10))
-
-        # Theme selection
-        theme_label = ctk.CTkLabel(
-            appearance_frame,
-            text="Theme:",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            width=140,
-            anchor="w",
-        )
-        theme_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=15, pady=6)
-
-        # Theme preview grid
-        self.theme_grid = ctk.CTkFrame(appearance_frame, fg_color="transparent")
-        self.theme_grid.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))
-        self.theme_grid.grid_columnconfigure(0, weight=1)
-        self.theme_grid.grid_columnconfigure(1, weight=1)
-        self.theme_grid.grid_columnconfigure(2, weight=1)
-
-        # Create theme preview cards
-        self._create_theme_selector()
-
-        # Temperature units
-        units_label = ctk.CTkLabel(
-            appearance_frame,
-            text="Temperature Units:",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            width=140,
-            anchor="w",
-        )
-        units_label.grid(row=3, column=0, sticky="w", padx=15, pady=6)
-
-        self.units_var = ctk.StringVar(value="Celsius")
-        units_menu = ctk.CTkOptionMenu(
-            appearance_frame,
-            values=["Celsius", "Fahrenheit", "Kelvin"],
-            variable=self.units_var,
-            width=180,
-            height=30,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_units,
-        )
-        units_menu.grid(row=3, column=1, sticky="w", padx=15, pady=6)
-
-        # Date/Time format
-        datetime_label = ctk.CTkLabel(
-            appearance_frame,
-            text="Date/Time Format:",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            width=140,
-            anchor="w",
-        )
-        datetime_label.grid(row=4, column=0, sticky="w", padx=15, pady=6)
-
-        self.datetime_var = ctk.StringVar(value="MM/DD/YYYY HH:MM")
-        datetime_menu = ctk.CTkOptionMenu(
-            appearance_frame,
-            values=[
-                "MM/DD/YYYY HH:MM",
-                "DD/MM/YYYY HH:MM",
-                "YYYY-MM-DD HH:MM",
-                "DD MMM YYYY HH:MM",
-            ],
-            variable=self.datetime_var,
-            width=180,
-            height=30,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_datetime_format,
-        )
-        datetime_menu.grid(row=4, column=1, sticky="w", padx=15, pady=6)
-
-        # Language selection (preparation for i18n)
-        language_label = ctk.CTkLabel(
-            appearance_frame,
-            text="Language:",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            width=140,
-            anchor="w",
-        )
-        language_label.grid(row=5, column=0, sticky="w", padx=15, pady=6)
-
-        self.language_var = ctk.StringVar(value="English")
-        language_menu = ctk.CTkOptionMenu(
-            appearance_frame,
-            values=["English", "Spanish", "French", "German", "Chinese", "Japanese"],
-            variable=self.language_var,
-            width=180,
-            height=30,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            command=self._change_language,
-        )
-        language_menu.grid(row=5, column=1, sticky="w", padx=15, pady=6)
-
-        # Font size adjustment
-        font_label = ctk.CTkLabel(
-            appearance_frame,
-            text="Font Size:",
-            font=(DataTerminalTheme.FONT_FAMILY, 13),
-            width=140,
-            anchor="w",
-        )
-        font_label.grid(row=6, column=0, sticky="w", padx=15, pady=6)
-
-        font_frame = ctk.CTkFrame(appearance_frame, fg_color="transparent")
-        font_frame.grid(row=6, column=1, sticky="w", padx=15, pady=6)
-
-        self.font_size_var = ctk.IntVar(value=12)
-        font_slider = ctk.CTkSlider(
-            font_frame,
-            from_=10,
-            to=18,
-            number_of_steps=8,
-            variable=self.font_size_var,
-            width=120,
-            command=self._change_font_size,
-        )
-        font_slider.grid(row=0, column=0, sticky="w")
-
-        self.font_size_label = ctk.CTkLabel(
-            font_frame,
-            text="12px",
-            font=(DataTerminalTheme.FONT_FAMILY, 11),
-            width=40,
-        )
-        self.font_size_label.grid(row=0, column=1, padx=(8, 0))
-
-    def _create_theme_selector(self):
-        """Create theme preview cards for theme selection."""
-        self.theme_preview_cards = []
-
-        for i, (key, theme) in enumerate(theme_manager.THEMES.items()):
-            # Create theme preview card
-            preview = ThemePreviewCard(
-                self.theme_grid,
-                theme_data=theme,
-                theme_key=key,
-                on_select=lambda t=key: self.apply_theme(t),
-            )
-
-            # Arrange in 3 columns, 2 rows
-            row = i // 3
-            col = i % 3
-            preview.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
-
-            self.theme_preview_cards.append(preview)
-
-            # Set current theme as selected
-            if key == "matrix":  # Default theme
-                preview.set_selected(True)
-
-    def apply_theme(self, theme_name: str):
-        """Apply selected theme to the entire application with micro-interactions."""
-        try:
-            # Find and animate the selected theme card
-            for card in self.theme_preview_cards:
-                if card.theme_key == theme_name:
-                    pass
-                    # Add ripple effect to selected theme card
-                    self.micro_interactions.add_ripple_effect(card)
-                    # Success pulse for theme selection
-                    self.animation_manager.success_pulse(card)
-                    break
-
-            # Apply theme using theme manager
-            theme_manager.apply_theme(theme_name, self)
-
-            # Update theme preview cards selection with fade effects
-            for card in self.theme_preview_cards:
-                if card.theme_key == theme_name:
-                    card.set_selected(True)
-                    # Highlight selected card
-                    self.animation_manager.fade_in(card)
-                else:
-                    card.set_selected(False)
-                    # Subtle fade for unselected cards
-                    self.animation_manager.fade_out(card, duration=200)
-
-            # Update temperature chart if it exists
-            if hasattr(self, "temp_chart") and self.temp_chart:
-                theme_data = theme_manager.THEMES.get(theme_name, {})
-                self.temp_chart.update_theme(theme_data)
-
-            # Show theme change status with animation
-            theme_display_name = theme_manager.THEMES.get(theme_name, {}).get("name", theme_name)
-            if hasattr(self, "status_label"):
-                self.animation_manager.fade_in(self.status_label)
-                self.status_label.configure(text=f"🎨 Theme changed to {theme_display_name}")
-
-            logging.info(f"Applied theme: {theme_name}")
-
-        except Exception as e:
-            logging.error(f"Error applying theme {theme_name}: {e}")
-
-    def _on_theme_changed(self):
-        """Callback for when theme changes - update UI colors."""
-        try:
-            # Force update of the entire widget tree
-            self.update_idletasks()
-
-            # Update temperature chart colors if it exists
-            if hasattr(self, "temp_chart") and self.temp_chart:
-                theme_data = {
-                    "chart_color": DataTerminalTheme.PRIMARY,
-                    "chart_bg": DataTerminalTheme.BACKGROUND,
-                    "text_color": DataTerminalTheme.TEXT,
-                }
-                self.temp_chart.update_theme(theme_data)
-
-        except Exception as e:
-            logging.error(f"Error updating theme: {e}")
+    # Theme-related methods removed - handled by SettingsTabManager
 
     def _create_data_settings(self, parent):
         """Create enhanced data management section."""
@@ -4970,11 +4536,27 @@ Tech Pathways - Justice Through Code - 2025 Cohort
         )
 
     def _create_maps_tab(self):
-        """Create Maps tab with location visualization."""
-        self._create_maps_tab_content()
-
-    def _create_maps_tab_content(self):
-        """Create Maps tab content with Google Maps integration."""
+        """Create Maps tab with interactive weather maps."""
+        try:
+            from .maps import InteractiveWeatherMapsWidget
+            
+            # Create interactive maps widget
+            self.interactive_maps = InteractiveWeatherMapsWidget(
+                self.maps_tab,
+                weather_service=self.weather_service,
+                fg_color=DataTerminalTheme.BACKGROUND
+            )
+            self.interactive_maps.pack(fill="both", expand=True, padx=10, pady=10)
+            
+        except ImportError as e:
+            self.logger.error(f"Failed to import interactive maps: {e}")
+            self._create_fallback_maps_tab()
+        except Exception as e:
+            self.logger.error(f"Failed to create interactive maps: {e}")
+            self._create_fallback_maps_tab()
+    
+    def _create_fallback_maps_tab(self):
+        """Create fallback maps tab if interactive maps fail."""
         # Main container
         maps_container = ctk.CTkScrollableFrame(
             self.maps_tab, fg_color=DataTerminalTheme.BACKGROUND
@@ -4993,130 +4575,35 @@ Tech Pathways - Justice Through Code - 2025 Cohort
 
         title_label = ctk.CTkLabel(
             header_frame,
-            text="🗺️ Weather Maps",
+            text="🗺️ Weather Maps (Fallback)",
             font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
             text_color=DataTerminalTheme.ACCENT,
         )
         title_label.pack(pady=20)
 
-        # Map controls
-        controls_frame = ctk.CTkFrame(
+        # Error message
+        error_frame = ctk.CTkFrame(
             maps_container,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.BORDER,
+            border_color=DataTerminalTheme.ERROR,
         )
-        controls_frame.pack(fill="x", pady=(0, 20))
+        error_frame.pack(fill="both", expand=True)
 
-        controls_title = ctk.CTkLabel(
-            controls_frame,
-            text="Map Controls",
-            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
-            text_color=DataTerminalTheme.TEXT,
-        )
-        controls_title.pack(pady=(15, 10))
-
-        # Map type selection
-        map_type_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        map_type_frame.pack(fill="x", padx=20, pady=10)
-
-        ctk.CTkLabel(
-            map_type_frame,
-            text="Map Type:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT,
-        ).pack(side="left", padx=(0, 10))
-
-        self.map_type_var = ctk.StringVar(value="Temperature")
-        map_type_menu = ctk.CTkOptionMenu(
-            map_type_frame,
-            variable=self.map_type_var,
-            values=["Temperature", "Precipitation", "Wind Speed", "Pressure", "Clouds"],
-            command=self._update_map_display,
-            fg_color=DataTerminalTheme.CARD_BG,
-            button_color=DataTerminalTheme.ACCENT,
-            text_color=DataTerminalTheme.TEXT,
-        )
-        map_type_menu.pack(side="left")
-
-        # Location input
-        location_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        location_frame.pack(fill="x", padx=20, pady=10)
-
-        ctk.CTkLabel(
-            location_frame,
-            text="Location:",
-            font=(DataTerminalTheme.FONT_FAMILY, 14),
-            text_color=DataTerminalTheme.TEXT,
-        ).pack(side="left", padx=(0, 10))
-
-        self.map_location_entry = ctk.CTkEntry(
-            location_frame,
-            placeholder_text="Enter city name...",
-            width=200,
-            fg_color=DataTerminalTheme.BACKGROUND,
-            text_color=DataTerminalTheme.TEXT,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        self.map_location_entry.pack(side="left", padx=(0, 10))
-
-        update_map_btn = ctk.CTkButton(
-            location_frame,
-            text="Update Map",
-            command=self._update_map_location,
-            fg_color=DataTerminalTheme.PRIMARY,
-            hover_color=DataTerminalTheme.SUCCESS,
-            text_color=DataTerminalTheme.BACKGROUND,
-        )
-        update_map_btn.pack(side="left")
-
-        # Map display area
-        map_display_frame = ctk.CTkFrame(
-            maps_container,
-            fg_color=DataTerminalTheme.CARD_BG,
-            corner_radius=12,
-            border_width=1,
-            border_color=DataTerminalTheme.BORDER,
-        )
-        map_display_frame.pack(fill="both", expand=True)
-
-        # Map placeholder (would integrate with Google Maps API)
-        self.map_display_label = ctk.CTkLabel(
-            map_display_frame,
+        error_label = ctk.CTkLabel(
+            error_frame,
             text=(
-                "🗺️\n\nWeather Map Display\n\n"
-                "Integrate with Google Maps API\nto show weather overlays"
+                "⚠️\n\nInteractive Maps Unavailable\n\n"
+                "Please ensure folium and tkinterweb are installed:\n"
+                "pip install folium tkinterweb\n\n"
+                "Restart the application after installation."
             ),
             font=(DataTerminalTheme.FONT_FAMILY, 16),
-            text_color=DataTerminalTheme.TEXT_SECONDARY,
+            text_color=DataTerminalTheme.ERROR,
             justify="center",
         )
-        self.map_display_label.pack(expand=True, pady=50)
-
-    def _update_map_display(self, map_type):
-        """Update map display based on selected type."""
-        self.map_display_label.configure(
-            text=(
-                f"🗺️\n\n{map_type} Map\n\n"
-                f"Showing {map_type.lower()} data\n"
-                f"for current location"
-            )
-        )
-
-    def _update_map_location(self):
-        """Update map location based on user input."""
-        location = self.map_location_entry.get().strip()
-        if location:
-            map_type = self.map_type_var.get()
-            self.map_display_label.configure(
-                text=f"🗺️\n\n{map_type} Map\n\nShowing {
-                    map_type.lower()} data\nfor {location}"
-            )
-        else:
-            self.map_display_label.configure(
-                text="🗺️\n\nPlease enter a location\nto display weather map"
-            )
+        error_label.pack(expand=True, pady=50)
 
     def center_window(self):
         """Center the window on screen."""
