@@ -129,12 +129,12 @@ class AnimationManager:
         if self.is_destroyed:
             return None
         try:
-            if not widget.winfo_exists():
+            if not widget or not widget.winfo_exists():
                 return None
             call_id = widget.after(delay, callback)
             self.scheduled_calls.append((widget, call_id))
             return call_id
-        except tk.TclError:
+        except (tk.TclError, AttributeError):
             return None
 
     def cleanup(self):
@@ -312,10 +312,14 @@ class AnimationManager:
 
     def success_pulse(self, widget: ctk.CTkBaseClass, duration: int = 800, intensity: float = 0.2):
         """Create success pulse effect with green tint."""
-        if not hasattr(widget, "configure"):
+        if not widget or not hasattr(widget, "configure"):
             return
 
-        original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
+        try:
+            original_color = widget.cget("fg_color") if hasattr(widget, "cget") else "#2A2A2A"
+        except (tk.TclError, AttributeError):
+            return
+            
         start_time = time.time()
         success_color = self.theme_colors.get("accent", "#00d4aa")  # Green success color
 
@@ -323,13 +327,19 @@ class AnimationManager:
             if self.is_destroyed:
                 return
 
+            try:
+                if not widget or not widget.winfo_exists():
+                    return
+            except (tk.TclError, AttributeError):
+                return
+
             current_time = time.time()
             if current_time - start_time >= duration / 1000:
                 # Restore original color and finish
                 try:
-                    if widget.winfo_exists():
+                    if widget and widget.winfo_exists():
                         self._set_widget_color(widget, original_color)
-                except tk.TclError:
+                except (tk.TclError, AttributeError):
                     pass
                 return
 
@@ -359,13 +369,18 @@ class AnimationManager:
 
                     pulsed_color = f"#{r:02x}{g:02x}{b:02x}"
 
-                    if widget.winfo_exists():
+                    if widget and widget.winfo_exists():
                         self._set_widget_color(widget, pulsed_color)
             except (ValueError, AttributeError, tk.TclError):
                 pass
 
-            # Schedule next frame
-            self.safe_after(widget.master, 50, animate)
+            # Schedule next frame - use widget itself if master is None
+            try:
+                target_widget = widget.master if widget.master else widget
+                if target_widget and target_widget.winfo_exists():
+                    self.safe_after(target_widget, 50, animate)
+            except (tk.TclError, AttributeError):
+                pass
 
         animate()
 

@@ -3694,8 +3694,8 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 
         except Exception as e:
             self.logger.error(f"Error applying theme {theme_name}: {e}")
-            if hasattr(self, 'error_manager'):
-                self.error_manager.show_error_toast(f"Failed to apply theme: {theme_name}")
+            if hasattr(self, 'error_handler'):
+                self.error_handler.show_error_toast(f"Failed to apply theme: {theme_name}")
     
     def _on_theme_changed(self, theme_data=None):
         """Handle theme change notifications from DataTerminalTheme."""
