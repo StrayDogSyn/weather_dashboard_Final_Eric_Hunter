@@ -371,13 +371,13 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_weather_tab_content(self):
         """Create enhanced weather tab with proper layout."""
         # Configure grid for 3-column layout with better proportions and proper spacing
-        self.weather_tab.grid_columnconfigure(0, weight=1, minsize=350)  # Current weather
-        self.weather_tab.grid_columnconfigure(1, weight=2, minsize=500)  # Forecast chart
-        self.weather_tab.grid_columnconfigure(2, weight=1, minsize=300)  # Additional metrics
+        self.weather_tab.grid_columnconfigure(0, weight=1, minsize=380)  # Current weather
+        self.weather_tab.grid_columnconfigure(1, weight=2, minsize=520)  # Forecast chart
+        self.weather_tab.grid_columnconfigure(2, weight=1, minsize=320)  # Additional metrics
         self.weather_tab.grid_rowconfigure(0, weight=1)
         
         # Add uniform padding to prevent visual artifacts
-        self.weather_tab.configure(corner_radius=0)
+        self.weather_tab.configure(corner_radius=0, fg_color=DataTerminalTheme.BACKGROUND)
 
         # Left column - Current weather card with glassmorphic styling
         self.weather_card = ctk.CTkFrame(
@@ -526,24 +526,58 @@ class ProfessionalWeatherDashboard(ctk.CTk):
             border_width=1,
             border_color=DataTerminalTheme.BORDER,
         )
-        forecast_container.grid(row=0, column=1, sticky="nsew", padx=8, pady=15)
+        forecast_container.grid(row=0, column=1, sticky="nsew", padx=10, pady=15)
+        
+        # Configure internal layout
+        forecast_container.grid_columnconfigure(0, weight=1)
+        forecast_container.grid_rowconfigure(0, weight=0)  # Title
+        forecast_container.grid_rowconfigure(1, weight=1)  # Chart
+        forecast_container.grid_rowconfigure(2, weight=0)  # Forecast cards
 
-        # Title
+        # Title with better styling
+        title_frame = ctk.CTkFrame(forecast_container, fg_color="transparent")
+        title_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        
         forecast_title = ctk.CTkLabel(
-            forecast_container,
+            title_frame,
             text="📊 Temperature Forecast",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
             text_color=DataTerminalTheme.PRIMARY,
         )
-        forecast_title.pack(pady=(15, 10))
+        forecast_title.pack(side="left")
+        
+        # Chart refresh button
+        refresh_btn = ctk.CTkButton(
+            title_frame,
+            text="🔄",
+            width=30,
+            height=30,
+            font=(DataTerminalTheme.FONT_FAMILY, 14),
+            fg_color=DataTerminalTheme.CARD_BG,
+            hover_color=DataTerminalTheme.HOVER,
+            command=self._refresh_chart_data
+        )
+        refresh_btn.pack(side="right")
 
+        # Chart container with proper padding
+        chart_frame = ctk.CTkFrame(
+            forecast_container,
+            fg_color=DataTerminalTheme.BACKGROUND,
+            corner_radius=8,
+            border_width=1,
+            border_color=DataTerminalTheme.BORDER
+        )
+        chart_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 15))
+        
         # Import and create chart
         from src.ui.components.simple_temperature_chart import SimpleTemperatureChart
 
         self.temp_chart = SimpleTemperatureChart(
-            forecast_container, fg_color=DataTerminalTheme.CARD_BG
+            chart_frame, 
+            fg_color=DataTerminalTheme.BACKGROUND,
+            corner_radius=6
         )
-        self.temp_chart.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        self.temp_chart.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Add 5-day forecast cards below the chart
         self._create_forecast_cards(forecast_container)
@@ -554,11 +588,12 @@ class ProfessionalWeatherDashboard(ctk.CTk):
     def _create_forecast_cards(self, parent):
         """Create 5-day forecast cards using enhanced ForecastDayCard component."""
         forecast_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        forecast_frame.pack(fill="x", padx=15, pady=(0, 15))
+        forecast_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
 
         # Configure grid for equal distribution
         for i in range(5):
             forecast_frame.grid_columnconfigure(i, weight=1)
+        forecast_frame.grid_rowconfigure(0, weight=1)
 
         # Store forecast cards for later updates
         self.forecast_cards = []
@@ -584,12 +619,28 @@ class ProfessionalWeatherDashboard(ctk.CTk):
                 on_click=self._on_forecast_card_click,
             )
 
-            day_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
+            day_card.grid(row=0, column=i, padx=4, pady=5, sticky="nsew")
             self.forecast_cards.append(day_card)
 
             # Add staggered animation
             day_card.animate_in(delay=i * 100)
     
+    def _refresh_chart_data(self):
+        """Refresh chart data with latest weather information."""
+        try:
+            if hasattr(self, 'temp_chart') and hasattr(self, 'current_weather_data'):
+                # Update chart with current weather data
+                self._update_temperature_chart(self.current_weather_data)
+                
+                # Show brief success message
+                if hasattr(self, 'status_message_manager'):
+                    self.status_message_manager.show_success("Chart refreshed", duration=1500)
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to refresh chart data: {e}")
+            if hasattr(self, 'status_message_manager'):
+                self.status_message_manager.show_error("Failed to refresh chart")
+
     def _on_forecast_card_click(self, card):
         """Handle forecast card click to show detailed forecast popup."""
         try:
@@ -3766,32 +3817,16 @@ class ProfessionalWeatherDashboard(ctk.CTk):
         )
 
     def _create_maps_tab(self):
-        """Create Maps tab with interactive weather maps."""
-        try:
-            from .maps import InteractiveWeatherMapsWidget
-            
-            # Create interactive maps widget
-            self.interactive_maps = InteractiveWeatherMapsWidget(
-                self.maps_tab,
-                weather_service=self.weather_service,
-                fg_color=DataTerminalTheme.BACKGROUND
-            )
-            self.interactive_maps.pack(fill="both", expand=True, padx=10, pady=10)
-            
-        except ImportError as e:
-            self.logger.error(f"Failed to import interactive maps: {e}")
-            self._create_fallback_maps_tab()
-        except Exception as e:
-            self.logger.error(f"Failed to create interactive maps: {e}")
-            self._create_fallback_maps_tab()
+        """Create Maps tab with enhanced weather visualization."""
+        self._create_enhanced_maps_tab()
     
-    def _create_fallback_maps_tab(self):
-        """Create fallback maps tab if interactive maps fail."""
+    def _create_enhanced_maps_tab(self):
+        """Create enhanced maps tab with weather visualization."""
         # Main container
         maps_container = ctk.CTkScrollableFrame(
             self.maps_tab, fg_color=DataTerminalTheme.BACKGROUND
         )
-        maps_container.pack(fill="both", expand=True, padx=20, pady=20)
+        maps_container.pack(fill="both", expand=True, padx=15, pady=15)
 
         # Header
         header_frame = ctk.CTkFrame(
@@ -3805,35 +3840,304 @@ class ProfessionalWeatherDashboard(ctk.CTk):
 
         title_label = ctk.CTkLabel(
             header_frame,
-            text="🗺️ Weather Maps (Fallback)",
+            text="🗺️ Weather Maps & Radar",
             font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
             text_color=DataTerminalTheme.ACCENT,
         )
         title_label.pack(pady=20)
 
-        # Error message
-        error_frame = ctk.CTkFrame(
-            maps_container,
+        # Create two-column layout
+        content_frame = ctk.CTkFrame(maps_container, fg_color="transparent")
+        content_frame.pack(fill="both", expand=True)
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_columnconfigure(1, weight=1)
+        content_frame.grid_rowconfigure(0, weight=1)
+
+        # Left column - Weather layers and controls
+        self._create_weather_layers_panel(content_frame)
+        
+        # Right column - Regional weather overview
+        self._create_regional_weather_panel(content_frame)
+
+    def _create_weather_layers_panel(self, parent):
+        """Create weather layers control panel."""
+        layers_frame = ctk.CTkFrame(
+            parent,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
             border_width=1,
-            border_color=DataTerminalTheme.ERROR,
+            border_color=DataTerminalTheme.BORDER,
         )
-        error_frame.pack(fill="both", expand=True)
+        layers_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=0)
 
-        error_label = ctk.CTkLabel(
-            error_frame,
-            text=(
-                "⚠️\n\nInteractive Maps Unavailable\n\n"
-                "Please ensure folium and tkinterweb are installed:\n"
-                "pip install folium tkinterweb\n\n"
-                "Restart the application after installation."
-            ),
-            font=(DataTerminalTheme.FONT_FAMILY, 16),
-            text_color=DataTerminalTheme.ERROR,
-            justify="center",
+        # Title
+        title = ctk.CTkLabel(
+            layers_frame,
+            text="🌡️ Weather Layers",
+            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
+            text_color=DataTerminalTheme.ACCENT
         )
-        error_label.pack(expand=True, pady=50)
+        title.pack(pady=(20, 15))
+
+        # Location input
+        location_frame = ctk.CTkFrame(layers_frame, fg_color="transparent")
+        location_frame.pack(fill="x", padx=20, pady=(0, 20))
+        
+        ctk.CTkLabel(
+            location_frame,
+            text="📍 Location:",
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            text_color=DataTerminalTheme.TEXT
+        ).pack(anchor="w", pady=(0, 5))
+        
+        self.maps_location_entry = ctk.CTkEntry(
+            location_frame,
+            placeholder_text="Enter city name...",
+            height=35,
+            font=(DataTerminalTheme.FONT_FAMILY, 12)
+        )
+        self.maps_location_entry.pack(fill="x", pady=(0, 10))
+        
+        search_btn = ctk.CTkButton(
+            location_frame,
+            text="🔍 Search Weather",
+            command=self._search_maps_location,
+            height=35,
+            fg_color=DataTerminalTheme.PRIMARY,
+            hover_color=DataTerminalTheme.SUCCESS
+        )
+        search_btn.pack(fill="x")
+
+        # Weather layers
+        layers_list_frame = ctk.CTkFrame(layers_frame, fg_color="transparent")
+        layers_list_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        ctk.CTkLabel(
+            layers_list_frame,
+            text="Available Layers:",
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            text_color=DataTerminalTheme.TEXT
+        ).pack(anchor="w", pady=(0, 10))
+
+        # Layer options
+        layers = [
+            ("🌡️ Temperature", "Real-time temperature data"),
+            ("🌧️ Precipitation", "Rain and snow radar"),
+            ("💨 Wind Speed", "Wind patterns and gusts"),
+            ("☁️ Cloud Cover", "Satellite cloud imagery"),
+            ("📊 Pressure", "Atmospheric pressure maps"),
+            ("⚡ Weather Alerts", "Severe weather warnings")
+        ]
+        
+        for layer_name, description in layers:
+            layer_card = ctk.CTkFrame(
+                layers_list_frame,
+                fg_color=DataTerminalTheme.BACKGROUND,
+                corner_radius=8,
+                border_width=1,
+                border_color=DataTerminalTheme.BORDER
+            )
+            layer_card.pack(fill="x", pady=5)
+            
+            ctk.CTkLabel(
+                layer_card,
+                text=layer_name,
+                font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+                text_color=DataTerminalTheme.TEXT
+            ).pack(anchor="w", padx=15, pady=(10, 2))
+            
+            ctk.CTkLabel(
+                layer_card,
+                text=description,
+                font=(DataTerminalTheme.FONT_FAMILY, 10),
+                text_color=DataTerminalTheme.TEXT_SECONDARY
+            ).pack(anchor="w", padx=15, pady=(0, 10))
+
+    def _create_regional_weather_panel(self, parent):
+        """Create regional weather overview panel."""
+        regional_frame = ctk.CTkFrame(
+            parent,
+            fg_color=DataTerminalTheme.CARD_BG,
+            corner_radius=12,
+            border_width=1,
+            border_color=DataTerminalTheme.BORDER,
+        )
+        regional_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0), pady=0)
+
+        # Title
+        title = ctk.CTkLabel(
+            regional_frame,
+            text="🌍 Regional Weather Overview",
+            font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
+            text_color=DataTerminalTheme.ACCENT
+        )
+        title.pack(pady=(20, 15))
+
+        # Weather map visualization area
+        map_display_frame = ctk.CTkFrame(
+            regional_frame,
+            fg_color=DataTerminalTheme.BACKGROUND,
+            corner_radius=8,
+            border_width=1,
+            border_color=DataTerminalTheme.BORDER
+        )
+        map_display_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+
+        # Map placeholder with weather info
+        self._create_weather_map_display(map_display_frame)
+
+    def _create_weather_map_display(self, parent):
+        """Create weather map display with current conditions."""
+        # Current location weather
+        current_weather_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        current_weather_frame.pack(fill="x", padx=15, pady=15)
+        
+        ctk.CTkLabel(
+            current_weather_frame,
+            text="📍 Current Location Weather",
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.ACCENT
+        ).pack(pady=(0, 10))
+        
+        # Weather grid
+        weather_grid = ctk.CTkFrame(current_weather_frame, fg_color="transparent")
+        weather_grid.pack(fill="x")
+        weather_grid.grid_columnconfigure((0, 1), weight=1)
+        
+        # Temperature card
+        temp_card = ctk.CTkFrame(
+            weather_grid,
+            fg_color=DataTerminalTheme.PRIMARY,
+            corner_radius=8
+        )
+        temp_card.grid(row=0, column=0, sticky="ew", padx=(0, 5), pady=5)
+        
+        ctk.CTkLabel(
+            temp_card,
+            text="🌡️ Temperature",
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color="white"
+        ).pack(pady=(10, 2))
+        
+        self.maps_temp_label = ctk.CTkLabel(
+            temp_card,
+            text="--°C",
+            font=(DataTerminalTheme.FONT_FAMILY, 20, "bold"),
+            text_color="white"
+        )
+        self.maps_temp_label.pack(pady=(0, 10))
+        
+        # Conditions card
+        conditions_card = ctk.CTkFrame(
+            weather_grid,
+            fg_color=DataTerminalTheme.SUCCESS,
+            corner_radius=8
+        )
+        conditions_card.grid(row=0, column=1, sticky="ew", padx=(5, 0), pady=5)
+        
+        ctk.CTkLabel(
+            conditions_card,
+            text="☁️ Conditions",
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
+            text_color="white"
+        ).pack(pady=(10, 2))
+        
+        self.maps_condition_label = ctk.CTkLabel(
+            conditions_card,
+            text="--",
+            font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
+            text_color="white"
+        )
+        self.maps_condition_label.pack(pady=(0, 10))
+        
+        # Radar simulation
+        radar_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        radar_frame.pack(fill="both", expand=True, padx=15, pady=(10, 15))
+        
+        ctk.CTkLabel(
+            radar_frame,
+            text="📡 Weather Radar Simulation",
+            font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
+            text_color=DataTerminalTheme.ACCENT
+        ).pack(pady=(0, 10))
+        
+        # Radar display
+        radar_display = ctk.CTkFrame(
+            radar_frame,
+            fg_color=DataTerminalTheme.BACKGROUND,
+            corner_radius=8,
+            border_width=2,
+            border_color=DataTerminalTheme.PRIMARY
+        )
+        radar_display.pack(fill="both", expand=True)
+        
+        # Radar content
+        self._create_radar_simulation(radar_display)
+
+    def _create_radar_simulation(self, parent):
+        """Create weather radar simulation."""
+        radar_content = ctk.CTkFrame(parent, fg_color="transparent")
+        radar_content.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Radar circles (concentric)
+        radar_circles = ctk.CTkFrame(
+            radar_content,
+            fg_color="#001122",
+            corner_radius=100,
+            width=200,
+            height=200
+        )
+        radar_circles.pack(expand=True)
+        
+        # Center dot
+        center_dot = ctk.CTkFrame(
+            radar_circles,
+            fg_color=DataTerminalTheme.PRIMARY,
+            corner_radius=5,
+            width=10,
+            height=10
+        )
+        center_dot.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Radar info
+        info_frame = ctk.CTkFrame(radar_content, fg_color="transparent")
+        info_frame.pack(fill="x", pady=(10, 0))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text="🎯 Radar Range: 100km | 🔄 Last Update: Now",
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=DataTerminalTheme.TEXT_SECONDARY
+        ).pack()
+
+    def _search_maps_location(self):
+        """Search for weather in maps location."""
+        location = self.maps_location_entry.get().strip()
+        if location:
+            # Update the main weather display with this location
+            self.location_entry.delete(0, 'end')
+            self.location_entry.insert(0, location)
+            self._search_weather()
+            
+            # Update maps display
+            self._update_maps_weather_display()
+    
+    def _update_maps_weather_display(self):
+        """Update the maps weather display with current weather data."""
+        try:
+            if hasattr(self, 'current_weather_data') and self.current_weather_data:
+                # Update temperature
+                temp = self.current_weather_data.temperature
+                unit = "°C" if self.config_service.get_temperature_unit() == "celsius" else "°F"
+                if self.config_service.get_temperature_unit() == "fahrenheit":
+                    temp = (temp * 9/5) + 32
+                self.maps_temp_label.configure(text=f"{temp:.1f}{unit}")
+                
+                # Update conditions
+                condition = self.current_weather_data.condition
+                self.maps_condition_label.configure(text=condition.title())
+        except Exception as e:
+            self.logger.error(f"Error updating maps weather display: {e}")
 
     def center_window(self):
         """Center the window on screen."""
