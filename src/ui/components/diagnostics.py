@@ -21,7 +21,6 @@ from enum import Enum
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Callable, Dict, List
 
-
 class LogLevel(Enum):
     """Log levels for user-friendly display."""
 
@@ -30,7 +29,6 @@ class LogLevel(Enum):
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
-
 
 @dataclass
 class ErrorReport:
@@ -45,7 +43,6 @@ class ErrorReport:
     steps_to_reproduce: str = ""
     user_email: str = ""
     logs: List[str] = None
-
 
 class UserFriendlyLogger:
     """Logger that provides user-friendly error messages."""
@@ -105,7 +102,6 @@ class UserFriendlyLogger:
         )
 
         return user_message
-
 
 class NetworkDiagnostics:
     """Network diagnostics and testing tools."""
@@ -225,7 +221,6 @@ class NetworkDiagnostics:
             info["local_ip"] = "unknown"
 
         return info
-
 
 class BugReportDialog:
     """Dialog for collecting bug reports from users."""
@@ -406,7 +401,6 @@ System Information:
         y = parent_y + (parent_height - dialog_height) // 2
 
         self.dialog.geometry(f"+{x}+{y}")
-
 
 class DiagnosticsManager:
     """Main diagnostics and error handling manager."""
@@ -603,4 +597,5 @@ class DiagnosticsManager:
             )
         except Exception:
             # Silently ignore if logging fails
+
             pass

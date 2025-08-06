@@ -3,9 +3,9 @@
 Reusable component for displaying weather metrics like humidity, wind, pressure, etc.
 """
 
-import customtkinter as ctk
 
 from src.ui.theme import DataTerminalTheme
+import customtkinter as ctk
 
 
 class MetricsDisplay(ctk.CTkFrame):

@@ -4,14 +4,13 @@ import csv
 import json
 import logging
 import threading
-import tkinter as tk
 from datetime import datetime
-from tkinter import filedialog, messagebox
 from typing import Any, Callable, Dict, List
-
+import tkinter as tk
 import customtkinter as ctk
 
-from ...services.enhanced_weather_service import EnhancedWeatherService
+
+from ...services.weather import EnhancedWeatherService
 from ...services.github_team_service import GitHubTeamService
 from ..theme_manager import ThemeManager
 from .error_handler import ErrorHandler
@@ -256,6 +255,9 @@ class CityComparisonPanel(ctk.CTkFrame):
         # Weather similarity tracking
         self.similarity_threshold = 0.8
 
+        # Track scheduled after() calls to prevent TclError
+        self.scheduled_calls = set()
+
         self._setup_ui()
         self._apply_theme()
 
@@ -264,6 +266,9 @@ class CityComparisonPanel(ctk.CTkFrame):
 
         # Start auto-refresh timer
         self._start_auto_refresh()
+        
+        # Initialize with fallback data until real team data is loaded
+        self._create_fallback_team_data()
 
     def _setup_ui(self):
         """Setup the main UI."""
@@ -290,6 +295,40 @@ class CityComparisonPanel(ctk.CTkFrame):
             team_controls, text="Team Collaboration", font=("JetBrains Mono", 16, "bold")
         )
         team_label.pack(anchor="w", pady=(0, 10))
+
+        # Team status indicator
+        team_status_frame = ctk.CTkFrame(team_controls, fg_color="transparent")
+        team_status_frame.pack(fill="x", pady=(0, 10))
+        
+        self.team_status_indicator = ctk.CTkFrame(team_status_frame, corner_radius=8, height=40)
+        self.team_status_indicator.pack(fill="x")
+        
+        # Connection status with animated indicator
+        self.connection_status_label = ctk.CTkLabel(
+            self.team_status_indicator,
+            text="🔴 Disconnected",
+            font=("JetBrains Mono", 12, "bold"),
+            text_color="#ff6b6b"
+        )
+        self.connection_status_label.pack(side="left", padx=15, pady=8)
+        
+        # Team member count
+        self.team_count_label = ctk.CTkLabel(
+            self.team_status_indicator,
+            text="👥 0 members",
+            font=("JetBrains Mono", 10),
+            text_color="#888888"
+        )
+        self.team_count_label.pack(side="left", padx=(10, 0), pady=8)
+        
+        # Data freshness indicator
+        self.data_freshness_label = ctk.CTkLabel(
+            self.team_status_indicator,
+            text="📊 No data",
+            font=("JetBrains Mono", 10),
+            text_color="#888888"
+        )
+        self.data_freshness_label.pack(side="right", padx=15, pady=8)
 
         # Team buttons
         team_buttons = ctk.CTkFrame(team_controls, fg_color="transparent")
@@ -488,7 +527,7 @@ class CityComparisonPanel(ctk.CTkFrame):
         self.export_btn = ctk.CTkButton(
             control_buttons_frame,
             text="📊 Export Data",
-            command=self._export_comparison_data,
+            command=lambda: self._export_comparison_data(""),
             font=("JetBrains Mono", 12, "bold"),
             width=120,
         )
@@ -586,22 +625,35 @@ class CityComparisonPanel(ctk.CTkFrame):
         """Sync team data from GitHub with enhanced validation and error handling."""
         try:
             self.sync_btn.configure(text="🔄 Syncing...", state="disabled")
+            self._update_team_status_indicators("syncing", 0)
             self.update()
 
             # Fetch team cities in background thread
             def fetch_data():
                 try:
                     team_cities = self.github_service.force_refresh()
-                    self.after(0, lambda: self._process_team_data(team_cities))
+                    # Direct call instead of self.after to avoid threading issues
+                    try:
+                        self._process_team_data(team_cities)
+                    except Exception as process_error:
+                        logger.error(f"Error processing team data: {process_error}")
+                        # Fall back to demo data if processing fails
+                        self._create_fallback_team_data()
                 except Exception as e:
                     error_msg = str(e)
-                    self.after(0, lambda: self._handle_team_sync_error(error_msg))
+                    logger.error(f"Team sync failed: {error_msg}")
+                    # Fall back to demo data if sync fails
+                    try:
+                        self._create_fallback_team_data()
+                    except Exception as fallback_error:
+                        logger.error(f"Error creating fallback data: {fallback_error}")
+                        self._handle_team_sync_error(error_msg)
 
             threading.Thread(target=fetch_data, daemon=True).start()
 
         except Exception as e:
             logger.error(f"Failed to start team data sync: {e}")
-            self._handle_team_sync_error(str(e))
+            self._create_fallback_team_data()
 
     def _process_team_data(self, team_cities):
         """Process and validate team data."""
@@ -642,6 +694,9 @@ class CityComparisonPanel(ctk.CTkFrame):
                     self.last_team_sync = datetime.now()
                     sync_time_str = self.last_team_sync.strftime("%H:%M:%S")
                     self.last_sync_label.configure(text=f"Last sync: {sync_time_str}")
+                    
+                    # Update status indicators for successful sync
+                    self._update_team_status_indicators("connected", len(validated_cities), 0)
 
                     # Add to activity feed
                     self._add_activity_item(
@@ -706,25 +761,169 @@ class CityComparisonPanel(ctk.CTkFrame):
                 validated_cities.append(validated_city)
 
             except Exception as e:
-                logger.warning(f"Error validating team city data: {e}")
+                logger.warning(f"Skipping invalid team city data: {e}")
                 continue
 
         return validated_cities
 
+    def _create_fallback_team_data(self):
+        """Create fallback team data for demonstration when no real data is available."""
+        fallback_cities = [
+            {
+                "city_name": "New York",
+                "member_name": "Alex Chen",
+                "last_updated": datetime.now().isoformat(),
+                "weather_data": {
+                    "temperature": 22,
+                    "description": "Partly cloudy",
+                    "humidity": 65,
+                    "wind_speed": 12,
+                    "pressure": 1013,
+                    "feels_like": 24
+                }
+            },
+            {
+                "city_name": "London",
+                "member_name": "Sarah Johnson",
+                "last_updated": datetime.now().isoformat(),
+                "weather_data": {
+                    "temperature": 15,
+                    "description": "Light rain",
+                    "humidity": 78,
+                    "wind_speed": 8,
+                    "pressure": 1008,
+                    "feels_like": 13
+                }
+            },
+            {
+                "city_name": "Tokyo",
+                "member_name": "Hiroshi Tanaka",
+                "last_updated": datetime.now().isoformat(),
+                "weather_data": {
+                    "temperature": 28,
+                    "description": "Sunny",
+                    "humidity": 55,
+                    "wind_speed": 6,
+                    "pressure": 1020,
+                    "feels_like": 30
+                }
+            },
+            {
+                "city_name": "Sydney",
+                "member_name": "Emma Wilson",
+                "last_updated": datetime.now().isoformat(),
+                "weather_data": {
+                    "temperature": 19,
+                    "description": "Overcast",
+                    "humidity": 72,
+                    "wind_speed": 14,
+                    "pressure": 1015,
+                    "feels_like": 17
+                }
+            }
+        ]
+        
+        # Store fallback data
+        self.team_cities_data = {}
+        city_names = []
+        
+        for city_data in fallback_cities:
+            city_name = city_data["city_name"]
+            city_names.append(city_name)
+            self.team_cities_data[city_name] = [city_data]
+        
+        # Update dropdowns with fallback data
+        dropdown_values = ["Select a city..."] + city_names
+        for dropdown in self.city_dropdowns:
+            dropdown.configure(values=dropdown_values)
+            dropdown.set("Select a city...")
+        
+        # Update status indicators
+        self._update_team_status_indicators("fallback", len(fallback_cities))
+        
+        # Update last sync time
+        self.last_team_sync = datetime.now()
+        self.last_sync_label.configure(text="Last sync: Using fallback data")
+        
+        # Add to activity feed
+        self._add_activity_item("Loaded fallback team data for demonstration")
+        
+        logger.info("Loaded fallback team data with 4 demo cities")
+
+    def _update_team_status_indicators(self, status_type="disconnected", member_count=0, data_age_minutes=0):
+        """Update the visual team status indicators."""
+        try:
+            if status_type == "connected":
+                self.connection_status_label.configure(
+                    text="🟢 Connected",
+                    text_color="#4CAF50"
+                )
+            elif status_type == "fallback":
+                self.connection_status_label.configure(
+                    text="🟡 Demo Mode",
+                    text_color="#FFC107"
+                )
+            elif status_type == "syncing":
+                self.connection_status_label.configure(
+                    text="🔄 Syncing...",
+                    text_color="#2196F3"
+                )
+            else:  # disconnected
+                self.connection_status_label.configure(
+                    text="🔴 Disconnected",
+                    text_color="#ff6b6b"
+                )
+            
+            # Update member count
+            self.team_count_label.configure(
+                text=f"👥 {member_count} members"
+            )
+            
+            # Update data freshness
+            if status_type == "fallback":
+                self.data_freshness_label.configure(
+                    text="📊 Demo data",
+                    text_color="#FFC107"
+                )
+            elif data_age_minutes == 0:
+                self.data_freshness_label.configure(
+                    text="📊 Fresh data",
+                    text_color="#4CAF50"
+                )
+            elif data_age_minutes < 30:
+                self.data_freshness_label.configure(
+                    text=f"📊 {data_age_minutes}m old",
+                    text_color="#4CAF50"
+                )
+            elif data_age_minutes < 120:
+                self.data_freshness_label.configure(
+                    text=f"📊 {data_age_minutes}m old",
+                    text_color="#FFC107"
+                )
+            else:
+                hours = data_age_minutes // 60
+                self.data_freshness_label.configure(
+                    text=f"📊 {hours}h old",
+                    text_color="#ff6b6b"
+                )
+                
+        except Exception as e:
+            logger.error(f"Error updating team status indicators: {e}")
+
     def _handle_no_valid_data(self):
         """Handle case when no valid team data is available."""
         logger.warning("No valid team cities data available")
-        for dropdown in self.city_dropdowns:
-            dropdown.configure(values=["No team data available"])
-            dropdown.set("No team data available")
-
-        self.last_sync_label.configure(text="Last sync: No data")
-        self._add_activity_item("Sync completed - no valid team data found")
+        
+        # Use fallback data instead of showing error
+        self._create_fallback_team_data()
 
     def _handle_team_sync_error(self, error_message: str):
         """Handle team sync errors with user feedback."""
         logger.error(f"Team sync error: {error_message}")
 
+        # Update status indicators
+        self._update_team_status_indicators("disconnected", 0)
+        
         # Update UI to show error
         for dropdown in self.city_dropdowns:
             dropdown.configure(values=["Error loading data"])
@@ -841,7 +1040,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                             share_window.update()
 
                             # Simulate API call delay
-                            self.after(
+                            self.safe_after(
                                 1000,
                                 lambda: self._complete_share(share_window, status_label, team_data),
                             )
@@ -1024,11 +1223,16 @@ class CityComparisonPanel(ctk.CTkFrame):
             logger.error(f"Error adding activity item: {e}")
 
     def _refresh_activity_feed(self, scrollable_frame):
-        """Refresh the activity feed display."""
+        """Refresh the activity feed display using safe two-phase update."""
+        # STEP 2 DEBUG: Restore UI manipulation to test tkinterweb isolation
         try:
-            # Clear existing items
+            # Phase 1: Clear existing items
             for widget in scrollable_frame.winfo_children():
                 widget.destroy()
+            
+            # CRITICAL: Force Tkinter to process all widget destructions NOW
+            # This ensures the frame is truly empty before we add new widgets
+            scrollable_frame.update_idletasks()
 
             # Repopulate with current activity feed
             if self.activity_feed:
@@ -1098,7 +1302,7 @@ class CityComparisonPanel(ctk.CTkFrame):
                     self.after_cancel(self.refresh_timer)
 
                 # Schedule next refresh
-                self.refresh_timer = self.after(delay_ms, self._auto_refresh_callback)
+                self.refresh_timer = self.safe_after(delay_ms, self._auto_refresh_callback)
 
         except Exception as e:
             logger.error(f"Error scheduling auto-refresh: {e}")
@@ -1133,13 +1337,24 @@ class CityComparisonPanel(ctk.CTkFrame):
         except Exception as e:
             logger.error(f"Error toggling auto-refresh: {e}")
 
-    def _on_sort_changed(self, value):
+    def _on_sort_changed(self, value=None):
         """Handle sorting option change."""
         try:
-            self.sort_by = value
+            if value is not None:
+                self.sort_by = value
+            else:
+                # Handle checkbox toggle for sort order
+                self.sort_ascending = self.sort_order_var.get()
+            
             self._update_comparison_display()
-            self._add_activity_item(f"Sorted cities by {value}")
-            logger.info(f"Changed sorting to: {value}")
+            
+            if value is not None:
+                self._add_activity_item(f"Sorted cities by {value}")
+                logger.info(f"Changed sorting to: {value}")
+            else:
+                order = "ascending" if self.sort_ascending else "descending"
+                self._add_activity_item(f"Changed sort order to {order}")
+                logger.info(f"Changed sort order to: {order}")
 
         except Exception as e:
             logger.error(f"Error changing sort: {e}")
@@ -2296,6 +2511,19 @@ class CityComparisonPanel(ctk.CTkFrame):
         except Exception as e:
             logger.error(f"Failed to add rankings to column: {e}")
 
+    def safe_after(self, delay_ms: int, callback):
+        """Safely schedule an after() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            call_id = self.after(delay_ms, callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            logger.error(f"Error scheduling after() call: {e}")
+            return None
+
     def update_theme(self):
         """Update theme for all components."""
         self._apply_theme()
@@ -2310,6 +2538,14 @@ class CityComparisonPanel(ctk.CTkFrame):
 
     def destroy(self):
         """Clean up when destroying the panel."""
+        # Cancel all scheduled after() calls
+        for call_id in self.scheduled_calls:
+            try:
+                self.after_cancel(call_id)
+            except Exception:
+                pass  # Ignore errors if call was already cancelled
+        self.scheduled_calls.clear()
+        
         # Unregister from theme updates
         self.theme_manager.remove_observer(self.update_theme)
 

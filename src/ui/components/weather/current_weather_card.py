@@ -3,10 +3,10 @@
 Reusable component for displaying current weather information.
 """
 
-import customtkinter as ctk
 
 from src.ui.components import MicroInteractions
 from src.ui.theme import DataTerminalTheme
+import customtkinter as ctk
 
 
 class CurrentWeatherCard(ctk.CTkFrame):

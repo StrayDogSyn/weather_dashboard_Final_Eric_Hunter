@@ -1,11 +1,10 @@
 from typing import Callable, Optional
 
+from src.ui.safe_widgets import SafeCTkFrame, SafeCTkLabel, SafeCTkButton
+from src.ui.theme_manager import theme_manager
 import customtkinter as ctk
 
-from src.ui.theme_manager import theme_manager
-
-
-class ForecastDayCard(ctk.CTkFrame):
+class ForecastDayCard(SafeCTkFrame):
     """Enhanced forecast card widget for displaying daily weather information with interactive features."""
 
     def __init__(
@@ -67,17 +66,50 @@ class ForecastDayCard(ctk.CTkFrame):
         self._original_fg_color = self.cget("fg_color")
         self._animation_id = None
 
+        # Track scheduled calls for cleanup
+        self.scheduled_calls = set()
+
         self._create_widgets()
         self._setup_interactions()
 
         # Subscribe to theme changes
         theme_manager.add_observer(self._on_theme_changed)
 
+    def safe_after(self, delay_ms: int, callback, *args):
+        """Safely schedule an after() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            if args:
+                call_id = self.after(delay_ms, callback, *args)
+            else:
+                call_id = self.after(delay_ms, callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            print(f"Error scheduling after() call: {e}")
+            return None
+
+    def _cleanup_scheduled_calls(self):
+        """Cancel all scheduled calls to prevent TclError."""
+        for call_id in self.scheduled_calls.copy():
+            try:
+                self.after_cancel(call_id)
+            except Exception:
+                pass
+        self.scheduled_calls.clear()
+
+    def destroy(self):
+        """Override destroy to cleanup scheduled calls."""
+        self._cleanup_scheduled_calls()
+        super().destroy()
+
     def _create_widgets(self):
         """Create and layout the enhanced card widgets."""
         # Day label
         current_theme = theme_manager.get_current_theme()
-        self.day_label = ctk.CTkLabel(
+        self.day_label = SafeCTkLabel(
             self,
             text=self.day,
             font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
@@ -86,7 +118,7 @@ class ForecastDayCard(ctk.CTkFrame):
         self.day_label.pack(pady=(8, 2))
 
         # Date label
-        self.date_label = ctk.CTkLabel(
+        self.date_label = SafeCTkLabel(
             self,
             text=self.date,
             font=ctk.CTkFont(family="Consolas", size=10),
@@ -96,14 +128,14 @@ class ForecastDayCard(ctk.CTkFrame):
 
         # Weather icon
         icon_text = self._get_icon_emoji(self.icon)
-        self.icon_label = ctk.CTkLabel(
+        self.icon_label = SafeCTkLabel(
             self, text=icon_text, font=ctk.CTkFont(family="Consolas", size=28)
         )
         self.icon_label.pack(pady=3)
 
         # Temperature range with unit conversion
         temp_text = self._format_temperature()
-        self.temp_label = ctk.CTkLabel(
+        self.temp_label = SafeCTkLabel(
             self,
             text=temp_text,
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
@@ -114,7 +146,7 @@ class ForecastDayCard(ctk.CTkFrame):
         # Precipitation probability
         if self.precipitation > 0:
             precip_text = f"💧 {int(self.precipitation * 100)}%"
-            self.precip_label = ctk.CTkLabel(
+            self.precip_label = SafeCTkLabel(
                 self,
                 text=precip_text,
                 font=ctk.CTkFont(family="Consolas", size=9),
@@ -125,7 +157,7 @@ class ForecastDayCard(ctk.CTkFrame):
         # Wind speed indicator
         if self.wind_speed > 0:
             wind_text = f"💨 {self.wind_speed:.1f} m/s"
-            self.wind_label = ctk.CTkLabel(
+            self.wind_label = SafeCTkLabel(
                 self,
                 text=wind_text,
                 font=ctk.CTkFont(family="Consolas", size=9),
@@ -134,7 +166,7 @@ class ForecastDayCard(ctk.CTkFrame):
             self.wind_label.pack(pady=(1, 8))
         else:
             # Add padding if no wind info
-            ctk.CTkLabel(self, text="", height=8).pack()
+            SafeCTkLabel(self, text="", height=8).pack()
 
     def _get_icon_emoji(self, icon_id: str) -> str:
         """Convert icon identifier to emoji.
@@ -234,7 +266,7 @@ class ForecastDayCard(ctk.CTkFrame):
         # Quick scale effect simulation
         original_border = self.cget("border_width")
         self.configure(border_width=3)
-        self._animation_id = self.after(100, lambda: self.configure(border_width=original_border))
+        self._animation_id = self.safe_after(100, lambda: self.configure(border_width=original_border))
 
     def _lighten_color(self, color: str, factor: float) -> str:
         """Lighten a color by a given factor."""
@@ -356,17 +388,16 @@ class ForecastDayCard(ctk.CTkFrame):
         Args:
             delay: Delay in milliseconds before animation starts
         """
-        # Start invisible
-        original_fg = self.cget("fg_color")
-        self.configure(fg_color="transparent")
+        try:
+            # Simplified animation without self.after calls to avoid threading issues
+            # Just show the card with a subtle border effect
+            self.configure(border_width=2)
+            # Reset border width immediately (no delay to avoid threading issues)
+            self.configure(border_width=1)
+        except Exception as e:
+            # Silently handle any animation errors
 
-        def show_card():
-            self.configure(fg_color=original_fg)
-            # Add a subtle scale-in effect by manipulating border
-            self.configure(border_width=3)
-            self.after(200, lambda: self.configure(border_width=1))
-
-        self.after(delay, show_card)
+            pass
 
     def destroy(self):
         """Clean up resources when destroying the widget."""

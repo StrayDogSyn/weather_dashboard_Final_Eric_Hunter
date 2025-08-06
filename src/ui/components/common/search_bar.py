@@ -3,10 +3,8 @@
 Reusable search bar component for location/city search functionality.
 """
 
-import customtkinter as ctk
-
 from src.ui.theme import DataTerminalTheme
-
+import customtkinter as ctk
 
 class SearchBar(ctk.CTkFrame):
     """Reusable search bar component with enhanced functionality."""
@@ -42,8 +40,41 @@ class SearchBar(ctk.CTkFrame):
         self.animation_manager = None
         self.micro_interactions = None
 
+        # Track scheduled calls for cleanup
+        self.scheduled_calls = set()
+
         self._create_ui()
         self._setup_interactions()
+
+    def safe_after(self, delay_ms: int, callback, *args):
+        """Safely schedule an after() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            if args:
+                call_id = self.after(delay_ms, callback, *args)
+            else:
+                call_id = self.after(delay_ms, callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            print(f"Error scheduling after() call: {e}")
+            return None
+
+    def _cleanup_scheduled_calls(self):
+        """Cancel all scheduled calls to prevent TclError."""
+        for call_id in self.scheduled_calls.copy():
+            try:
+                self.after_cancel(call_id)
+            except Exception:
+                pass
+        self.scheduled_calls.clear()
+
+    def destroy(self):
+        """Override destroy to cleanup scheduled calls."""
+        self._cleanup_scheduled_calls()
+        super().destroy()
 
     def _create_ui(self):
         """Create the search bar UI components."""
@@ -55,7 +86,7 @@ class SearchBar(ctk.CTkFrame):
         self.search_entry = ctk.CTkEntry(
             search_controls,
             placeholder_text=self.placeholder,
-            width=300,
+            width=450,
             height=40,
             corner_radius=20,
             border_color=DataTerminalTheme.BORDER,
@@ -112,6 +143,7 @@ class SearchBar(ctk.CTkFrame):
 
         except (ImportError, AttributeError):
             # Enhanced interactions not available, use basic functionality
+
             pass
 
     def _handle_search(self):
@@ -152,7 +184,7 @@ class SearchBar(ctk.CTkFrame):
         self.search_entry.configure(border_color="#ff6b6b")
 
         # Reset color after 1 second
-        self.after(1000, lambda: self.search_entry.configure(border_color=original_color))
+        self.safe_after(1000, lambda: self.search_entry.configure(border_color=original_color))
 
     def handle_location_selected(self, location_result):
         """Handle location selection from enhanced search.
@@ -242,7 +274,6 @@ class SearchBar(ctk.CTkFrame):
     def hide_suggestions(self):
         """Hide search suggestions (for future enhancement)."""
         # This could be enhanced to hide the suggestions dropdown
-
 
 class EnhancedSearchBar(SearchBar):
     """Enhanced search bar with autocomplete and location services."""

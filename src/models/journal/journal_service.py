@@ -126,7 +126,6 @@ class JournalService:
         self.current_entry = entry
         self.unsaved_changes = False
         self._start_auto_save_timer()
-        self.logger.debug(f"Started editing session for entry: {entry.id}")
 
     def end_editing_session(self, save_changes: bool = True):
         """End editing session and optionally save changes."""
@@ -137,7 +136,6 @@ class JournalService:
             self.unsaved_changes = False
 
         self.current_entry = None
-        self.logger.debug("Ended editing session")
 
     def mark_unsaved_changes(self):
         """Mark that there are unsaved changes in current session."""
@@ -172,7 +170,6 @@ class JournalService:
                     except Exception as e:
                         self.logger.warning(f"Auto-save callback failed: {e}")
 
-                self.logger.debug(f"Auto-saved entry: {self.current_entry.id}")
 
                 # Schedule next auto-save if still editing
                 if self.current_entry:

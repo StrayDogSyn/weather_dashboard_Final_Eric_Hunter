@@ -3,8 +3,9 @@
 import logging
 from datetime import datetime, timedelta
 
-import customtkinter as ctk
 
+from src.ui.safe_widgets import SafeCTkFrame, SafeCTkLabel, SafeCTkButton
+from src.utils.error_wrapper import ensure_main_thread
 from src.ui.components.forecast_day_card import ForecastDayCard
 from src.ui.theme import DataTerminalTheme
 
@@ -57,7 +58,7 @@ class WeatherTabManager:
 
     def _create_current_weather_card(self):
         """Create the current weather card."""
-        self.weather_card = ctk.CTkFrame(
+        self.weather_card = SafeCTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
@@ -69,7 +70,7 @@ class WeatherTabManager:
         )
 
         # Weather icon and city
-        self.city_label = ctk.CTkLabel(
+        self.city_label = SafeCTkLabel(
             self.weather_card,
             text="Loading...",
             font=(DataTerminalTheme.FONT_FAMILY, 24, "bold"),
@@ -78,7 +79,7 @@ class WeatherTabManager:
         self.city_label.pack(pady=(25, 8))
 
         # Large temperature display
-        self.temp_label = ctk.CTkLabel(
+        self.temp_label = SafeCTkLabel(
             self.weather_card,
             text="--°C",
             font=(DataTerminalTheme.FONT_FAMILY, 60, "bold"),
@@ -87,7 +88,7 @@ class WeatherTabManager:
         self.temp_label.pack(pady=15)
 
         # Weather condition with icon
-        self.condition_label = ctk.CTkLabel(
+        self.condition_label = SafeCTkLabel(
             self.weather_card,
             text="--",
             font=(DataTerminalTheme.FONT_FAMILY, 16),
@@ -117,7 +118,7 @@ class WeatherTabManager:
         ]
 
         for i, (icon, name, value) in enumerate(metrics):
-            metric_card = ctk.CTkFrame(
+            metric_card = SafeCTkFrame(
                 metrics_frame,
                 fg_color=DataTerminalTheme.BACKGROUND,
                 corner_radius=4,
@@ -127,15 +128,15 @@ class WeatherTabManager:
             metric_card.pack(pady=1, fill="x")
 
             # Icon and name
-            header_frame = ctk.CTkFrame(metric_card, fg_color="transparent")
+            header_frame = SafeCTkFrame(metric_card, fg_color="transparent")
             header_frame.pack(fill="x", padx=8, pady=(4, 1))
 
-            icon_label = ctk.CTkLabel(
+            icon_label = SafeCTkLabel(
                 header_frame, text=icon, font=(DataTerminalTheme.FONT_FAMILY, 10)
             )
             icon_label.pack(side="left")
 
-            name_label = ctk.CTkLabel(
+            name_label = SafeCTkLabel(
                 header_frame,
                 text=name,
                 font=(DataTerminalTheme.FONT_FAMILY, 9),
@@ -144,7 +145,7 @@ class WeatherTabManager:
             name_label.pack(side="left", padx=(3, 0))
 
             # Value
-            value_label = ctk.CTkLabel(
+            value_label = SafeCTkLabel(
                 metric_card,
                 text=value,
                 font=(DataTerminalTheme.FONT_FAMILY, 11, "bold"),
@@ -157,7 +158,7 @@ class WeatherTabManager:
 
     def _create_temperature_toggle(self):
         """Create temperature unit toggle button."""
-        toggle_frame = ctk.CTkFrame(
+        toggle_frame = SafeCTkFrame(
             self.weather_card,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=6,
@@ -166,7 +167,7 @@ class WeatherTabManager:
         )
         toggle_frame.pack(fill="x", padx=15, pady=(15, 20))
 
-        toggle_label = ctk.CTkLabel(
+        toggle_label = SafeCTkLabel(
             toggle_frame,
             text="Temperature Unit:",
             font=(DataTerminalTheme.FONT_FAMILY, 11),
@@ -174,7 +175,7 @@ class WeatherTabManager:
         )
         toggle_label.pack(side="left", padx=(12, 8), pady=8)
 
-        self.temp_toggle_btn = ctk.CTkButton(
+        self.temp_toggle_btn = SafeCTkButton(
             toggle_frame,
             text="°C",
             width=55,
@@ -193,7 +194,7 @@ class WeatherTabManager:
 
     def _create_forecast_section(self):
         """Create forecast section with chart."""
-        forecast_container = ctk.CTkFrame(
+        forecast_container = SafeCTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
@@ -203,7 +204,7 @@ class WeatherTabManager:
         forecast_container.grid(row=0, column=1, sticky="nsew", padx=8, pady=15)
 
         # Title
-        forecast_title = ctk.CTkLabel(
+        forecast_title = SafeCTkLabel(
             forecast_container,
             text="📊 Temperature Forecast",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
@@ -214,6 +215,7 @@ class WeatherTabManager:
         # Import and create chart
         try:
             from src.ui.components.simple_temperature_chart import SimpleTemperatureChart
+import customtkinter as ctk
 
             self.temp_chart = SimpleTemperatureChart(
                 forecast_container, fg_color=DataTerminalTheme.CARD_BG
@@ -222,7 +224,7 @@ class WeatherTabManager:
         except ImportError as e:
             self.logger.warning(f"Could not load temperature chart: {e}")
             # Create placeholder
-            placeholder = ctk.CTkLabel(
+            placeholder = SafeCTkLabel(
                 forecast_container,
                 text="Temperature Chart\n(Chart component not available)",
                 font=(DataTerminalTheme.FONT_FAMILY, 14),
@@ -230,12 +232,12 @@ class WeatherTabManager:
             )
             placeholder.pack(fill="both", expand=True, padx=15, pady=(0, 10))
 
-        # Add 5-day forecast cards below the chart
+        # Create 5-day forecast cards below the chart
         self._create_forecast_cards(forecast_container)
 
     def _create_forecast_cards(self, parent):
         """Create 5-day forecast cards using enhanced ForecastDayCard component."""
-        forecast_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        forecast_frame = SafeCTkFrame(parent, fg_color="transparent")
         forecast_frame.pack(fill="x", padx=15, pady=(0, 15))
 
         # Configure grid for equal distribution
@@ -274,7 +276,7 @@ class WeatherTabManager:
             except Exception as e:
                 self.logger.warning(f"Could not create forecast card {i}: {e}")
                 # Create simple placeholder card
-                placeholder_card = ctk.CTkFrame(
+                placeholder_card = SafeCTkFrame(
                     forecast_frame,
                     fg_color=DataTerminalTheme.CARD_BG,
                     corner_radius=8,
@@ -283,7 +285,7 @@ class WeatherTabManager:
                 )
                 placeholder_card.grid(row=0, column=i, padx=6, pady=3, sticky="ew")
 
-                ctk.CTkLabel(
+                SafeCTkLabel(
                     placeholder_card,
                     text=f"{day_name}\n{date_str}\n--°",
                     font=(DataTerminalTheme.FONT_FAMILY, 10),
@@ -294,7 +296,7 @@ class WeatherTabManager:
 
     def _create_additional_metrics_section(self):
         """Create additional metrics section for the third column."""
-        metrics_container = ctk.CTkFrame(
+        metrics_container = SafeCTkFrame(
             self.weather_tab,
             fg_color=DataTerminalTheme.CARD_BG,
             corner_radius=12,
@@ -304,7 +306,7 @@ class WeatherTabManager:
         metrics_container.grid(row=0, column=2, sticky="nsew", padx=(8, 15), pady=15)
 
         # Title
-        metrics_title = ctk.CTkLabel(
+        metrics_title = SafeCTkLabel(
             metrics_container,
             text="📈 Weather Details",
             font=(DataTerminalTheme.FONT_FAMILY, 16, "bold"),
@@ -323,7 +325,7 @@ class WeatherTabManager:
 
     def _create_air_quality_section(self, parent):
         """Create air quality section."""
-        air_quality_frame = ctk.CTkFrame(
+        air_quality_frame = SafeCTkFrame(
             parent,
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
@@ -332,14 +334,14 @@ class WeatherTabManager:
         )
         air_quality_frame.pack(fill="x", padx=12, pady=(0, 10))
 
-        ctk.CTkLabel(
+        SafeCTkLabel(
             air_quality_frame,
             text="🌬️ Air Quality",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             text_color=DataTerminalTheme.TEXT,
         ).pack(pady=(8, 3))
 
-        self.air_quality_label = ctk.CTkLabel(
+        self.air_quality_label = SafeCTkLabel(
             air_quality_frame,
             text="Good (AQI: 45)",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
@@ -349,7 +351,7 @@ class WeatherTabManager:
 
     def _create_sun_times_section(self, parent):
         """Create sun times section."""
-        sun_times_frame = ctk.CTkFrame(
+        sun_times_frame = SafeCTkFrame(
             parent,
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
@@ -358,14 +360,14 @@ class WeatherTabManager:
         )
         sun_times_frame.pack(fill="x", padx=12, pady=(0, 10))
 
-        ctk.CTkLabel(
+        SafeCTkLabel(
             sun_times_frame,
             text="☀️ Sun Times",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             text_color=DataTerminalTheme.TEXT,
         ).pack(pady=(8, 5))
 
-        self.sunrise_label = ctk.CTkLabel(
+        self.sunrise_label = SafeCTkLabel(
             sun_times_frame,
             text="🌅 Sunrise: 6:45 AM",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
@@ -373,7 +375,7 @@ class WeatherTabManager:
         )
         self.sunrise_label.pack(pady=(0, 2))
 
-        self.sunset_label = ctk.CTkLabel(
+        self.sunset_label = SafeCTkLabel(
             sun_times_frame,
             text="🌇 Sunset: 7:30 PM",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
@@ -383,7 +385,7 @@ class WeatherTabManager:
 
     def _create_weather_alerts_section(self, parent):
         """Create weather alerts section."""
-        alerts_frame = ctk.CTkFrame(
+        alerts_frame = SafeCTkFrame(
             parent,
             fg_color=DataTerminalTheme.BACKGROUND,
             corner_radius=8,
@@ -392,14 +394,14 @@ class WeatherTabManager:
         )
         alerts_frame.pack(fill="x", padx=12, pady=(0, 10))
 
-        ctk.CTkLabel(
+        SafeCTkLabel(
             alerts_frame,
             text="⚠️ Weather Alerts",
             font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             text_color=DataTerminalTheme.TEXT,
         ).pack(pady=(8, 5))
 
-        self.alerts_label = ctk.CTkLabel(
+        self.alerts_label = SafeCTkLabel(
             alerts_frame,
             text="No active alerts",
             font=(DataTerminalTheme.FONT_FAMILY, 10),
@@ -459,37 +461,58 @@ class WeatherTabManager:
 
     def update_weather_display(self, weather_data):
         """Update the weather display with new data."""
-        try:
-            if not weather_data:
-                return
+        # STEP 3 DEBUG: Implement thread-safe UI updates
+        
+        def _safe_update_weather():
+            try:
+                if not weather_data:
+                    return
 
-            # Update city label
-            city_name = weather_data.get("name", "Unknown")
-            self.city_label.configure(text=city_name)
+                # Update city label
+                city_name = weather_data.get("name", "Unknown")
+                self.city_label.configure(text=city_name)
 
-            # Update temperature
-            temp = weather_data.get("main", {}).get("temp", 0)
-            temp_unit = getattr(self.dashboard, "temp_unit", "C")
-            self.temp_label.configure(text=f"{temp:.0f}°{temp_unit}")
+                # Update temperature
+                temp = weather_data.get("main", {}).get("temp", 0)
+                temp_unit = getattr(self.dashboard, "temp_unit", "C")
+                self.temp_label.configure(text=f"{temp:.0f}°{temp_unit}")
 
-            # Update condition
-            condition = weather_data.get("weather", [{}])[0].get("description", "--")
-            self.condition_label.configure(text=condition.title())
+                # Update condition
+                condition = weather_data.get("weather", [{}])[0].get("description", "--")
+                self.condition_label.configure(text=condition.title())
 
-            # Update metrics
-            self._update_weather_metrics(weather_data)
+                # Update metrics
+                self._update_weather_metrics(weather_data)
 
-            # Update forecast cards if available
-            if hasattr(self.dashboard, "_update_forecast_cards"):
-                self.dashboard._update_forecast_cards(weather_data)
+                # Update forecast cards if available
+                if hasattr(self.dashboard, "_update_forecast_cards"):
+                    self.dashboard._update_forecast_cards(weather_data)
 
-            # Update temperature chart
-            if self.temp_chart and hasattr(self.temp_chart, "update_data"):
-                self.temp_chart.update_data(weather_data)
+                # Update temperature chart
+                if self.temp_chart and hasattr(self.temp_chart, "update_data"):
+                    self.temp_chart.update_data(weather_data)
 
-        except Exception as e:
-            self.logger.error(f"Error updating weather display: {e}")
+            except Exception as e:
+                self.logger.error(f"Error updating weather display: {e}")
+        
+        # Schedule UI update on main thread using safe_after_idle
+        if hasattr(self, 'weather_tab') and hasattr(self.weather_tab, 'safe_after_idle'):
+            self.weather_tab.safe_after_idle(_safe_update_weather)
+        elif hasattr(self.dashboard, 'safe_after_idle'):
+            self.dashboard.safe_after_idle(_safe_update_weather)
+        else:
+            # Fallback to regular after_idle if SafeWidget not available
+            try:
+                if hasattr(self, 'weather_tab') and self.weather_tab.winfo_exists():
+                    self.weather_tab.after_idle(_safe_update_weather)
+                elif self.dashboard.winfo_exists():
+                    self.dashboard.after_idle(_safe_update_weather)
+            except Exception as e:
+                self.logger.error(f"Failed to schedule UI update: {e}")
+                # As last resort, execute directly (not ideal but prevents data loss)
+                _safe_update_weather()
 
+    @ensure_main_thread
     def _update_weather_metrics(self, weather_data):
         """Update weather metrics display."""
         try:

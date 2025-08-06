@@ -13,13 +13,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
 class DatabaseType(Enum):
     """Supported database types."""
 
     SQLITE = "sqlite"
     MEMORY = "memory"
-
 
 class ConnectionState(Enum):
     """Database connection states."""
@@ -28,7 +26,6 @@ class ConnectionState(Enum):
     OPEN = "open"
     TRANSACTION = "transaction"
     ERROR = "error"
-
 
 @dataclass
 class DatabaseConfig:
@@ -57,7 +54,6 @@ class DatabaseConfig:
             "optimize": None,  # Run PRAGMA optimize on close
         }
 
-
 @dataclass
 class ConnectionInfo:
     """Information about a database connection."""
@@ -70,7 +66,6 @@ class ConnectionInfo:
     transaction_count: int = 0
     error_count: int = 0
     last_error: Optional[str] = None
-
 
 class IDatabaseContext(ABC):
     """Abstract database context interface."""
@@ -94,7 +89,6 @@ class IDatabaseContext(ABC):
     @abstractmethod
     async def close(self):
         """Close all connections."""
-
 
 class DatabaseContext(IDatabaseContext):
     """Concrete database context implementation."""
@@ -353,6 +347,7 @@ class DatabaseContext(IDatabaseContext):
                     try:
                         conn.rollback()
                     except Exception:
+
                         pass
 
             # Cleanup resources
@@ -482,6 +477,7 @@ class DatabaseContext(IDatabaseContext):
                 try:
                     conn.close()
                 except Exception:
+
                     pass
 
                 del self._connections[connection_id]
@@ -497,6 +493,7 @@ class DatabaseContext(IDatabaseContext):
                 try:
                     await self.rollback_transaction()
                 except Exception:
+
                     pass
 
             # Close all connections
@@ -504,6 +501,7 @@ class DatabaseContext(IDatabaseContext):
                 try:
                     conn.close()
                 except Exception:
+
                     pass
 
             # Clear all connection data
@@ -538,7 +536,6 @@ class DatabaseContext(IDatabaseContext):
                 health_status["overall_healthy"] = False
 
         return health_status
-
 
 class DatabaseContextFactory:
     """Factory for creating database contexts."""

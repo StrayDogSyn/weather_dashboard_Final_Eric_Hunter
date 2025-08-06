@@ -5,7 +5,7 @@ class LayoutStyles:
     """Centralized layout configurations."""
 
     # Main Window Layout
-    WINDOW = {"geometry": "1400x900", "min_size": (1200, 800), "title": "Weather Dashboard"}
+    WINDOW = {"geometry": "1400x900", "min_size": (1200, 800), "title": "PROJECT CODEFRONT - Advanced Weather Intelligence System v3.5"}
 
     # Grid Configurations
     MAIN_GRID = {"sticky": "nsew", "padx": 10, "pady": 10}

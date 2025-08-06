@@ -10,15 +10,14 @@ Provides advanced search functionality including:
 import json
 import os
 import threading
-import tkinter as tk
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
-
 import customtkinter as ctk
 
-from src.services.enhanced_weather_service import LocationResult
 
-from ...services.geocoding_service import GeocodingService
+from src.services.weather import LocationResult
+
+from ...services.weather.geocoding_service import GeocodingService
 
 
 class EnhancedSearchBar(ctk.CTkFrame):
@@ -54,9 +53,58 @@ class EnhancedSearchBar(ctk.CTkFrame):
         self.geolocation_permission_denied = False
         self.ip_location_fallback = None
 
+        # Track scheduled calls for cleanup
+        self.scheduled_calls = set()
+
         # Initialize UI components
         self.setup_ui()
         self.bind_events()
+
+    def safe_after(self, delay_ms: int, callback, *args):
+        """Safely schedule an after() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            if args:
+                call_id = self.after(delay_ms, callback, *args)
+            else:
+                call_id = self.after(delay_ms, callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            print(f"Error scheduling after() call: {e}")
+            return None
+            
+    def safe_after_idle(self, callback, *args):
+        """Safely schedule an after_idle() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            if args:
+                call_id = self.after_idle(callback, *args)
+            else:
+                call_id = self.after_idle(callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            print(f"Error scheduling after_idle() call: {e}")
+            return None
+
+    def _cleanup_scheduled_calls(self):
+        """Cancel all scheduled calls to prevent TclError."""
+        for call_id in self.scheduled_calls.copy():
+            try:
+                self.after_cancel(call_id)
+            except Exception:
+                pass
+        self.scheduled_calls.clear()
+
+    def destroy(self):
+        """Override destroy to cleanup scheduled calls."""
+        self._cleanup_scheduled_calls()
+        super().destroy()
 
     def setup_ui(self):
         """Setup the search bar UI components."""
@@ -195,8 +243,8 @@ class EnhancedSearchBar(ctk.CTkFrame):
 
     def on_focus_out(self, event):
         """Handle focus out to close dropdown."""
-        # Use after_idle to allow click events to process first
-        self.after_idle(self.hide_dropdown)
+        # Use safe_after_idle to allow click events to process first
+        self.safe_after_idle(self.hide_dropdown)
 
     def is_child_of_dropdown(self, widget) -> bool:
         """Check if widget is part of the dropdown."""
@@ -226,7 +274,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
         def search_task():
             try:
                 # Import custom exceptions for proper error handling
-                from src.services.enhanced_weather_service import (
+                from src.services.weather import (
                     APIKeyError,
                     NetworkError,
                     RateLimitError,
@@ -236,39 +284,39 @@ class EnhancedSearchBar(ctk.CTkFrame):
 
                 # Enhanced search with multiple format support
                 results = self.enhanced_location_search(query)
-                self.after(0, self.handle_search_results, results)
+                self.safe_after(0, self.handle_search_results, results)
 
             except RateLimitError as e:
                 print(f"Rate limit exceeded: {e}")
-                self.after(
+                self.safe_after(
                     0, self.handle_search_error, "Search rate limit exceeded. Please wait a moment."
                 )
             except APIKeyError as e:
                 print(f"API key error: {e}")
-                self.after(
+                self.safe_after(
                     0, self.handle_search_error, "API configuration error. Please check settings."
                 )
             except NetworkError as e:
                 print(f"Network error: {e}")
-                self.after(
+                self.safe_after(
                     0,
                     self.handle_search_error,
                     "Network connection error. Please check your internet.",
                 )
             except ServiceUnavailableError as e:
                 print(f"Service unavailable: {e}")
-                self.after(0, self.handle_search_error, "Search service temporarily unavailable.")
+                self.safe_after(0, self.handle_search_error, "Search service temporarily unavailable.")
             except WeatherServiceError as e:
                 print(f"Weather service error: {e}")
-                self.after(0, self.handle_search_error, "Search service error. Please try again.")
+                self.safe_after(0, self.handle_search_error, "Search service error. Please try again.")
             except Exception as e:
                 print(f"Unexpected search error: {e}")
-                self.after(
+                self.safe_after(
                     0, self.handle_search_error, "An unexpected error occurred during search."
                 )
             finally:
                 self.is_searching = False
-                self.after(0, self.hide_loading)
+                self.safe_after(0, self.hide_loading)
 
         threading.Thread(target=search_task, daemon=True).start()
 
@@ -527,7 +575,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
             spinners = ["⏳", "⌛"]
             next_spinner = spinners[(spinners.index(current_text) + 1) % len(spinners)]
             self.loading_label.configure(text=next_spinner)
-            self.after(500, self.animate_loading)
+            self.safe_after(500, self.animate_loading)
 
     def use_current_location(self):
         """Use geolocation with browser API fallback and IP-based location."""
@@ -548,12 +596,12 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 # Simulate browser geolocation request
                 # In a real web app, this would use navigator.geolocation
                 # For desktop app, we'll use IP-based location as fallback
-                self.after(0, self.try_ip_based_location)
+                self.safe_after(0, self.try_ip_based_location)
 
             except Exception as e:
                 print(f"Browser geolocation failed: {e}")
                 self.geolocation_permission_denied = True
-                self.after(0, self.try_ip_based_location)
+                self.safe_after(0, self.try_ip_based_location)
 
         threading.Thread(target=get_browser_location, daemon=True).start()
 
@@ -563,7 +611,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
         def get_ip_location():
             try:
                 # Import custom exceptions for proper error handling
-                from src.services.enhanced_weather_service import (
+                from src.services.weather import (
                     APIKeyError,
                     NetworkError,
                     RateLimitError,
@@ -575,7 +623,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
                 if location:
                     # Convert to LocationResult format if needed
                     if hasattr(location, "display_name"):
-                        self.after(0, self.handle_geolocation_result, location)
+                        self.safe_after(0, self.handle_geolocation_result, location)
                     else:
                         # Create LocationResult from geocoding result
                         location_result = LocationResult(
@@ -588,30 +636,30 @@ class EnhancedSearchBar(ctk.CTkFrame):
                             state=location.state,
                             raw_address=location.raw_address,
                         )
-                        self.after(0, self.handle_geolocation_result, location_result)
+                        self.safe_after(0, self.handle_geolocation_result, location_result)
                 else:
                     # Try IP-based location as final fallback
                     ip_location = self.get_ip_based_location()
                     if ip_location:
-                        self.after(0, self.handle_geolocation_result, ip_location)
+                        self.safe_after(0, self.handle_geolocation_result, ip_location)
                     else:
-                        self.after(0, self.handle_geolocation_error, "Location detection failed")
+                        self.safe_after(0, self.handle_geolocation_error, "Location detection failed")
 
             except RateLimitError as e:
                 print(f"Geolocation rate limit: {e}")
-                self.after(0, self.handle_geolocation_error, "Rate limit exceeded")
+                self.safe_after(0, self.handle_geolocation_error, "Rate limit exceeded")
             except APIKeyError as e:
                 print(f"Geolocation API key error: {e}")
-                self.after(0, self.handle_geolocation_error, "API configuration error")
+                self.safe_after(0, self.handle_geolocation_error, "API configuration error")
             except NetworkError as e:
                 print(f"Geolocation network error: {e}")
-                self.after(0, self.handle_geolocation_error, "Network connection error")
+                self.safe_after(0, self.handle_geolocation_error, "Network connection error")
             except ServiceUnavailableError as e:
                 print(f"Geolocation service unavailable: {e}")
-                self.after(0, self.handle_geolocation_error, "Service temporarily unavailable")
+                self.safe_after(0, self.handle_geolocation_error, "Service temporarily unavailable")
             except Exception as e:
                 print(f"Unexpected geolocation error: {e}")
-                self.after(0, self.handle_geolocation_error, "Geolocation failed")
+                self.safe_after(0, self.handle_geolocation_error, "Geolocation failed")
 
         threading.Thread(target=get_ip_location, daemon=True).start()
 
@@ -643,7 +691,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
         print(f"Geolocation error: {error_message}")
 
         # Reset button after 3 seconds
-        self.after(3000, lambda: self.geo_button.configure(text="📍"))
+        self.safe_after(3000, lambda: self.geo_button.configure(text="📍"))
 
     def get_country_flag(self, country_code: str) -> str:
         """Get country flag emoji from country code."""
@@ -885,7 +933,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
 
         airport = airports.get(code.upper())
         if airport:
-            from src.services.enhanced_weather_service import LocationResult
+            from src.services.weather import LocationResult
 
             return [
                 LocationResult(
@@ -1054,7 +1102,7 @@ class EnhancedSearchBar(ctk.CTkFrame):
 
         # Convert favorites to LocationResult objects
         for fav in self.favorites.get("favorite_locations", []):
-            from src.services.enhanced_weather_service import LocationResult
+            from src.services.weather import LocationResult
 
             location_result = LocationResult(
                 name=fav.get("name", ""),

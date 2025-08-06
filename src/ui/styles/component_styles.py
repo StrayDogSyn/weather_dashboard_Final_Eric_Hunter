@@ -55,6 +55,7 @@ class ComponentStyles:
     SEARCH_ENTRY = {
         "corner_radius": 8,
         "height": 35,
+        "width": 450,
         "font": ("Segoe UI", 12),
         "placeholder_text_color": ("#999999", "#666666"),
         "border_width": 1,

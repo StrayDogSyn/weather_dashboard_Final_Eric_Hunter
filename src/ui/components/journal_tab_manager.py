@@ -7,9 +7,9 @@ from datetime import date, datetime
 from tkinter import filedialog, messagebox
 from typing import Any, Dict, List, Optional
 
-import customtkinter as ctk
 
 from ...models.journal import JournalEntry, JournalRepository, JournalService, Mood
+import customtkinter as ctk
 from ..safe_widgets import (
     SafeCTkButton,
     SafeCTkComboBox,
@@ -18,7 +18,11 @@ from ..safe_widgets import (
     SafeCTkLabel,
     SafeCTkTextbox,
 )
+from ..components.glassmorphic.glass_panel import GlassPanel
+from ..components.glassmorphic.glass_button import GlassButton
+from ..components.glassmorphic.glassmorphic_frame import GlassmorphicFrame
 from ..theme_manager import ThemeManager
+from ..theme import DataTerminalTheme
 
 
 class JournalTabManager:
@@ -69,17 +73,23 @@ class JournalTabManager:
     def create_journal_tab(self) -> SafeCTkFrame:
         """Create and return the journal tab content."""
         try:
-            # Main container
-            self.main_frame = SafeCTkFrame(self.parent_frame)
+            # Main container with glassmorphic effect
+            self.main_frame = GlassPanel(
+                self.parent_frame,
+                glass_opacity=0.05
+            )
             self.main_frame.grid_columnconfigure(0, weight=1)
             self.main_frame.grid_rowconfigure(1, weight=1)
 
-            # Create toolbar
-            self._create_toolbar()
+            # Create glassmorphic toolbar
+            self._create_glassmorphic_toolbar()
 
-            # Create content area
-            self.content_frame = SafeCTkFrame(self.main_frame)
-            self.content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+            # Create content area with glassmorphic effect
+            self.content_frame = GlassmorphicFrame(
+                self.main_frame,
+                glass_opacity=0.1
+            )
+            self.content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
             self.content_frame.grid_columnconfigure(0, weight=1)
             self.content_frame.grid_rowconfigure(0, weight=1)
 
@@ -99,48 +109,87 @@ class JournalTabManager:
             error_label.pack(pady=20)
             return error_frame
 
-    def _create_toolbar(self):
-        """Create the toolbar with navigation and action buttons."""
-        self.toolbar_frame = SafeCTkFrame(self.main_frame)
-        self.toolbar_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+    def _create_glassmorphic_toolbar(self):
+        """Create the glassmorphic toolbar with navigation and action buttons."""
+        self.toolbar_frame = GlassmorphicFrame(
+            self.main_frame,
+            glass_opacity=0.15
+        )
+        self.toolbar_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
         self.toolbar_frame.grid_columnconfigure(6, weight=1)  # Spacer column
 
-        # Navigation buttons
-        SafeCTkButton(
-            self.toolbar_frame, text="📝 New Entry", command=self._show_create_entry, width=100
-        ).grid(row=0, column=0, padx=(0, 5))
+        # Navigation buttons with glassmorphic styling
+        GlassButton(
+            self.toolbar_frame, 
+            text="📝 New Entry", 
+            command=self._show_create_entry, 
+            width=120,
+            height=40
+        ).grid(row=0, column=0, padx=(0, 10))
 
-        SafeCTkButton(
-            self.toolbar_frame, text="📋 List", command=self._show_entry_list, width=80
-        ).grid(row=0, column=1, padx=5)
+        GlassButton(
+            self.toolbar_frame, 
+            text="📋 List", 
+            command=self._show_entry_list, 
+            width=100,
+            height=40
+        ).grid(row=0, column=1, padx=10)
 
-        SafeCTkButton(
-            self.toolbar_frame, text="📅 Calendar", command=self._show_calendar, width=80
-        ).grid(row=0, column=2, padx=5)
+        GlassButton(
+            self.toolbar_frame, 
+            text="📅 Calendar", 
+            command=self._show_calendar, 
+            width=100,
+            height=40
+        ).grid(row=0, column=2, padx=10)
 
-        SafeCTkButton(
-            self.toolbar_frame, text="📊 Insights", command=self._show_insights, width=80
-        ).grid(row=0, column=3, padx=5)
+        GlassButton(
+            self.toolbar_frame, 
+            text="📊 Insights", 
+            command=self._show_insights, 
+            width=100,
+            height=40
+        ).grid(row=0, column=3, padx=10)
 
-        # Search entry
-        self.search_entry = SafeCTkEntry(
-            self.toolbar_frame, placeholder_text="Search entries...", width=200
+        # Search entry with glassmorphic styling
+        self.search_entry = ctk.CTkEntry(
+            self.toolbar_frame, 
+            placeholder_text="🔍 Search entries...", 
+            width=200,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            placeholder_text_color="#FFFFFF80"
         )
-        self.search_entry.grid(row=0, column=7, padx=5)
+        self.search_entry.grid(row=0, column=7, padx=10)
         self.search_entry.bind("<KeyRelease>", self._on_search_changed)
 
-        # Filter mood combo
+        # Filter mood combo with glassmorphic styling
         mood_values = ["All Moods"] + [mood.value for mood in Mood]
-        self.mood_filter_combo = SafeCTkComboBox(
-            self.toolbar_frame, values=mood_values, command=self._on_filter_changed, width=120
+        self.mood_filter_combo = ctk.CTkComboBox(
+            self.toolbar_frame, 
+            values=mood_values, 
+            command=self._on_filter_changed, 
+            width=140,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            dropdown_fg_color="#000000CC",
+            dropdown_text_color="#FFFFFF"
         )
         self.mood_filter_combo.set("All Moods")
-        self.mood_filter_combo.grid(row=0, column=8, padx=5)
+        self.mood_filter_combo.grid(row=0, column=8, padx=10)
 
-        # Export button
-        SafeCTkButton(
-            self.toolbar_frame, text="💾 Export", command=self._show_export_options, width=80
-        ).grid(row=0, column=9, padx=(5, 0))
+        # Export button with glassmorphic styling
+        GlassButton(
+            self.toolbar_frame, 
+            text="💾 Export", 
+            command=self._show_export_options, 
+            width=100,
+            height=40
+        ).grid(row=0, column=9, padx=(10, 0))
 
     def _show_create_entry(self):
         """Show the create entry form."""
@@ -192,102 +241,208 @@ class JournalTabManager:
 
     def _create_entry_form(self, entry: Optional[JournalEntry] = None):
         """Create the entry creation/editing form."""
-        # Main form frame
-        form_frame = SafeCTkFrame(self.content_frame)
+        # Main form frame with glassmorphic effect
+        form_frame = GlassmorphicFrame(
+            self.content_frame,
+            glass_opacity=0.15
+        )
         form_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         form_frame.grid_columnconfigure(1, weight=1)
 
-        # Title
-        title_text = "Edit Entry" if entry else "Create New Entry"
-        SafeCTkLabel(form_frame, text=title_text, font=ctk.CTkFont(size=20, weight="bold")).grid(
-            row=0, column=0, columnspan=2, pady=(0, 20)
+        # Title with glassmorphic styling
+        title_text = "✨ Edit Entry" if entry else "✨ Create New Entry"
+        ctk.CTkLabel(
+            form_frame, 
+            text=title_text, 
+            font=("Arial", 24, "bold"),
+            text_color="#00D4FF"
+        ).grid(
+            row=0, column=0, columnspan=2, pady=(0, 30)
         )
 
-        # Entry title
-        SafeCTkLabel(form_frame, text="Title:").grid(row=1, column=0, sticky="w", pady=5)
-        self.title_entry = SafeCTkEntry(form_frame, width=400)
-        self.title_entry.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=5)
+        # Entry title with glassmorphic input
+        ctk.CTkLabel(
+            form_frame, 
+            text="📝 Title:",
+            font=("Arial", 14, "bold"),
+            text_color="#FFFFFF"
+        ).grid(row=1, column=0, sticky="w", pady=10)
+        self.title_entry = ctk.CTkEntry(
+            form_frame, 
+            width=400,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            placeholder_text="Enter your journal title...",
+            placeholder_text_color="#FFFFFF80"
+        )
+        self.title_entry.grid(row=1, column=1, sticky="ew", padx=(15, 0), pady=10)
         if entry and entry.title:
             self.title_entry.insert(0, entry.title)
 
-        # Location with auto-fill button
-        location_frame = SafeCTkFrame(form_frame)
-        location_frame.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=5)
+        # Location with glassmorphic auto-fill button
+        location_frame = ctk.CTkFrame(
+            form_frame,
+            fg_color="transparent"
+        )
+        location_frame.grid(row=2, column=1, sticky="ew", padx=(15, 0), pady=10)
         location_frame.grid_columnconfigure(0, weight=1)
 
-        SafeCTkLabel(form_frame, text="Location:").grid(row=2, column=0, sticky="w", pady=5)
-        self.location_entry = SafeCTkEntry(location_frame, width=300)
-        self.location_entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        ctk.CTkLabel(
+            form_frame, 
+            text="📍 Location:",
+            font=("Arial", 14, "bold"),
+            text_color="#FFFFFF"
+        ).grid(row=2, column=0, sticky="w", pady=10)
+        self.location_entry = ctk.CTkEntry(
+            location_frame, 
+            width=300,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            placeholder_text="Enter location...",
+            placeholder_text_color="#FFFFFF80"
+        )
+        self.location_entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         if entry and entry.location:
             self.location_entry.insert(0, entry.location)
 
-        SafeCTkButton(
-            location_frame, text="🌤️ Auto-fill Weather", command=self._auto_fill_weather, width=120
+        GlassButton(
+            location_frame, 
+            text="🌤️ Auto-fill Weather", 
+            command=self._auto_fill_weather, 
+            width=140,
+            height=40
         ).grid(row=0, column=1)
 
-        # Mood selector
-        SafeCTkLabel(form_frame, text="Mood:").grid(row=3, column=0, sticky="w", pady=5)
+        # Mood selector with glassmorphic styling
+        ctk.CTkLabel(
+            form_frame, 
+            text="😊 Mood:",
+            font=("Arial", 14, "bold"),
+            text_color="#FFFFFF"
+        ).grid(row=3, column=0, sticky="w", pady=10)
         mood_values = [mood.value for mood in Mood]
-        self.mood_combo = SafeCTkComboBox(form_frame, values=mood_values, width=200)
-        self.mood_combo.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=5)
+        self.mood_combo = ctk.CTkComboBox(
+            form_frame, 
+            values=mood_values, 
+            width=200,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            dropdown_fg_color="#000000CC",
+            dropdown_text_color="#FFFFFF"
+        )
+        self.mood_combo.grid(row=3, column=1, sticky="w", padx=(15, 0), pady=10)
         if entry and entry.mood:
             self.mood_combo.set(entry.mood.value)
 
-        # Content text area
-        SafeCTkLabel(form_frame, text="Content:").grid(row=4, column=0, sticky="nw", pady=(5, 0))
-        self.content_textbox = SafeCTkTextbox(form_frame, height=300, width=500)
-        self.content_textbox.grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=5)
+        # Content text area with glassmorphic styling
+        ctk.CTkLabel(
+            form_frame, 
+            text="📖 Content:",
+            font=("Arial", 14, "bold"),
+            text_color="#FFFFFF"
+        ).grid(row=4, column=0, sticky="nw", pady=(10, 0))
+        self.content_textbox = ctk.CTkTextbox(
+            form_frame, 
+            height=300, 
+            width=500,
+            fg_color="#FFFFFF0D",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF"
+        )
+        self.content_textbox.grid(row=4, column=1, sticky="ew", padx=(15, 0), pady=10)
         if entry and entry.content:
             self.content_textbox.insert("1.0", entry.content)
 
-        # Tags
-        SafeCTkLabel(form_frame, text="Tags (comma-separated):").grid(
-            row=5, column=0, sticky="w", pady=5
+        # Tags with glassmorphic styling
+        ctk.CTkLabel(
+            form_frame, 
+            text="🏷️ Tags (comma-separated):",
+            font=("Arial", 14, "bold"),
+            text_color="#FFFFFF"
+        ).grid(
+            row=5, column=0, sticky="w", pady=10
         )
-        self.tags_entry = SafeCTkEntry(form_frame, width=400)
-        self.tags_entry.grid(row=5, column=1, sticky="ew", padx=(10, 0), pady=5)
+        self.tags_entry = ctk.CTkEntry(
+            form_frame, 
+            width=400,
+            height=40,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            placeholder_text="Enter tags separated by commas...",
+            placeholder_text_color="#FFFFFF80"
+        )
+        self.tags_entry.grid(row=5, column=1, sticky="ew", padx=(15, 0), pady=10)
         if entry and entry.tags:
             self.tags_entry.insert(0, ", ".join(entry.tags))
 
-        # Weather display (if available)
+        # Weather display with glassmorphic styling (if available)
         if entry and entry.weather_snapshot:
-            weather_frame = SafeCTkFrame(form_frame)
-            weather_frame.grid(row=6, column=0, columnspan=2, sticky="ew", pady=10)
+            weather_frame = ctk.CTkFrame(
+                form_frame,
+                fg_color="#FFFFFF0D",
+                corner_radius=15
+            )
+            weather_frame.grid(row=6, column=0, columnspan=2, sticky="ew", pady=15)
 
-            SafeCTkLabel(
-                weather_frame, text=f"Weather: {entry.weather_display}", font=ctk.CTkFont(size=12)
-            ).pack(pady=5)
+            ctk.CTkLabel(
+                weather_frame, 
+                text=f"🌤️ Weather: {entry.weather_display}", 
+                font=("Arial", 12),
+                text_color="#FFFFFFB3"
+            ).pack(pady=10)
 
-        # Action buttons
-        button_frame = SafeCTkFrame(form_frame)
-        button_frame.grid(row=7, column=0, columnspan=2, pady=20)
+        # Action buttons with glassmorphic styling
+        button_frame = ctk.CTkFrame(
+            form_frame,
+            fg_color="transparent"
+        )
+        button_frame.grid(row=7, column=0, columnspan=2, pady=30)
 
-        SafeCTkButton(button_frame, text="💾 Save", command=self._save_entry, width=100).pack(
-            side="left", padx=5
+        GlassButton(
+            button_frame, 
+            text="💾 Save", 
+            command=self._save_entry, 
+            width=120,
+            height=45
+        ).pack(
+            side="left", padx=10
         )
 
-        SafeCTkButton(
-            button_frame, text="❌ Cancel", command=self._show_entry_list, width=100
-        ).pack(side="left", padx=5)
+        GlassButton(
+            button_frame, 
+            text="❌ Cancel", 
+            command=self._show_entry_list, 
+            width=120,
+            height=45
+        ).pack(side="left", padx=10)
 
         if entry:
-            SafeCTkButton(
+            GlassButton(
                 button_frame,
                 text="🗑️ Delete",
                 command=lambda: self._delete_entry(entry),
-                width=100,
-                fg_color="red",
-                hover_color="darkred",
-            ).pack(side="left", padx=5)
+                width=120,
+                height=45
+            ).pack(side="left", padx=10)
 
         # Bind change events for auto-save
         self._bind_change_events()
 
-        # Auto-save status label
-        self.auto_save_label = SafeCTkLabel(
-            form_frame, text="", font=ctk.CTkFont(size=10), text_color="gray"
+        # Auto-save status label with glassmorphic styling
+        self.auto_save_label = ctk.CTkLabel(
+            form_frame, 
+            text="", 
+            font=("Arial", 10), 
+            text_color="#FFFFFF80"
         )
-        self.auto_save_label.grid(row=8, column=0, columnspan=2, pady=5)
+        self.auto_save_label.grid(row=8, column=0, columnspan=2, pady=10)
 
     def _bind_change_events(self):
         """Bind change events for auto-save functionality."""
@@ -474,146 +629,184 @@ class JournalTabManager:
                 messagebox.showerror("Error", f"Failed to delete entry: {str(e)}")
 
     def _create_entry_list(self):
-        """Create the entry list view."""
+        """Create the entry list view with glassmorphic styling."""
         # Get filtered entries
         entries = self._get_filtered_entries()
 
-        # List frame with scrollbar
-        list_frame = SafeCTkFrame(self.content_frame)
+        # List frame with glassmorphic styling
+        list_frame = GlassmorphicFrame(self.content_frame, glass_opacity=0.1)
         list_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         list_frame.grid_columnconfigure(0, weight=1)
         list_frame.grid_rowconfigure(1, weight=1)
 
-        # Header
-        header_frame = SafeCTkFrame(list_frame)
-        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        # Header with glassmorphic styling
+        header_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
         header_frame.grid_columnconfigure(1, weight=1)
 
-        SafeCTkLabel(
+        ctk.CTkLabel(
             header_frame,
-            text=f"Journal Entries ({len(entries)})",
-            font=ctk.CTkFont(size=18, weight="bold"),
+            text=f"📖 Journal Entries ({len(entries)})",
+            font=("Arial", 20, "bold"),
+            text_color="#FFFFFF"
         ).grid(row=0, column=0, sticky="w")
 
-        # Sort options
-        sort_frame = SafeCTkFrame(header_frame)
+        # Sort options with glassmorphic styling
+        sort_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
         sort_frame.grid(row=0, column=1, sticky="e")
 
-        SafeCTkLabel(sort_frame, text="Sort by:").pack(side="left", padx=(0, 5))
-        sort_combo = SafeCTkComboBox(
+        ctk.CTkLabel(
+            sort_frame, 
+            text="Sort by:", 
+            font=("Arial", 12),
+            text_color="#FFFFFFB3"
+        ).pack(side="left", padx=(0, 10))
+        sort_combo = ctk.CTkComboBox(
             sort_frame,
             values=["Date (Newest)", "Date (Oldest)", "Title", "Mood", "Location"],
             command=self._on_sort_changed,
-            width=120,
+            width=150,
+            height=35,
+            fg_color="#FFFFFF1A",
+            border_color="#FFFFFF33",
+            text_color="#FFFFFF",
+            dropdown_fg_color="#1A1A1A"
         )
         sort_combo.set("Date (Newest)")
         sort_combo.pack(side="left")
 
-        # Scrollable frame for entries
-        scrollable_frame = ctk.CTkScrollableFrame(list_frame, height=400)
-        scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        # Scrollable frame for entries with glassmorphic styling
+        scrollable_frame = ctk.CTkScrollableFrame(
+            list_frame, 
+            height=400,
+            fg_color="transparent",
+            scrollbar_fg_color="#FFFFFF1A",
+            scrollbar_button_color="#FFFFFF33"
+        )
+        scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
         scrollable_frame.grid_columnconfigure(0, weight=1)
 
         # Display entries
         if not entries:
-            SafeCTkLabel(
+            ctk.CTkLabel(
                 scrollable_frame,
-                text="No entries found. Create your first entry!",
-                font=ctk.CTkFont(size=14),
-                text_color="gray",
+                text="📝 No entries found. Create your first entry!",
+                font=("Arial", 16),
+                text_color="#FFFFFF80",
             ).grid(row=0, column=0, pady=50)
         else:
             for i, entry in enumerate(entries):
                 self._create_entry_card(scrollable_frame, entry, i)
 
     def _create_entry_card(self, parent, entry: JournalEntry, row: int):
-        """Create a card for displaying an entry in the list."""
-        # Entry card frame
-        card_frame = SafeCTkFrame(parent)
-        card_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=5)
+        """Create a glassmorphic card for displaying an entry in the list."""
+        # Entry card frame with glassmorphic styling
+        card_frame = GlassmorphicFrame(parent, glass_opacity=0.05)
+        card_frame.grid(row=row, column=0, sticky="ew", padx=10, pady=8)
         card_frame.grid_columnconfigure(1, weight=1)
 
-        # Mood emoji
-        mood_label = SafeCTkLabel(
-            card_frame, text=entry.mood.emoji if entry.mood else "📝", font=ctk.CTkFont(size=24)
+        # Mood emoji with glassmorphic background
+        mood_frame = ctk.CTkFrame(
+            card_frame, 
+            fg_color="#FFFFFF0D", 
+            corner_radius=15,
+            width=60,
+            height=60
         )
-        mood_label.grid(row=0, column=0, rowspan=3, padx=10, pady=10)
+        mood_frame.grid(row=0, column=0, rowspan=3, padx=15, pady=15, sticky="n")
+        mood_frame.grid_propagate(False)
+        
+        mood_label = ctk.CTkLabel(
+            mood_frame, 
+            text=entry.mood.emoji if entry.mood else "📝", 
+            font=("Arial", 28)
+        )
+        mood_label.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Entry info
-        info_frame = SafeCTkFrame(card_frame)
-        info_frame.grid(row=0, column=1, sticky="ew", padx=10, pady=5)
+        # Entry info with transparent background
+        info_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        info_frame.grid(row=0, column=1, sticky="ew", padx=15, pady=15)
         info_frame.grid_columnconfigure(0, weight=1)
 
-        # Title and date
+        # Title and date with glassmorphic styling
         title_text = entry.title or "Untitled Entry"
-        SafeCTkLabel(info_frame, text=title_text, font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=0, column=0, sticky="w"
-        )
+        ctk.CTkLabel(
+            info_frame, 
+            text=title_text, 
+            font=("Arial", 16, "bold"),
+            text_color="#FFFFFF"
+        ).grid(row=0, column=0, sticky="w")
 
-        SafeCTkLabel(
+        ctk.CTkLabel(
             info_frame,
-            text=f"{entry.date_str} at {entry.time_str}",
-            font=ctk.CTkFont(size=10),
-            text_color="gray",
-        ).grid(row=1, column=0, sticky="w")
+            text=f"📅 {entry.date_str} at {entry.time_str}",
+            font=("Arial", 11),
+            text_color="#FFFFFF99",
+        ).grid(row=1, column=0, sticky="w", pady=(5, 0))
 
-        # Location and weather
+        # Location and weather with glassmorphic styling
         if entry.location or entry.weather_snapshot:
-            location_text = entry.location or "Unknown location"
+            location_text = f"📍 {entry.location or 'Unknown location'}"
             if entry.weather_snapshot:
                 location_text += f" • {entry.weather_display}"
 
-            SafeCTkLabel(
-                info_frame, text=location_text, font=ctk.CTkFont(size=10), text_color="gray"
-            ).grid(row=2, column=0, sticky="w")
+            ctk.CTkLabel(
+                info_frame, 
+                text=location_text, 
+                font=("Arial", 11), 
+                text_color="#FFFFFF80"
+            ).grid(row=2, column=0, sticky="w", pady=(3, 0))
 
-        # Content preview
+        # Content preview with glassmorphic styling
         if entry.content:
             preview_text = (
-                entry.content[:100] + "..." if len(entry.content) > 100 else entry.content
+                entry.content[:120] + "..." if len(entry.content) > 120 else entry.content
             )
             # Remove HTML tags for preview
             import re
-
             preview_text = re.sub(r"<[^>]+>", "", preview_text)
 
-            SafeCTkLabel(
+            ctk.CTkLabel(
                 info_frame,
                 text=preview_text,
-                font=ctk.CTkFont(size=11),
+                font=("Arial", 11),
+                text_color="#FFFFFFB3",
                 wraplength=400,
                 justify="left",
-            ).grid(row=3, column=0, sticky="w", pady=(5, 0))
+            ).grid(row=3, column=0, sticky="w", pady=(8, 0))
 
-        # Tags
+        # Tags with glassmorphic styling
         if entry.tags:
             tags_text = " ".join([f"#{tag}" for tag in entry.tags[:3]])
             if len(entry.tags) > 3:
                 tags_text += f" +{len(entry.tags) - 3} more"
 
-            SafeCTkLabel(
-                info_frame, text=tags_text, font=ctk.CTkFont(size=9), text_color="blue"
-            ).grid(row=4, column=0, sticky="w", pady=(2, 0))
+            ctk.CTkLabel(
+                info_frame, 
+                text=f"🏷️ {tags_text}", 
+                font=("Arial", 10), 
+                text_color="#00D4FF"
+            ).grid(row=4, column=0, sticky="w", pady=(5, 0))
 
-        # Action buttons
-        button_frame = SafeCTkFrame(card_frame)
-        button_frame.grid(row=0, column=2, rowspan=3, padx=10, pady=10)
+        # Action buttons with glassmorphic styling
+        button_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        button_frame.grid(row=0, column=2, rowspan=3, padx=15, pady=15)
 
-        SafeCTkButton(
+        GlassButton(
             button_frame,
             text="✏️ Edit",
             command=lambda e=entry: self._show_edit_entry(e),
-            width=60,
-            height=30,
-        ).pack(pady=2)
+            width=80,
+            height=35,
+        ).pack(pady=5)
 
-        SafeCTkButton(
+        GlassButton(
             button_frame,
             text="👁️ View",
             command=lambda e=entry: self._show_entry_details(e),
-            width=60,
-            height=30,
-        ).pack(pady=2)
+            width=80,
+            height=35,
+        ).pack(pady=5)
 
     def _show_entry_details(self, entry: JournalEntry):
         """Show detailed view of an entry in a popup window."""

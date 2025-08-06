@@ -1,11 +1,25 @@
-"""Common UI components for the weather dashboard.
+"""Common UI Components
 
-This module provides reusable UI components that can be used across
-different parts of the weather dashboard application.
+Shared UI components used across the application.
 """
 
 from .header import HeaderComponent
 from .search_bar import SearchBar
 from .status_bar_component import StatusBarComponent
+from .loading_spinner import LoadingSpinner, ShimmerLoader, ProgressSpinner
+from .error_display import ErrorDisplay, InlineErrorDisplay
 
-__all__ = ["HeaderComponent", "StatusBarComponent", "SearchBar"]
+# Alias for backward compatibility
+Header = HeaderComponent
+
+__all__ = [
+    "Header",
+    "HeaderComponent",
+    "SearchBar", 
+    "StatusBarComponent",
+    "LoadingSpinner",
+    "ShimmerLoader",
+    "ProgressSpinner",
+    "ErrorDisplay",
+    "InlineErrorDisplay"
+]

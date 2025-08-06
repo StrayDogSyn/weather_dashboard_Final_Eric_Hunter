@@ -10,8 +10,8 @@ import time
 import tkinter as tk
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
-
 import customtkinter as ctk
+
 
 
 @dataclass
@@ -189,11 +189,18 @@ class ParticleSystem:
         self.is_running = False
         self.particles.clear()
 
-        # Clear canvas
+        # Clear all particle types from canvas
         try:
-            self.canvas.delete("particle")
+            self.canvas.delete("rain_particle")
+            self.canvas.delete("snow_particle")
+            self.canvas.delete("fog_particle")
+            self.canvas.delete("particle")  # Fallback for any generic particles
         except tk.TclError:
             pass
+        
+        # Wait for animation thread to finish
+        if self.animation_thread and self.animation_thread.is_alive():
+            self.animation_thread.join(timeout=0.1)
 
     def _animate_rain(self):
         """Animate rain particles."""
@@ -371,45 +378,66 @@ class WeatherBackgroundManager:
             return
 
         try:
-            # Clear existing background
+            # Clear existing background elements
             self.particle_canvas.delete("background")
+            self.particle_canvas.delete("gradient_strip")  # Clear any leftover gradient strips
 
-            # Create gradient effect using rectangles
+            # Get current canvas dimensions
+            self.particle_canvas.update_idletasks()  # Ensure dimensions are current
             height = self.particle_canvas.winfo_height()
             width = self.particle_canvas.winfo_width()
 
             if height <= 1 or width <= 1:
+                # Set a default background color if canvas is too small
+                self.particle_canvas.configure(bg=primary)
                 return
 
-            # Parse colors
-            r1 = int(primary[1:3], 16)
-            g1 = int(primary[3:5], 16)
-            b1 = int(primary[5:7], 16)
+            # Parse colors with validation
+            try:
+                r1 = int(primary[1:3], 16)
+                g1 = int(primary[3:5], 16)
+                b1 = int(primary[5:7], 16)
 
-            r2 = int(secondary[1:3], 16)
-            g2 = int(secondary[3:5], 16)
-            b2 = int(secondary[5:7], 16)
+                r2 = int(secondary[1:3], 16)
+                g2 = int(secondary[3:5], 16)
+                b2 = int(secondary[5:7], 16)
+            except (ValueError, IndexError):
+                # Fallback to solid color if parsing fails
+                self.particle_canvas.configure(bg=primary)
+                return
 
-            # Create gradient strips
-            strips = 50
+            # Create gradient strips with reduced count for better performance
+            strips = min(30, height // 2)  # Adaptive strip count
+            if strips <= 0:
+                strips = 1
+                
             for i in range(strips):
-                ratio = i / (strips - 1)
+                ratio = i / (strips - 1) if strips > 1 else 0
 
-                r = int(r1 + (r2 - r1) * ratio)
-                g = int(g1 + (g2 - g1) * ratio)
-                b = int(b1 + (b2 - b1) * ratio)
+                r = max(0, min(255, int(r1 + (r2 - r1) * ratio)))
+                g = max(0, min(255, int(g1 + (g2 - g1) * ratio)))
+                b = max(0, min(255, int(b1 + (b2 - b1) * ratio)))
 
                 color = f"#{r:02x}{g:02x}{b:02x}"
 
                 y1 = int(height * i / strips)
                 y2 = int(height * (i + 1) / strips)
 
-                self.particle_canvas.create_rectangle(
-                    0, y1, width, y2, fill=color, outline="", tags="background"
-                )
+                # Ensure coordinates are valid
+                if y2 > y1 and y1 >= 0 and y2 <= height:
+                    self.particle_canvas.create_rectangle(
+                        0, y1, width, y2, 
+                        fill=color, 
+                        outline="", 
+                        tags=("background", "gradient_strip")
+                    )
 
-        except (tk.TclError, ValueError):
-            pass
+        except (tk.TclError, ValueError, ZeroDivisionError) as e:
+            # Fallback to solid background color on any error
+            try:
+                self.particle_canvas.configure(bg=primary)
+            except tk.TclError:
+                pass
 
     def _update_particle_effects(self, weather_condition: WeatherCondition):
         """Update particle effects based on weather condition."""

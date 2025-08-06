@@ -61,7 +61,6 @@ class ComponentPool:
                 self._stats.recycled_count += 1
                 self._stats.active_count += 1
 
-                self.logger.debug(f"Recycled {self.component_type.__name__} from pool")
                 return component
 
             # Create new component
@@ -74,7 +73,6 @@ class ComponentPool:
                 if self._stats.active_count > self._stats.peak_count:
                     self._stats.peak_count = self._stats.active_count
 
-                self.logger.debug(f"Created new {self.component_type.__name__}")
                 return component
 
             except Exception as e:
@@ -105,11 +103,9 @@ class ComponentPool:
             # Add to pool if not full
             if len(self._pool) < self.max_size:
                 self._pool.append(component)
-                self.logger.debug(f"Released {self.component_type.__name__} to pool")
                 return True
             else:
                 # Pool is full, let component be garbage collected
-                self.logger.debug(f"Pool full, discarding {self.component_type.__name__}")
                 return False
 
     def cleanup(self, force: bool = False) -> int:
@@ -272,21 +268,22 @@ class ComponentRecycler:
         return self._memory_tracker.get_stats()
 
     def _background_cleanup(self) -> None:
-        """Background thread for periodic cleanup."""
+        """Background cleanup thread function."""
         while True:
             try:
-                time.sleep(60)  # Check every minute
-
+                time.sleep(self._global_cleanup_interval)
                 current_time = time.time()
-                if (current_time - self._last_global_cleanup) >= self._global_cleanup_interval:
+                
+                if current_time - self._last_global_cleanup >= self._global_cleanup_interval:
                     self.cleanup_pools()
                     self._last_global_cleanup = current_time
-
-                    # Force garbage collection
+                    
+                    # Force garbage collection periodically
                     gc.collect()
-
+                    
             except Exception as e:
-                self.logger.error(f"Background cleanup error: {e}")
+                self.logger.error(f"Error in background cleanup: {e}")
+                time.sleep(60)  # Wait before retrying
 
     def shutdown(self) -> None:
         """Shutdown the recycler and clean up all pools."""

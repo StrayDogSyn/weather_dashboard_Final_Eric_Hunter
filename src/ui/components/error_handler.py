@@ -4,8 +4,8 @@ Main Error Handler Integration for Weather Dashboard
 Integrates all error handling components and provides a unified interface.
 """
 
-import tkinter as tk
 import traceback
+import tkinter as tk
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional
@@ -16,7 +16,6 @@ from .help_system import FeatureDiscovery, KeyboardShortcutOverlay, OnboardingOv
 
 # Import our error handling components
 from .toast_notification import ToastManager, ToastType
-
 
 class ErrorHandler:
     """Main error handler that integrates all error handling components."""
@@ -77,7 +76,6 @@ class ErrorHandler:
                 self.parent.tk.report_callback_exception = custom_report
             else:
                 # For CustomTkinter or other cases, try alternative approach
-                import tkinter as tk
 
                 root = tk._default_root
                 if root and hasattr(root, "report_callback_exception"):
@@ -161,7 +159,6 @@ class ErrorHandler:
     def _show_critical_error(self, message: str):
         """Show critical error dialog."""
         try:
-            from tkinter import messagebox
 
             messagebox.showerror(
                 "Critical Error", f"{message}\n\nThe application may need to be restarted."
@@ -363,7 +360,7 @@ class ErrorHandler:
 
             self.shortcuts_overlay = KeyboardShortcutOverlay(self.parent, shortcuts)
 
-        self.shortcuts_overlay.show()
+        self.shortcuts_overlay._show_shortcuts()
 
     def show_feature_discovery(self, widget: tk.Widget, title: str, description: str):
         """Show feature discovery animation."""
@@ -442,7 +439,6 @@ class ErrorHandler:
 
         # Clear tooltips
         self.tooltips.clear()
-
 
 # Decorator for automatic error handling
 def handle_errors(

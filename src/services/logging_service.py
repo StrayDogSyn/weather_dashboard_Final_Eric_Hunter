@@ -95,7 +95,6 @@ class LoggingService:
 
         # Log setup completion
         self._logger.info(f"📝 Logging initialized - Level: {logging.getLevelName(level)}")
-        self._logger.debug(f"📁 Log file: {self._log_file}")
 
     def get_logger(self, name: str) -> logging.Logger:
         """Get a logger instance for the given name."""

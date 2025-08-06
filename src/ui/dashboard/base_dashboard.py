@@ -1,14 +1,12 @@
 """Base dashboard class with core setup functionality."""
 
 import logging
-import tkinter as tk
 
-import customtkinter as ctk
 from dotenv import load_dotenv
 
-from src.services.activity_service import ActivityService
-from src.services.config_service import ConfigService
-from src.services.enhanced_weather_service import (
+from src.services.ai import ActivityService
+from src.services.config import ConfigService
+from src.services.weather import (
     EnhancedWeatherService
 )
 from src.services.github_team_service import GitHubTeamService
@@ -23,10 +21,12 @@ from src.ui.components import (
 from src.ui.theme import DataTerminalTheme
 from src.ui.theme_manager import theme_manager
 from src.utils.api_optimizer import APIOptimizer
-from src.utils.cache_manager import CacheManager
+from src.services.database import CacheManager
 from src.utils.component_recycler import ComponentRecycler
 from src.utils.loading_manager import LoadingManager
 from src.utils.startup_optimizer import StartupOptimizer
+from src.utils.timer_manager import TimerManager
+import customtkinter as ctk
 
 # Load environment variables
 load_dotenv()
@@ -34,7 +34,6 @@ load_dotenv()
 # Configure appearance
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
-
 
 class BaseDashboard(ctk.CTk):
     """Base dashboard class with core setup and initialization."""
@@ -45,6 +44,9 @@ class BaseDashboard(ctk.CTk):
         # Setup logging
         self.logger = logging.getLogger(__name__)
 
+        # Initialize timer manager first
+        self.timer_manager = TimerManager(self)
+        
         # Initialize performance optimization services first
         self._initialize_optimization_services()
 
@@ -74,12 +76,12 @@ class BaseDashboard(ctk.CTk):
     def _initialize_optimization_services(self):
         """Initialize performance optimization services."""
         self.cache_manager = CacheManager(
-            max_size_mb=100,  # 100MB cache
+            max_size=100,  # 100MB cache
             enable_compression=True,
             compression_threshold=1024,  # Compress items > 1KB
             lru_factor=0.8,  # Evict when 80% full
         )
-        self.startup_optimizer = StartupOptimizer()
+        self.startup_optimizer = StartupOptimizer(app=self, timer_manager=self.timer_manager)
         self.component_recycler = ComponentRecycler()
         self.api_optimizer = APIOptimizer()
 
@@ -93,14 +95,14 @@ class BaseDashboard(ctk.CTk):
                 self.config_service.get_setting("api.github_token") if self.config_service else None
             )
             self.github_service = GitHubTeamService(github_token=github_token)
-            self.loading_manager = LoadingManager()
+            self.loading_manager = LoadingManager(ui_widget=self)
         except Exception as e:
             self.logger.warning(f"Running in demo mode without API keys: {e}")
             self.config_service = None
             self.weather_service = None
             self.activity_service = None
             self.github_service = GitHubTeamService()  # GitHub service can work without API keys
-            self.loading_manager = LoadingManager()  # Still initialize for offline mode
+            self.loading_manager = LoadingManager(ui_widget=self)  # Still initialize for offline mode
 
     def _initialize_visual_managers(self):
         """Initialize visual polish managers."""
@@ -159,7 +161,7 @@ class BaseDashboard(ctk.CTk):
 
     def _configure_window(self):
         """Configure window properties."""
-        self.title("Professional Weather Dashboard")
+        self.title("PROJECT CODEFRONT - Advanced Weather Intelligence System v3.5")
         self.geometry("1400x900")
         self.minsize(1200, 800)
 
@@ -227,9 +229,20 @@ class BaseDashboard(ctk.CTk):
                 )
                 self.font_size = self.config_service.get_setting("appearance.font_size", 12)
 
-            # Schedule periodic updates
-            self.after(5000, self._update_usage_stats)  # Update usage stats every 5 seconds
-            self.after(10000, self._update_cache_size)  # Update cache size every 10 seconds
+            # Schedule periodic updates using TimerManager
+            self.timer_manager.schedule(
+                'usage_stats_update',
+                5000,  # 5 seconds
+                self._update_usage_stats,
+                start_immediately=False
+            )
+            
+            self.timer_manager.schedule(
+                'cache_size_update', 
+                10000,  # 10 seconds
+                self._update_cache_size,
+                start_immediately=False
+            )
 
         except Exception as e:
             self.logger.warning(f"Failed to initialize enhanced settings: {e}")
@@ -268,6 +281,10 @@ class BaseDashboard(ctk.CTk):
         """Handle window closing."""
         try:
             self.is_destroyed = True
+
+            # Shutdown timer manager first
+            if hasattr(self, 'timer_manager'):
+                self.timer_manager.shutdown()
 
             # Clean up scheduled calls
             self._cleanup_scheduled_calls()

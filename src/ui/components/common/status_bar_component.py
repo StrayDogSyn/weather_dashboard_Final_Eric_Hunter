@@ -1,10 +1,7 @@
-import tkinter as tk
 from datetime import datetime
 
-import customtkinter as ctk
-
 from src.ui.styles.layout_styles import LayoutStyles
-
+import customtkinter as ctk
 
 class StatusBarComponent(ctk.CTkFrame):
     """Professional status bar component with status, connection, and time display."""

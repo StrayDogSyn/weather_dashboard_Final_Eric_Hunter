@@ -4,49 +4,55 @@ Defines colors, fonts, and styling for the modern weather dashboard.
 """
 
 from typing import Any, Dict
-
 import customtkinter as ctk
+from .styles.style_constants import (
+    ColorPalette, SpacingSystem, FontSystem, AnimationConstants,
+    ComponentSizes, ThemeVariants, get_theme_colors
+)
+
 
 
 class DataTerminalTheme:
     """Basic theme configuration with dynamic theme support."""
 
-    PRIMARY = "#00ff88"
-    BACKGROUND = "#1a1a1a"
-    CARD_BG = "#2a2a2a"
-    TEXT = "#ffffff"
-    TEXT_SECONDARY = "#888888"
-    BORDER = "#333333"
+    # Use centralized color constants
+    PRIMARY = ColorPalette.PRIMARY_GREEN
+    BACKGROUND = ColorPalette.BG_DARK_SECONDARY
+    CARD_BG = ColorPalette.BG_DARK_TERTIARY
+    TEXT = ColorPalette.TEXT_DARK_PRIMARY
+    TEXT_SECONDARY = ColorPalette.TEXT_DARK_SECONDARY
+    BORDER = ColorPalette.BORDER_DEFAULT
 
-    # Additional colors
-    SUCCESS = "#00cc66"
-    ACCENT = "#00d4ff"  # Changed to bright cyan for better visibility
-    HOVER = "#555555"
-    ERROR = "#ff4444"
-    WARNING = "#ffaa00"
-    INFO = "#0088ff"
-    CHART_GRID = "#333333"
-    CHART_PRIMARY = "#00ff88"
+    # Additional colors from centralized palette
+    SUCCESS = ColorPalette.SUCCESS
+    ACCENT = ColorPalette.PRIMARY_CYAN
+    HOVER = ColorPalette.HOVER_DARK
+    ERROR = ColorPalette.ERROR
+    WARNING = ColorPalette.WARNING
+    INFO = ColorPalette.INFO
+    CHART_GRID = ColorPalette.CHART_GRID
+    CHART_PRIMARY = ColorPalette.CHART_PRIMARY
 
     # Observer pattern for theme changes
     _observers = []
 
-    FONT_FAMILY = "Arial"
-    FONT_SIZE_SMALL = 12
-    FONT_SIZE_MEDIUM = 14
-    FONT_SIZE_LARGE = 18
-    FONT_SIZE_TINY = 10
+    # Use centralized font system
+    FONT_FAMILY = FontSystem.FONT_PRIMARY
+    FONT_SIZE_SMALL = FontSystem.SIZE_SMALL
+    FONT_SIZE_MEDIUM = FontSystem.SIZE_MEDIUM
+    FONT_SIZE_LARGE = FontSystem.SIZE_LARGE
+    FONT_SIZE_TINY = FontSystem.SIZE_TINY
 
-    # Padding
-    PADDING_TINY = 5
-    PADDING_SMALL = 10
-    PADDING_MEDIUM = 15
-    PADDING_LARGE = 20
+    # Use centralized spacing system
+    PADDING_TINY = SpacingSystem.PADDING_TINY
+    PADDING_SMALL = SpacingSystem.PADDING_SMALL
+    PADDING_MEDIUM = SpacingSystem.PADDING_MEDIUM
+    PADDING_LARGE = SpacingSystem.PADDING_LARGE
 
-    # Border Radius
-    RADIUS_LARGE = 12
-    RADIUS_MEDIUM = 8
-    RADIUS_SMALL = 4
+    # Use centralized border radius
+    RADIUS_LARGE = SpacingSystem.RADIUS_LARGE
+    RADIUS_MEDIUM = SpacingSystem.RADIUS_MEDIUM
+    RADIUS_SMALL = SpacingSystem.RADIUS_SMALL
 
     @classmethod
     def configure_customtkinter(cls) -> None:
@@ -66,9 +72,8 @@ class DataTerminalTheme:
 
     @classmethod
     def get_font(cls, size: int = None, weight: str = "normal") -> tuple:
-        """Get font configuration."""
-        font_size = size or cls.FONT_SIZE_MEDIUM
-        return (cls.FONT_FAMILY, font_size, weight)
+        """Get font configuration using centralized font system."""
+        return FontSystem.get_font(size or cls.FONT_SIZE_MEDIUM, weight, cls.FONT_FAMILY)
 
     @classmethod
     def get_button_style(cls, variant: str = "primary") -> Dict[str, Any]:

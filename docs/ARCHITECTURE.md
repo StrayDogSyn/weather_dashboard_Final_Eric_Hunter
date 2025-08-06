@@ -7,6 +7,7 @@ The Weather Dashboard is a modern Python application built with CustomTkinter th
 ## Architecture Principles
 
 ### 1. Separation of Concerns
+
 - **UI Layer**: CustomTkinter-based user interface components
 - **Service Layer**: Business logic and external API integrations
 - **Repository Layer**: Data access and persistence
@@ -54,6 +55,7 @@ src/
 ### Configuration Layer
 
 #### Application Configuration (`config/app_config.py`)
+
 - Centralized configuration classes
 - Environment variable integration
 - Type-safe configuration access
@@ -131,6 +133,7 @@ src/
 ## Design Patterns
 
 ### 1. Service Layer Pattern
+
 ```python
 class EnhancedWeatherService:
     def __init__(self, config_service: ConfigService):
@@ -139,6 +142,7 @@ class EnhancedWeatherService:
 ```
 
 ### 2. Configuration Management
+
 ```python
 class ConfigService:
     def __init__(self):
@@ -190,6 +194,7 @@ class ConfigService:
 ## Error Handling
 
 ### Exception Management
+
 ```python
 # Service-level error handling
 try:

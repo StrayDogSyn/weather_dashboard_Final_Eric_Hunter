@@ -172,7 +172,6 @@ class APIOptimizer:
         with self._queue_lock:
             # Check if request is already active
             if request.request_id in self._active_requests:
-                self.logger.debug(f"Request {request.request_id} already active")
                 return request.request_id
 
             # Add to queue based on priority
@@ -200,18 +199,6 @@ class APIOptimizer:
         else:
             self._request_queue.insert(insert_index, request)
 
-    def _worker_loop(self) -> None:
-        """Main worker loop for processing requests."""
-        while not self._shutdown_event.is_set():
-            try:
-                request = self._get_next_request()
-                if request:
-                    self._process_request(request)
-                else:
-                    time.sleep(0.1)  # No requests, wait briefly
-
-            except Exception as e:
-                self.logger.error(f"Worker error: {e}")
 
     def _get_next_request(self) -> Optional[APIRequest]:
         """Get the next request from the queue."""
@@ -323,7 +310,6 @@ class APIOptimizer:
             # Return cached response
             self._stats["cache_hits"] += 1
             cached.cache_hit = True
-            self.logger.debug(f"Cache hit for request {request.request_id}")
             return cached
 
     def _make_api_call(self, request: APIRequest) -> APIResponse:
@@ -359,7 +345,6 @@ class APIOptimizer:
                 self._request_cache.pop(oldest_key, None)
 
             self._request_cache[request.request_id] = response
-            self.logger.debug(f"Cached response for request {request.request_id}")
 
     def _update_stats(self, response: APIResponse, response_time: float) -> None:
         """Update performance statistics."""
@@ -426,6 +411,30 @@ class APIOptimizer:
         )
 
         return stats
+
+    def _worker_loop(self) -> None:
+        """Worker thread loop for processing API requests."""
+        while not self._shutdown_event.is_set():
+            try:
+                # Get next request from queue
+                request = self._get_next_request()
+                
+                if request is None:
+                    # No requests available, wait a bit
+                    time.sleep(0.1)
+                    continue
+                
+                # Process the request
+                self._process_request(request)
+                
+                # Remove from active requests
+                with self._queue_lock:
+                    self._active_requests.pop(request.request_id, None)
+                    self._stats["concurrent_requests"] -= 1
+                    
+            except Exception as e:
+                self.logger.error(f"Error in worker loop: {e}")
+                time.sleep(1)  # Wait before retrying
 
     def clear_cache(self, pattern: Optional[str] = None) -> int:
         """Clear cached responses."""

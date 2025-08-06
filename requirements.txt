@@ -83,7 +83,9 @@ geocoder==1.38.1              # Alternative geocoding service
 timezonefinder==6.2.0         # Timezone lookup by coordinates
 pytz==2023.3                  # World timezone definitions
 folium==0.15.0                # Interactive maps
+tkintermapview==1.29.0        # Interactive map widget for tkinter
 tkinterweb==3.24.7            # Web browser widget for tkinter
+pywebview==4.4.1              # Cross-platform webview with JavaScript support
 branca==0.6.0                 # HTML/JS generation for folium
 jinja2>=2.9                   # Template engine for folium
 

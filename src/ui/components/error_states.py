@@ -2,18 +2,25 @@
 """
 Error State Components for Weather Dashboard
 Provides visual error states for different scenarios with user-friendly interfaces.
+
+NOTE: Most error display functionality has been moved to:
+- src/ui/components/common/error_display.py (ErrorDisplay, InlineErrorDisplay)
+- src/ui/components/common/loading_spinner.py (LoadingSpinner, ShimmerLoader)
+
+This file maintains legacy components for backward compatibility.
 """
 
 import logging
 import socket
 import threading
-import time
 import tkinter as tk
+import time
 from enum import Enum
-from tkinter import ttk
 from typing import Callable, Optional
 
 from ..theme_manager import theme_manager
+from .common.error_display import ErrorDisplay, InlineErrorDisplay
+from .common.loading_spinner import LoadingSpinner, ShimmerLoader
 
 
 class NetworkStatus(Enum):
@@ -262,188 +269,41 @@ class APIErrorDisplay(ErrorStateComponent):
                 self.parent.after(1000, self.show)
 
 
+# LoadingState class moved to src/ui/components/common/loading_spinner.py
+# Use LoadingSpinner or ShimmerLoader components instead
 class LoadingState(ErrorStateComponent):
-    """Shows loading state with skeleton screens and progress."""
-
-    def __init__(self, parent: tk.Widget, message: str = "Loading...", show_progress: bool = False):
+    """Legacy loading state - use LoadingSpinner instead."""
+    
+    def __init__(self, parent, message: str = "Loading...", show_progress: bool = False):
         super().__init__(parent)
-        self.message = message
-        self.show_progress = show_progress
-        self.progress_value = 0
-        self.animation_running = False
-
-    def _create_frame(self):
-        """Create the loading state frame."""
-        # Get current theme colors
-        current_theme = theme_manager.get_current_theme()
-        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
-        text_color = current_theme.get("TEXT", "#ffffff")
-
-        self.frame = tk.Frame(self.parent, bg=bg_color)
-        # Use grid instead of pack to avoid geometry manager conflicts
-        self.frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-
-        # Configure grid weights for proper expansion
-        self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(1, weight=0)  # spinner
-        self.frame.grid_rowconfigure(2, weight=0)  # message
-        self.frame.grid_rowconfigure(3, weight=0)  # progress bar
-        self.frame.grid_rowconfigure(4, weight=0)  # skeleton
-        self.frame.grid_rowconfigure(5, weight=1)
-
-        # Loading animation
-        self.spinner_label = tk.Label(
-            self.frame, text="⟳", font=("Arial", 24), bg=bg_color, fg=text_color
-        )
-        self.spinner_label.grid(row=1, column=0, pady=(30, 10))
-
-        # Loading message
-        self.message_label = tk.Label(
-            self.frame, text=self.message, font=("Arial", 12), bg=bg_color, fg=text_color
-        )
-        self.message_label.grid(row=2, column=0, pady=(0, 20))
-
-        # Progress bar (if enabled)
-        if self.show_progress:
-            self.progress_bar = ttk.Progressbar(self.frame, mode="determinate", length=200)
-            self.progress_bar.grid(row=3, column=0, pady=(0, 20))
-
-        # Skeleton content
-        self._create_skeleton()
-
-        # Start animation
-        self._start_animation()
-
-    def _create_skeleton(self):
-        """Create skeleton loading content."""
-        # Get current theme colors
-        current_theme = theme_manager.get_current_theme()
-        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
-        skeleton_color = current_theme.get("CARD_BG", "#3c3c3c")
-
-        skeleton_frame = tk.Frame(self.frame, bg=bg_color)
-        skeleton_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
-
-        # Configure skeleton frame grid
-        skeleton_frame.grid_columnconfigure(0, weight=1)
-
-        # Skeleton lines
-        for i in range(3):
-            skeleton_line = tk.Frame(skeleton_frame, bg=skeleton_color, height=15)
-            skeleton_line.grid(row=i, column=0, sticky="ew", pady=2)
-
-            # Configure skeleton line grid
-            skeleton_frame.grid_rowconfigure(i, weight=0)
-
-            # Animate skeleton
-            self._animate_skeleton_line(skeleton_line)
-
-    def _animate_skeleton_line(self, line_frame):
-        """Animate skeleton line with shimmer effect."""
-
-        def shimmer():
-            colors = ["#e9ecef", "#dee2e6", "#ced4da", "#dee2e6", "#e9ecef"]
-            color_index = 0
-
-            while self.animation_running:
-                try:
-                    line_frame.configure(bg=colors[color_index % len(colors)])
-                    color_index += 1
-                    time.sleep(0.3)
-                except tk.TclError:
-                    break
-
-        threading.Thread(target=shimmer, daemon=True).start()
-
-    def _start_animation(self):
-        """Start loading animations."""
-        self.animation_running = True
-
-        def spin_animation():
-            spinner_chars = ["⟳", "⟲", "⟳", "⟲"]
-            char_index = 0
-
-            while self.animation_running:
-                try:
-                    self.spinner_label.configure(
-                        text=spinner_chars[char_index % len(spinner_chars)]
-                    )
-                    char_index += 1
-                    time.sleep(0.5)
-                except tk.TclError:
-                    break
-
-        threading.Thread(target=spin_animation, daemon=True).start()
-
+        self.spinner = LoadingSpinner(parent, text=message)
+        
+    def show(self):
+        self.spinner.start()
+        
+    def hide(self):
+        self.spinner.stop()
+        
     def update_progress(self, value: float, message: str = None):
-        """Update progress bar and message."""
-        if self.show_progress and hasattr(self, "progress_bar"):
-            try:
-                self.progress_bar["value"] = value
-                if message:
-                    self.message_label.configure(text=message)
-            except tk.TclError:
-                pass
-
-    def hide(self):
-        """Hide the loading state and stop animations."""
-        self.animation_running = False
-        super().hide()
+        if message:
+            self.spinner.set_text(message)
 
 
+# InputValidationError class moved to src/ui/components/common/error_display.py
+# Use InlineErrorDisplay component instead
 class InputValidationError(ErrorStateComponent):
-    """Shows inline validation errors with helpful hints."""
-
-    def __init__(
-        self, parent: tk.Widget, target_widget: tk.Widget, error_message: str, hint: str = None
-    ):
+    """Legacy validation error - use InlineErrorDisplay instead."""
+    
+    def __init__(self, parent, target_widget, error_message: str, hint: str = None):
         super().__init__(parent)
-        self.target_widget = target_widget
-        self.error_message = error_message
-        self.hint = hint
-
-    def _create_frame(self):
-        """Create the validation error frame."""
-        # Position error below target widget
-        self.frame = tk.Frame(self.parent, bg="#f8d7da")
-
-        # Error message
-        error_label = tk.Label(
-            self.frame,
-            text=f"⚠ {self.error_message}",
-            font=("Arial", 8),
-            bg="#f8d7da",
-            fg="#721c24",
-            anchor="w",
-        )
-        error_label.pack(fill="x", padx=5, pady=2)
-
-        # Helpful hint
-        if self.hint:
-            hint_label = tk.Label(
-                self.frame,
-                text=f"💡 {self.hint}",
-                font=("Arial", 8),
-                bg="#f8d7da",
-                fg="#856404",
-                anchor="w",
-            )
-            hint_label.pack(fill="x", padx=5, pady=(0, 2))
-
-        # Highlight target widget
-        try:
-            self.target_widget.configure(highlightbackground="#dc3545", highlightthickness=2)
-        except tk.TclError:
-            pass
-
+        message = f"{error_message}. {hint}" if hint else error_message
+        self.error_display = InlineErrorDisplay(parent, message, "error")
+        
+    def show(self):
+        self.error_display.show()
+        
     def hide(self):
-        """Hide validation error and remove highlight."""
-        try:
-            self.target_widget.configure(highlightthickness=0)
-        except tk.TclError:
-            pass
-        super().hide()
+        self.error_display.hide()
 
 
 class ErrorStateManager:
@@ -463,32 +323,38 @@ class ErrorStateManager:
 
     def show_api_error(
         self, error_message: str, retry_callback: Callable = None
-    ) -> APIErrorDisplay:
-        """Show API error."""
+    ) -> ErrorDisplay:
+        """Show API error using new ErrorDisplay component."""
         self.clear_error("api_error")  # Clear existing API error
-        api_error = APIErrorDisplay(self.parent, error_message, retry_callback)
+        api_error = ErrorDisplay(
+            self.parent, 
+            "API Error", 
+            error_message, 
+            retry_callback=retry_callback
+        )
         api_error.show()
         self.active_errors["api_error"] = api_error
         return api_error
 
     def show_loading(
         self, message: str = "Loading...", show_progress: bool = False
-    ) -> LoadingState:
-        """Show loading state."""
+    ) -> LoadingSpinner:
+        """Show loading state using new LoadingSpinner component."""
         self.clear_error("loading")  # Clear existing loading state
-        loading_state = LoadingState(self.parent, message, show_progress)
-        loading_state.show()
+        loading_state = LoadingSpinner(self.parent, text=message)
+        loading_state.start()
         self.active_errors["loading"] = loading_state
         return loading_state
 
     def show_validation_error(
-        self, target_widget: tk.Widget, error_message: str, hint: str = None
-    ) -> InputValidationError:
-        """Show input validation error."""
+        self, target_widget, error_message: str, hint: str = None
+    ) -> InlineErrorDisplay:
+        """Show input validation error using new InlineErrorDisplay component."""
         error_key = f"validation_{id(target_widget)}"
         self.clear_error(error_key)  # Clear existing validation error
 
-        validation_error = InputValidationError(self.parent, target_widget, error_message, hint)
+        message = f"{error_message}. {hint}" if hint else error_message
+        validation_error = InlineErrorDisplay(self.parent, message, "error")
         validation_error.show()
         self.active_errors[error_key] = validation_error
         return validation_error

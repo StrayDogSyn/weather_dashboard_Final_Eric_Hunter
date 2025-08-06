@@ -6,14 +6,16 @@ the primary application flow.
 
 import logging
 
-import customtkinter as ctk
 
+from src.ui.safe_widgets import SafeCTkTabview
+from src.utils.error_wrapper import ensure_main_thread
 from src.ui.components.common.header import HeaderComponent
 from src.ui.components.common.status_bar_component import StatusBarComponent
 from src.ui.components.journal_tab_manager import JournalTabManager
 from src.ui.dashboard.activities_tab_manager import ActivitiesTabManager
 from src.ui.dashboard.base_dashboard import BaseDashboard
 from src.ui.dashboard.comparison_tab_manager import ComparisonTabManager, MLComparisonTabManager
+from src.ui.dashboard.maps_tab_manager import MapsTabManager
 from src.ui.dashboard.settings_tab_manager import SettingsTabManager
 from src.ui.dashboard.weather_tab_manager import WeatherTabManager
 
@@ -36,6 +38,7 @@ class DashboardController(BaseDashboard):
         self.comparison_tab_manager = None
         self.ml_comparison_tab_manager = None
         self.journal_tab_manager = None
+        self.maps_tab_manager = None
 
         # UI components
         self.header_component = None
@@ -52,7 +55,7 @@ class DashboardController(BaseDashboard):
 
     def _create_main_content(self):
         """Create tab view and initialize tab managers."""
-        self.tabview = ctk.CTkTabview(self, corner_radius=10)
+        self.tabview = SafeCTkTabview(self, corner_radius=10)
         self.tabview.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
 
         # Create tabs
@@ -113,6 +116,10 @@ class DashboardController(BaseDashboard):
             self.journal_tab, self.weather_service, self.theme_manager
         )
 
+        self.maps_tab_manager = MapsTabManager(
+            self.maps_tab, self.weather_service, self.config_service
+        )
+
     def _create_all_tabs(self):
         """Create content for all tabs using their respective managers."""
         # Weather tab content is created automatically by WeatherTabManager in constructor
@@ -131,9 +138,10 @@ class DashboardController(BaseDashboard):
             self.journal_tab_manager.create_journal_tab()
 
     def _create_maps_tab(self):
-        """Create maps tab content (placeholder for now)."""
-        # This would be implemented with a dedicated maps tab manager
-        # For now, keeping the existing implementation
+        """Create maps tab content using MapsTabManager."""
+        if self.maps_tab_manager:
+            # Maps tab content is created automatically by MapsTabManager in constructor
+            pass
 
     def _create_header_component(self):
         """Create the header component."""
@@ -173,10 +181,13 @@ class DashboardController(BaseDashboard):
         # Trigger weather update (this would typically call the weather service)
         # For now, just update the status
         if self.status_bar_component:
-            self.status_bar_component.safe_after(
-                2000, lambda: self.status_bar_component.clear_status()
+            self.timer_manager.schedule_once(
+                'clear_location_status',
+                2000,
+                lambda: self.status_bar_component.clear_status()
             )
 
+    @ensure_main_thread
     def update_weather_data(self, weather_data):
         """Update weather data across all relevant tabs.
 
@@ -191,8 +202,10 @@ class DashboardController(BaseDashboard):
         # Update status bar
         if self.status_bar_component:
             self.status_bar_component.show_success("Weather data updated")
-            self.status_bar_component.safe_after(
-                3000, lambda: self.status_bar_component.clear_status()
+            self.timer_manager.schedule_once(
+                'clear_weather_status',
+                3000,
+                lambda: self.status_bar_component.clear_status()
             )
 
     def update_status(self, message, status_type="info"):

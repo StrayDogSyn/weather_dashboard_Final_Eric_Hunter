@@ -1,5 +1,5 @@
-import customtkinter as ctk
 
+import customtkinter as ctk
 from src.ui.theme import DataTerminalTheme
 
 
@@ -503,19 +503,37 @@ class SettingsTabManager:
         # Version info
         version_label = ctk.CTkLabel(
             about_frame,
-            text="Weather Dashboard v2.1.0",
+            text="PROJECT CODEFRONT v3.5",
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
         )
         version_label.grid(row=1, column=0, sticky="w", padx=15, pady=5)
 
-        # Description
-        desc_label = ctk.CTkLabel(
+        # Subtitle
+        subtitle_label = ctk.CTkLabel(
             about_frame,
-            text="Professional weather monitoring with advanced analytics",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text="Advanced Weather Intelligence System",
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        desc_label.grid(row=2, column=0, sticky="w", padx=15, pady=(0, 15))
+        subtitle_label.grid(row=2, column=0, sticky="w", padx=15, pady=2)
+
+        # Program info
+        program_label = ctk.CTkLabel(
+            about_frame,
+            text="Justice Through Code - Tech Pathways Capstone",
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
+        )
+        program_label.grid(row=3, column=0, sticky="w", padx=15, pady=2)
+
+        # Developer info
+        dev_label = ctk.CTkLabel(
+            about_frame,
+            text="Developer: E. Hunter Petross | Year: 2025",
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
+        )
+        dev_label.grid(row=4, column=0, sticky="w", padx=15, pady=(2, 15))
 
     # Event handlers
     def _toggle_api_visibility(self, entry):

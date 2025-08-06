@@ -11,6 +11,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+try:
+    from .timer_manager import TimerManager
+except ImportError:
+    # Fallback if TimerManager is not available
+    TimerManager = None
+
 
 class ComponentPriority(Enum):
     """Priority levels for component loading."""
@@ -51,8 +57,13 @@ class LoadResult:
 class StartupOptimizer:
     """Manages progressive loading and startup optimization."""
 
-    def __init__(self):
-        """Initialize the startup optimizer."""
+    def __init__(self, app=None, timer_manager=None):
+        """Initialize the startup optimizer.
+        
+        Args:
+            app: The main application instance (for UI operations)
+            timer_manager: TimerManager instance for safe timer operations
+        """
         self.components: Dict[str, ComponentConfig] = {}
         self.loaded_components: Dict[str, LoadResult] = {}
         self.loading_queue: List[str] = []
@@ -69,6 +80,8 @@ class StartupOptimizer:
 
         self.logger = logging.getLogger(__name__)
         self._lock = threading.Lock()
+        self.app = app
+        self.timer_manager = timer_manager
 
     def register_component(
         self,
@@ -297,7 +310,6 @@ class StartupOptimizer:
 
         # Check cache first
         if config.cache_result and name in self._cache:
-            self.logger.debug(f"Loading '{name}' from cache")
             result = LoadResult(
                 component_name=name,
                 success=True,
@@ -427,7 +439,6 @@ class StartupOptimizer:
             return False
 
         if self.is_component_loaded(name):
-            self.logger.debug(f"Component '{name}' already loaded")
             return True
 
         result = self._load_component(name)
@@ -445,7 +456,55 @@ class StartupOptimizer:
             else:
                 self._cache.clear()
                 self.loaded_components.clear()
-                self.logger.debug("Invalidated all component cache")
+
+    def load_component(self, name: str):
+        """Load component with proper timing and UI safety checks.
+        
+        Args:
+            name: Name of the component to load
+        """
+        component = self.components.get(name)
+        if not component:
+            self.logger.error(f"Component '{name}' not registered")
+            return
+        
+        # Ensure UI is ready
+        if hasattr(self.app, 'winfo_exists'):
+            if not self.app.winfo_exists():
+                self.logger.error(f"App not ready for {name}")
+                return
+        
+        try:
+            # Use TimerManager if available, otherwise fallback to direct after()
+            if self.timer_manager:
+                self.timer_manager.schedule_once(
+                    f'load_component_{name}',
+                    100,  # 100ms delay for UI stabilization
+                    lambda: self._load_component_safe(name)
+                )
+            elif hasattr(self.app, 'after'):
+                # Fallback to direct after() call
+                self.app.after(100, lambda: self._load_component_safe(name))
+            else:
+                # Direct loading if no timer system available
+                self._load_component_safe(name)
+        except Exception as e:
+            self.logger.error(f"Component load failed: {e}")
+    
+    def _load_component_safe(self, name: str):
+        """Safely load a component with error handling.
+        
+        Args:
+            name: Name of the component to load
+        """
+        try:
+            result = self._load_component(name)
+            if result.success:
+                self.logger.info(f"Component '{name}' loaded successfully")
+            else:
+                self.logger.error(f"Component '{name}' failed to load: {result.error}")
+        except Exception as e:
+            self.logger.error(f"Safe component load failed for '{name}': {e}")
 
     def shutdown(self) -> None:
         """Shutdown the optimizer and clean up resources."""
