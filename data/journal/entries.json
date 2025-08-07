@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "created_at": "2025-08-02T21:26:54.511059",
+  "entries": [
+    {
+      "id": "d5e3f786-647f-4c81-861d-171b1f57f9a8",
+      "created_at": "2025-08-02T21:25:53.940273",
+      "updated_at": "2025-08-02T21:25:53.940307",
+      "location": "London, UK",
+      "latitude": null,
+      "longitude": null,
+      "weather_snapshot": null,
+      "mood": "happy",
+      "title": "Beautiful Day",
+      "content": "What a lovely day! The weather is perfect for a walk in the park. The partly cloudy sky creates a nice atmosphere.",
+      "formatted_content": "",
+      "photo_paths": [],
+      "tags": [],
+      "word_count": 22,
+      "is_auto_saved": false,
+      "last_auto_save": null
+    },
+    {
+      "id": "5ab4e0c4-2354-4e49-b9d1-aec4fe0bbefc",
+      "created_at": "2025-08-02T21:26:37.540457",
+      "updated_at": "2025-08-02T21:26:37.540475",
+      "location": "London, UK",
+      "latitude": null,
+      "longitude": null,
+      "weather_snapshot": null,
+      "mood": "happy",
+      "title": "Beautiful Day",
+      "content": "What a lovely day! The weather is perfect for a walk in the park. The partly cloudy sky creates a nice atmosphere.",
+      "formatted_content": "",
+      "photo_paths": [],
+      "tags": [],
+      "word_count": 22,
+      "is_auto_saved": false,
+      "last_auto_save": null
+    },
+    {
+      "id": "7a649fe5-2f36-4ada-aa71-a1bcec526585",
+      "created_at": "2025-08-02T21:26:54.509558",
+      "updated_at": "2025-08-02T21:26:54.509576",
+      "location": "London, UK",
+      "latitude": null,
+      "longitude": null,
+      "weather_snapshot": null,
+      "mood": "happy",
+      "title": "Beautiful Day",
+      "content": "What a lovely day! The weather is perfect for a walk in the park. The partly cloudy sky creates a nice atmosphere.",
+      "formatted_content": "",
+      "photo_paths": [],
+      "tags": [],
+      "word_count": 22,
+      "is_auto_saved": false,
+      "last_auto_save": null
+    }
+  ]
+}

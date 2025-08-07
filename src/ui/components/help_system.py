@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Optional, Tuple
 
-
 class OnboardingStep(Enum):
     """Onboarding flow steps."""
 
@@ -24,7 +23,6 @@ class OnboardingStep(Enum):
     EXPLORE_FEATURES = "explore_features"
     CUSTOMIZE_SETTINGS = "customize_settings"
     COMPLETE = "complete"
-
 
 @dataclass
 class TooltipConfig:
@@ -37,7 +35,6 @@ class TooltipConfig:
     fg_color: str = "white"
     font: Tuple[str, int] = ("Arial", 9)
 
-
 @dataclass
 class OnboardingStepData:
     """Data for an onboarding step."""
@@ -48,7 +45,6 @@ class OnboardingStepData:
     highlight_color: str = "#3498db"
     action_text: str = "Next"
     skip_allowed: bool = True
-
 
 class ToolTip:
     """Tooltip widget that appears on hover."""
@@ -168,8 +164,8 @@ class ToolTip:
                 y = event.y_root + 10
                 self.tooltip_window.wm_geometry(f"+{x}+{y}")
             except tk.TclError:
-                pass
 
+                pass
 
 class OnboardingOverlay:
     """Onboarding overlay that guides users through features."""
@@ -345,7 +341,6 @@ class OnboardingOverlay:
         except Exception as e:
             self.logger.error(f"Error saving preferences: {e}")
 
-
 class KeyboardShortcutOverlay:
     """Overlay showing keyboard shortcuts."""
 
@@ -445,7 +440,6 @@ class KeyboardShortcutOverlay:
             self.overlay_window.destroy()
             self.overlay_window = None
 
-
 class FeatureDiscovery:
     """Animated feature discovery system."""
 
@@ -513,7 +507,6 @@ class FeatureDiscovery:
                 pass
 
         threading.Thread(target=hide_tooltip, daemon=True).start()
-
 
 class HelpSystem:
     """Main help system coordinator."""

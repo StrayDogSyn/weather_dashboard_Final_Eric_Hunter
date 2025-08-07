@@ -14,8 +14,6 @@ from .activity_repository import (
     WeatherSuitability,
 )
 from .base_repository import BaseRepository, InMemoryRepository, ReadOnlyRepository
-from .preference_repository import PreferenceRepository
-from .weather_repository import ForecastRepository, WeatherRepository
 
 __all__ = [
     # Base Repository

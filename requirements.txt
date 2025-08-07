@@ -57,6 +57,10 @@ plotly==5.17.0                # Interactive plotting library
 # Image Processing
 Pillow==10.1.0                # Python Imaging Library (PIL Fork)
 
+# Document Generation
+reportlab==4.0.7              # PDF generation library
+wordcloud==1.9.2              # Word cloud generation
+
 # =============================================================================
 # USER INTERFACE
 # =============================================================================
@@ -65,6 +69,9 @@ Pillow==10.1.0                # Python Imaging Library (PIL Fork)
 customtkinter==5.2.2          # Modern and customizable tkinter
 ttkbootstrap==1.10.1          # Bootstrap-themed tkinter widgets
 tkinter                        # Built-in GUI toolkit (Python standard library)
+
+# Web Framework (Optional)
+streamlit==1.29.0             # Web app framework for data applications
 
 # =============================================================================
 # GEOLOCATION AND MAPPING
@@ -75,6 +82,12 @@ geopy==2.4.1                  # Geocoding library
 geocoder==1.38.1              # Alternative geocoding service
 timezonefinder==6.2.0         # Timezone lookup by coordinates
 pytz==2023.3                  # World timezone definitions
+folium==0.15.0                # Interactive maps
+tkintermapview==1.29.0        # Interactive map widget for tkinter
+tkinterweb==3.24.7            # Web browser widget for tkinter
+pywebview==4.4.1              # Cross-platform webview with JavaScript support
+branca==0.6.0                 # HTML/JS generation for folium
+jinja2>=2.9                   # Template engine for folium
 
 # =============================================================================
 # AI AND MACHINE LEARNING

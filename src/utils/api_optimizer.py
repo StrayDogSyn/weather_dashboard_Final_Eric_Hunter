@@ -92,7 +92,9 @@ class RateLimiter:
             elapsed = now - self.last_update
 
             # Add tokens based on elapsed time
-            self.tokens = min(self.burst_size, self.tokens + elapsed * self.requests_per_second)
+            self.tokens = min(
+                self.burst_size, self.tokens + elapsed * self.requests_per_second
+            )
             self.last_update = now
 
             if self.tokens >= tokens:
@@ -170,7 +172,6 @@ class APIOptimizer:
         with self._queue_lock:
             # Check if request is already active
             if request.request_id in self._active_requests:
-                self.logger.debug(f"Request {request.request_id} already active")
                 return request.request_id
 
             # Add to queue based on priority
@@ -198,18 +199,6 @@ class APIOptimizer:
         else:
             self._request_queue.insert(insert_index, request)
 
-    def _worker_loop(self) -> None:
-        """Main worker loop for processing requests."""
-        while not self._shutdown_event.is_set():
-            try:
-                request = self._get_next_request()
-                if request:
-                    self._process_request(request)
-                else:
-                    time.sleep(0.1)  # No requests, wait briefly
-
-            except Exception as e:
-                self.logger.error(f"Worker error: {e}")
 
     def _get_next_request(self) -> Optional[APIRequest]:
         """Get the next request from the queue."""
@@ -253,7 +242,9 @@ class APIOptimizer:
                     if not response:
                         raise
 
-            elif request.cache_strategy in [CacheStrategy.API_ONLY, CacheStrategy.REFRESH]:
+            elif request.cache_strategy in [
+                CacheStrategy.API_ONLY, CacheStrategy.REFRESH
+            ]:
                 response = self._make_api_call(request)
 
             # Update statistics
@@ -269,7 +260,9 @@ class APIOptimizer:
                 try:
                     request.callback(response.data)
                 except Exception as e:
-                    self.logger.error(f"Callback error for request {request.request_id}: {e}")
+                    self.logger.error(
+                        f"Callback error for request {request.request_id}: {e}"
+                    )
 
         except Exception as e:
             # Create error response
@@ -317,7 +310,6 @@ class APIOptimizer:
             # Return cached response
             self._stats["cache_hits"] += 1
             cached.cache_hit = True
-            self.logger.debug(f"Cache hit for request {request.request_id}")
             return cached
 
     def _make_api_call(self, request: APIRequest) -> APIResponse:
@@ -329,7 +321,11 @@ class APIOptimizer:
         # Mock successful response
         response = APIResponse(
             request_id=request.request_id,
-            data={"mock": "data", "endpoint": request.endpoint, "params": request.params},
+            data={
+                "mock": "data",
+                "endpoint": request.endpoint,
+                "params": request.params
+            },
             success=True,
             response_time=0.1,
         )
@@ -343,12 +339,12 @@ class APIOptimizer:
             if len(self._request_cache) >= self._cache_size:
                 # Remove oldest entry
                 oldest_key = min(
-                    self._request_cache.keys(), key=lambda k: self._request_cache[k].timestamp
+                    self._request_cache.keys(),
+                    key=lambda k: self._request_cache[k].timestamp
                 )
                 self._request_cache.pop(oldest_key, None)
 
             self._request_cache[request.request_id] = response
-            self.logger.debug(f"Cached response for request {request.request_id}")
 
     def _update_stats(self, response: APIResponse, response_time: float) -> None:
         """Update performance statistics."""
@@ -358,7 +354,9 @@ class APIOptimizer:
             self._stats["failed_requests"] += 1
 
         # Update average response time
-        total_responses = self._stats["successful_requests"] + self._stats["failed_requests"]
+        total_responses = (
+            self._stats["successful_requests"] + self._stats["failed_requests"]
+        )
         current_avg = self._stats["average_response_time"]
         self._stats["average_response_time"] = (
             current_avg * (total_responses - 1) + response_time
@@ -368,7 +366,10 @@ class APIOptimizer:
         """Get status of a specific request."""
         # Check if request is active
         if request_id in self._active_requests:
-            return {"status": "processing", "request": self._active_requests[request_id]}
+            return {
+                "status": "processing",
+                "request": self._active_requests[request_id]
+            }
 
         # Check if request is in queue
         with self._queue_lock:
@@ -379,7 +380,10 @@ class APIOptimizer:
         # Check if response is cached
         with self._cache_lock:
             if request_id in self._request_cache:
-                return {"status": "completed", "response": self._request_cache[request_id]}
+                return {
+                    "status": "completed",
+                    "response": self._request_cache[request_id]
+                }
 
         return None
 
@@ -408,12 +412,38 @@ class APIOptimizer:
 
         return stats
 
+    def _worker_loop(self) -> None:
+        """Worker thread loop for processing API requests."""
+        while not self._shutdown_event.is_set():
+            try:
+                # Get next request from queue
+                request = self._get_next_request()
+                
+                if request is None:
+                    # No requests available, wait a bit
+                    time.sleep(0.1)
+                    continue
+                
+                # Process the request
+                self._process_request(request)
+                
+                # Remove from active requests
+                with self._queue_lock:
+                    self._active_requests.pop(request.request_id, None)
+                    self._stats["concurrent_requests"] -= 1
+                    
+            except Exception as e:
+                self.logger.error(f"Error in worker loop: {e}")
+                time.sleep(1)  # Wait before retrying
+
     def clear_cache(self, pattern: Optional[str] = None) -> int:
         """Clear cached responses."""
         with self._cache_lock:
             if pattern:
                 # Clear entries matching pattern
-                to_remove = [key for key in self._request_cache.keys() if pattern in key]
+                to_remove = [
+                    key for key in self._request_cache.keys() if pattern in key
+                ]
                 for key in to_remove:
                     self._request_cache.pop(key, None)
                 cleared = len(to_remove)

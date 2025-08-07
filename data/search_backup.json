@@ -1,0 +1,284 @@
+{
+  "search_history": [
+    {
+      "id": 1,
+      "query": "Tokyo",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:58",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 2,
+      "query": "New York",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 3,
+      "query": "London",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 4,
+      "query": "Tokyo",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 5,
+      "query": "Paris",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 6,
+      "query": "compare: Tokyo, New York",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 2,
+      "feature_used": null
+    },
+    {
+      "id": 7,
+      "query": "weather: London",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 8,
+      "query": "Tokyo",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 9,
+      "query": "Berlin",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:57:59",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 10,
+      "query": "compare: Paris, London",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 2,
+      "feature_used": null
+    },
+    {
+      "id": 11,
+      "query": "Sydney",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 12,
+      "query": "weather: Tokyo",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 13,
+      "query": "Moscow",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 14,
+      "query": "compare: Tokyo, London, Paris",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 3,
+      "feature_used": null
+    },
+    {
+      "id": 15,
+      "query": "Rome",
+      "search_type": "city",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 16,
+      "query": "Madrid",
+      "search_type": "single",
+      "timestamp": "2025-08-04 20:58:00",
+      "result_count": 1,
+      "feature_used": null
+    },
+    {
+      "id": 17,
+      "query": "compare cities",
+      "search_type": "multi",
+      "timestamp": "2025-08-04 20:58:01",
+      "result_count": 2,
+      "feature_used": null
+    },
+    {
+      "id": 18,
+      "query": "weather command",
+      "search_type": "command",
+      "timestamp": "2025-08-04 20:58:02",
+      "result_count": 1,
+      "feature_used": null
+    }
+  ],
+  "favorites": [
+    {
+      "id": 1,
+      "city_name": "Tokyo",
+      "added_date": "2025-08-04 20:58:00",
+      "use_count": 3,
+      "last_used": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 2,
+      "city_name": "New York",
+      "added_date": "2025-08-04 20:58:00",
+      "use_count": 1,
+      "last_used": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 3,
+      "city_name": "London",
+      "added_date": "2025-08-04 20:58:00",
+      "use_count": 3,
+      "last_used": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 4,
+      "city_name": "Paris",
+      "added_date": "2025-08-04 20:58:00",
+      "use_count": 1,
+      "last_used": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 5,
+      "city_name": "Barcelona",
+      "added_date": "2025-08-04 20:58:00",
+      "use_count": 2,
+      "last_used": "2025-08-04 20:58:00"
+    }
+  ],
+  "analytics": [
+    {
+      "id": 1,
+      "pattern": "Tokyo",
+      "frequency": 3,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 2,
+      "pattern": "New York",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 3,
+      "pattern": "London",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 4,
+      "pattern": "Paris",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 5,
+      "pattern": "compare: Tokyo, New York",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 6,
+      "pattern": "weather: London",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 7,
+      "pattern": "Berlin",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:57:59"
+    },
+    {
+      "id": 8,
+      "pattern": "compare: Paris, London",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 9,
+      "pattern": "Sydney",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 10,
+      "pattern": "weather: Tokyo",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 11,
+      "pattern": "Moscow",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 12,
+      "pattern": "compare: Tokyo, London, Paris",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 13,
+      "pattern": "Rome",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 14,
+      "pattern": "Madrid",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:00"
+    },
+    {
+      "id": 15,
+      "pattern": "compare cities",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:01"
+    },
+    {
+      "id": 16,
+      "pattern": "weather command",
+      "frequency": 1,
+      "last_seen": "2025-08-04 20:58:02"
+    }
+  ],
+  "export_timestamp": "2025-08-04T16:58:02.610159"
+}

@@ -11,6 +11,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+try:
+    from .timer_manager import TimerManager
+except ImportError:
+    # Fallback if TimerManager is not available
+    TimerManager = None
+
 
 class ComponentPriority(Enum):
     """Priority levels for component loading."""
@@ -51,8 +57,13 @@ class LoadResult:
 class StartupOptimizer:
     """Manages progressive loading and startup optimization."""
 
-    def __init__(self):
-        """Initialize the startup optimizer."""
+    def __init__(self, app=None, timer_manager=None):
+        """Initialize the startup optimizer.
+        
+        Args:
+            app: The main application instance (for UI operations)
+            timer_manager: TimerManager instance for safe timer operations
+        """
         self.components: Dict[str, ComponentConfig] = {}
         self.loaded_components: Dict[str, LoadResult] = {}
         self.loading_queue: List[str] = []
@@ -69,6 +80,8 @@ class StartupOptimizer:
 
         self.logger = logging.getLogger(__name__)
         self._lock = threading.Lock()
+        self.app = app
+        self.timer_manager = timer_manager
 
     def register_component(
         self,
@@ -95,7 +108,9 @@ class StartupOptimizer:
 
         with self._lock:
             self.components[name] = config
-            self.logger.debug(f"Registered component '{name}' with priority {priority.name}")
+            self.logger.debug(
+                f"Registered component '{name}' with priority {priority.name}"
+            )
 
     def start_progressive_loading(
         self,
@@ -115,7 +130,9 @@ class StartupOptimizer:
                 self._execute_progressive_loading(on_component_loaded)
 
                 # Update performance stats
-                self._performance_stats["total_load_time"] = time.time() - start_time
+                self._performance_stats["total_load_time"] = (
+                    time.time() - start_time
+                )
 
                 if on_complete:
                     on_complete()
@@ -136,7 +153,9 @@ class StartupOptimizer:
         # Sort components by priority and dependencies
         load_order = self._calculate_load_order()
 
-        self.logger.info(f"Starting progressive loading of {len(load_order)} components")
+        self.logger.info(
+            f"Starting progressive loading of {len(load_order)} components"
+        )
 
         # Load components in priority order
         for priority_group in load_order:
@@ -165,22 +184,54 @@ class StartupOptimizer:
         """Resolve dependencies within a priority group."""
         resolved = []
         remaining = component_names.copy()
+        max_iterations = len(component_names) * 2  # Prevent infinite loops
+        iteration = 0
 
-        while remaining:
+        while remaining and iteration < max_iterations:
+            iteration += 1
             # Find components with no unresolved dependencies
             ready = []
             for name in remaining:
                 config = self.components[name]
                 deps_satisfied = all(
-                    dep in self.loaded_components or dep in resolved for dep in config.dependencies
+                    dep in self.loaded_components
+                    or dep in resolved
+                    or dep not in self.components
+                    for dep in config.dependencies
                 )
                 if deps_satisfied:
                     ready.append(name)
 
             if not ready:
-                # Circular dependency or missing dependency
-                self.logger.warning(f"Circular or missing dependencies detected: {remaining}")
-                ready = remaining  # Load anyway
+                # Check if dependencies are in other priority groups that should be loaded first
+                unmet_deps = set()
+                for name in remaining:
+                    config = self.components[name]
+                    for dep in config.dependencies:
+                        if (
+                            dep not in self.loaded_components
+                            and dep not in resolved
+                            and dep in self.components
+                        ):
+                            dep_priority = self.components[dep].priority.value
+                            current_priority = config.priority.value
+                            if dep_priority <= current_priority:
+                                unmet_deps.add(dep)
+
+                if unmet_deps:
+                    self.logger.debug(
+                        f"Dependencies {list(unmet_deps)} will be loaded in "
+                        f"earlier priority groups"
+                    )
+                    # Load remaining components anyway since dependencies will be satisfied later
+                    ready = remaining
+                else:
+                    # True circular dependency within same priority
+                    self.logger.warning(
+                        f"Circular dependencies detected within priority group: "
+                        f"{remaining}"
+                    )
+                    ready = remaining  # Load anyway
 
             resolved.extend(ready)
             for name in ready:
@@ -201,7 +252,10 @@ class StartupOptimizer:
         # For medium and below, load in parallel
         first_component = self.components[component_names[0]]
 
-        if first_component.priority in [ComponentPriority.CRITICAL, ComponentPriority.HIGH]:
+        if first_component.priority in [
+            ComponentPriority.CRITICAL,
+            ComponentPriority.HIGH,
+        ]:
             self._load_sequential(component_names, on_component_loaded)
         else:
             self._load_parallel(component_names, on_component_loaded)
@@ -256,7 +310,6 @@ class StartupOptimizer:
 
         # Check cache first
         if config.cache_result and name in self._cache:
-            self.logger.debug(f"Loading '{name}' from cache")
             result = LoadResult(
                 component_name=name,
                 success=True,
@@ -311,7 +364,8 @@ class StartupOptimizer:
         self._performance_stats["components_failed"] += 1
 
         self.logger.error(
-            f"✗ Component '{name}' failed to load after {config.retry_count + 1} attempts"
+            f"✗ Component '{name}' failed to load after "
+            f"{config.retry_count + 1} attempts"
         )
         return result
 
@@ -385,7 +439,6 @@ class StartupOptimizer:
             return False
 
         if self.is_component_loaded(name):
-            self.logger.debug(f"Component '{name}' already loaded")
             return True
 
         result = self._load_component(name)
@@ -397,11 +450,61 @@ class StartupOptimizer:
             if component_name:
                 self._cache.pop(component_name, None)
                 self.loaded_components.pop(component_name, None)
-                self.logger.debug(f"Invalidated cache for component '{component_name}'")
+                self.logger.debug(
+                    f"Invalidated cache for component '{component_name}'"
+                )
             else:
                 self._cache.clear()
                 self.loaded_components.clear()
-                self.logger.debug("Invalidated all component cache")
+
+    def load_component(self, name: str):
+        """Load component with proper timing and UI safety checks.
+        
+        Args:
+            name: Name of the component to load
+        """
+        component = self.components.get(name)
+        if not component:
+            self.logger.error(f"Component '{name}' not registered")
+            return
+        
+        # Ensure UI is ready
+        if hasattr(self.app, 'winfo_exists'):
+            if not self.app.winfo_exists():
+                self.logger.error(f"App not ready for {name}")
+                return
+        
+        try:
+            # Use TimerManager if available, otherwise fallback to direct after()
+            if self.timer_manager:
+                self.timer_manager.schedule_once(
+                    f'load_component_{name}',
+                    100,  # 100ms delay for UI stabilization
+                    lambda: self._load_component_safe(name)
+                )
+            elif hasattr(self.app, 'after'):
+                # Fallback to direct after() call
+                self.app.after(100, lambda: self._load_component_safe(name))
+            else:
+                # Direct loading if no timer system available
+                self._load_component_safe(name)
+        except Exception as e:
+            self.logger.error(f"Component load failed: {e}")
+    
+    def _load_component_safe(self, name: str):
+        """Safely load a component with error handling.
+        
+        Args:
+            name: Name of the component to load
+        """
+        try:
+            result = self._load_component(name)
+            if result.success:
+                self.logger.info(f"Component '{name}' loaded successfully")
+            else:
+                self.logger.error(f"Component '{name}' failed to load: {result.error}")
+        except Exception as e:
+            self.logger.error(f"Safe component load failed for '{name}': {e}")
 
     def shutdown(self) -> None:
         """Shutdown the optimizer and clean up resources."""

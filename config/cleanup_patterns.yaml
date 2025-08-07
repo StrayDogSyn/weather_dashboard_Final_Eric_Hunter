@@ -1,0 +1,126 @@
+# Cleanup Patterns Configuration
+# Defines file patterns for different types of cleanup operations
+
+legacy_files:
+  patterns:
+    - "*.old"
+    - "*.bak"
+    - "*.backup"
+    - "*~"
+    - "*.orig"
+    - "*.rej"
+    - "*.swp"
+    - "*.swo"
+    - "*.tmp"
+    - "#*#"
+    - ".#*"
+    - "*.pyc.old"
+    - "*.pyo.old"
+  
+  exclusions:
+    - "venv/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - ".git/**"
+    - "__pycache__/**"
+
+temporary_files:
+  patterns:
+    - "*.tmp"
+    - "*.temp"
+    - "*.cache"
+    - "*.log"
+    - "*.pid"
+    - "*.lock"
+    - "*.lck"
+    - "core.*"
+    - "*.core"
+    - "*.stackdump"
+    - "*.dmp"
+    - "Thumbs.db"
+    - ".DS_Store"
+    - "desktop.ini"
+  
+  exclusions:
+    - "logs/important.log"
+    - "config/*.log"
+
+cache_files:
+  patterns:
+    - "**/__pycache__/**"
+    - "*.pyc"
+    - "*.pyo"
+    - "*.pyd"
+    - "**/.pytest_cache/**"
+    - "**/.coverage"
+    - "**/.nyc_output/**"
+    - "**/node_modules/.cache/**"
+    - "**/.cache/**"
+    - "**/.parcel-cache/**"
+    - "**/.next/**"
+    - "**/.nuxt/**"
+  
+  search_paths:
+    - "src/"
+    - "tests/"
+    - "scripts/"
+    - "."
+
+export_files:
+  patterns:
+    - "exports/**/*.png"
+    - "exports/**/*.jpg"
+    - "exports/**/*.jpeg"
+    - "exports/**/*.pdf"
+    - "exports/**/*.csv"
+    - "exports/**/*.xlsx"
+    - "charts/**/*.png"
+    - "charts/**/*.svg"
+    - "reports/**/*.html"
+    - "reports/**/*.pdf"
+  
+  search_paths:
+    - "exports/"
+    - "charts/"
+    - "reports/"
+    - "output/"
+
+weather_cache:
+  patterns:
+    - "cache/weather/**"
+    - "data/cache/**/*.json"
+    - "data/weather_cache/**"
+    - "temp/weather/**"
+    - "*.weather_cache"
+  
+  search_paths:
+    - "cache/"
+    - "data/"
+    - "temp/"
+
+pycache_directories:
+  patterns:
+    - "**/__pycache__"
+  
+  search_paths:
+    - "src/"
+    - "tests/"
+    - "scripts/"
+    - "."
+
+# Health check thresholds
+health_thresholds:
+  large_file_size_mb: 10
+  max_files_warning: 10000
+  max_directory_depth: 10
+  suspicious_extensions:
+    - ".exe"
+    - ".dll"
+    - ".so"
+    - ".dylib"
+
+# Directory statistics
+directory_stats:
+  include_hidden: false
+  max_depth: 5
+  count_by_extension: true

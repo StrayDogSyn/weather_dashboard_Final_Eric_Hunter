@@ -66,6 +66,13 @@ temp/
 *.bak
 *_backup.py
 
+# Maps and interactive content
+cache/maps/
+*.html
+weather_map_*.html
+interactive_maps_cache/
+folium_cache/
+
 # New directory structure
 src/utils/temp/
 src/database/migrations/
@@ -101,6 +108,13 @@ window_config.json
 
 # API response cache
 *.cache
+activity_cache/
+ai_suggestions_cache/
+*.activity_cache
+enhanced_weather_cache.json
+weather_cache.json
+recent_searches.json
+favorites.json
 
 # Spotify authentication and cache files
 .cache-*
@@ -132,6 +146,9 @@ spectrum_data/
 htmlcov/
 .tox/
 .nox/
+test_*.py
+*_test.py
+test_results/
 
 # Documentation builds
 docs/_build/

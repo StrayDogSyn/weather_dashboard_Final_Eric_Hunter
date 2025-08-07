@@ -8,21 +8,26 @@ from typing import Any, Callable, Dict, Set
 
 
 class LoadingManager:
-    """Manages loading operations with timeout, progress tracking, and error handling."""
+    """Manages loading operations with timeout, progress tracking, and error handling.
+    
+    Provides methods for executing tasks with different priorities, timeout handling,
+    and proper cleanup of resources.
+    """
 
-    def __init__(self, max_workers: int = 4):
+    def __init__(self, max_workers: int = 4, ui_widget=None):
         """Initialize the LoadingManager.
 
         Args:
             max_workers: Maximum number of concurrent loading operations
+            ui_widget: Reference to the main UI widget for thread-safe callbacks
         """
         self.logger = logging.getLogger(__name__)
-        self._max_workers = max_workers
         self._active_tasks: Dict[str, Dict[str, Any]] = {}
         self._threads: Set[threading.Thread] = set()
         self._shutdown = False
+        self._ui_widget = ui_widget
 
-        self.logger.info(f"LoadingManager initialized with {max_workers} max workers")
+        self.logger.info(f"LoadingManager initialized with {max_workers} max workers, ui_widget: {ui_widget is not None}")
 
     def load_critical(
         self,
@@ -89,12 +94,14 @@ class LoadingManager:
                         elapsed:.2f}s"
                 )
 
-                # Call success callback
+                # Call success callback directly to avoid threading issues
                 if on_success and result is not None:
                     try:
-                        on_success(result)
+                        self._safe_callback(on_success, result)
                     except Exception as e:
-                        self.logger.error(f"Success callback failed for {task_name}: {e}")
+                        self.logger.error(
+                            f"Success callback failed for {task_name}: {e}"
+                        )
 
             except TimeoutError:
                 elapsed = time.time() - start_time
@@ -102,7 +109,7 @@ class LoadingManager:
                 self.logger.warning(f"⏰ {error_msg}")
                 if on_error:
                     try:
-                        on_error(TimeoutError(error_msg))
+                        self._safe_callback(on_error, TimeoutError(error_msg))
                     except Exception as e:
                         self.logger.error(f"Error callback failed for {task_name}: {e}")
 
@@ -114,7 +121,7 @@ class LoadingManager:
                 )
                 if on_error:
                     try:
-                        on_error(e)
+                        self._safe_callback(on_error, e)
                     except Exception as callback_error:
                         self.logger.error(
                             f"Error callback failed for {task_name}: {callback_error}"
@@ -125,7 +132,9 @@ class LoadingManager:
                 self._active_tasks.pop(task_id, None)
 
         # Start the task in a thread
-        thread = threading.Thread(target=task_wrapper, daemon=True, name=f"LoadingTask-{task_name}")
+        thread = threading.Thread(
+            target=task_wrapper, daemon=True, name=f"LoadingTask-{task_name}"
+        )
         self._active_tasks[task_id] = {
             "thread": thread,
             "start_time": time.time(),
@@ -213,6 +222,21 @@ class LoadingManager:
     def is_busy(self) -> bool:
         """Check if there are any active tasks."""
         return len(self._active_tasks) > 0
+
+    def _safe_callback(self, callback: Callable, arg=None):
+        """Execute a callback safely with error handling.
+        
+        Args:
+            callback: The callback function to execute
+            arg: Single argument to pass to the callback
+        """
+        try:
+            if arg is not None:
+                callback(arg)
+            else:
+                callback()
+        except Exception as e:
+            self.logger.error(f"Callback execution failed: {e}")
 
     def cleanup(self):
         """Clean up resources and stop all loading operations."""

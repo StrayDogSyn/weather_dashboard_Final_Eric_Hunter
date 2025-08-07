@@ -4,7 +4,7 @@ Defines structured data classes for weather forecast information.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from ..location.location_models import Location
@@ -123,9 +123,20 @@ class ForecastData:
 
     @classmethod
     def from_openweather_forecast(cls, data: Dict[str, Any]) -> "ForecastData":
-        """Create ForecastData from OpenWeather forecast API response."""
+        """Create ForecastData from OpenWeather forecast API response.
+
+        Parses 40 3-hour forecast entries from API and groups by day using local timezone.
+        Calculates daily high/low temperatures and determines predominant weather condition.
+        """
+        from collections import Counter, defaultdict
+
+        import pytz
+
         city = data.get("city", {})
         forecast_list = data.get("list", [])
+
+        # Get timezone info
+        timezone_offset = city.get("timezone", 0)  # seconds from UTC
 
         # Create location from city data
         location = Location(
@@ -135,15 +146,33 @@ class ForecastData:
             longitude=city.get("coord", {}).get("lon", 0.0),
         )
 
-        # Parse hourly forecasts
+        # Parse hourly forecasts (limit to 40 entries as per API)
         hourly_forecasts = []
-        for item in forecast_list:
+        daily_data = defaultdict(
+            lambda: {
+                "temps": [],
+                "conditions": [],
+                "descriptions": [],
+                "humidity": [],
+                "wind_speeds": [],
+                "wind_directions": [],
+                "precipitation_probs": [],
+                "precipitation_amounts": [],
+                "entries": [],
+            }
+        )
+
+        for item in forecast_list[:40]:  # Limit to 40 3-hour entries
             weather = item.get("weather", [{}])[0]
             main = item.get("main", {})
             wind = item.get("wind", {})
 
+            # Convert timestamp to local time using timezone offset
+            utc_timestamp = datetime.fromtimestamp(item.get("dt", 0), tz=pytz.UTC)
+            local_timestamp = utc_timestamp + timedelta(seconds=timezone_offset)
+
             forecast_entry = ForecastEntry(
-                timestamp=datetime.fromtimestamp(item.get("dt", 0)),
+                timestamp=local_timestamp,
                 condition=WeatherCondition.from_openweather(weather.get("main", "Unknown")),
                 description=weather.get("description", "Unknown").title(),
                 temperature=main.get("temp", 0.0),
@@ -154,12 +183,80 @@ class ForecastData:
                 wind_direction=wind.get("deg"),
                 cloudiness=item.get("clouds", {}).get("all"),
                 precipitation_probability=item.get("pop"),
+                precipitation_amount=item.get("rain", {}).get("3h", 0)
+                + item.get("snow", {}).get("3h", 0),
             )
             hourly_forecasts.append(forecast_entry)
+
+            # Group by day for daily forecasts
+            day_key = local_timestamp.date()
+            daily_data[day_key]["temps"].append(main.get("temp", 0.0))
+            daily_data[day_key]["conditions"].append(weather.get("main", "Unknown"))
+            daily_data[day_key]["descriptions"].append(weather.get("description", "Unknown"))
+            daily_data[day_key]["humidity"].append(main.get("humidity", 0))
+            daily_data[day_key]["wind_speeds"].append(wind.get("speed", 0))
+            daily_data[day_key]["wind_directions"].append(wind.get("deg", 0))
+            daily_data[day_key]["precipitation_probs"].append(item.get("pop", 0))
+            daily_data[day_key]["precipitation_amounts"].append(
+                item.get("rain", {}).get("3h", 0) + item.get("snow", {}).get("3h", 0)
+            )
+            daily_data[day_key]["entries"].append(forecast_entry)
+
+        # Create daily forecasts
+        daily_forecasts = []
+        for day_date in sorted(daily_data.keys())[:5]:  # Limit to 5 days
+            day_info = daily_data[day_date]
+
+            # Calculate daily statistics
+            temps = day_info["temps"]
+            temp_min = min(temps) if temps else 0.0
+            temp_max = max(temps) if temps else 0.0
+
+            # Determine predominant weather condition
+            condition_counts = Counter(day_info["conditions"])
+            predominant_condition = (
+                condition_counts.most_common(1)[0][0] if condition_counts else "Unknown"
+            )
+
+            # Get most common description
+            description_counts = Counter(day_info["descriptions"])
+            predominant_description = (
+                description_counts.most_common(1)[0][0] if description_counts else "Unknown"
+            )
+
+            # Calculate averages
+            avg_humidity = (
+                sum(day_info["humidity"]) / len(day_info["humidity"]) if day_info["humidity"] else 0
+            )
+            avg_wind_speed = (
+                sum(day_info["wind_speeds"]) / len(day_info["wind_speeds"])
+                if day_info["wind_speeds"]
+                else 0
+            )
+            max_precipitation_prob = (
+                max(day_info["precipitation_probs"]) if day_info["precipitation_probs"] else 0
+            )
+            total_precipitation = (
+                sum(day_info["precipitation_amounts"]) if day_info["precipitation_amounts"] else 0
+            )
+
+            daily_forecast = DailyForecast(
+                date=datetime.combine(day_date, datetime.min.time()),
+                condition=WeatherCondition.from_openweather(predominant_condition),
+                description=predominant_description.title(),
+                temp_min=temp_min,
+                temp_max=temp_max,
+                humidity=int(avg_humidity),
+                wind_speed=avg_wind_speed,
+                precipitation_probability=max_precipitation_prob,
+                precipitation_amount=total_precipitation,
+            )
+            daily_forecasts.append(daily_forecast)
 
         return cls(
             location=location,
             timestamp=datetime.now(),
             hourly_forecasts=hourly_forecasts,
+            daily_forecasts=daily_forecasts,
             raw_data=data,
         )

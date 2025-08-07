@@ -37,7 +37,7 @@ from .weather import (
 )
 
 __version__ = "1.0.0"
-__author__ = "Weather Dashboard Team"
+__author__ = "E. Hunter Petross - Justice Through Code Tech Pathways"
 
 __all__ = [
     # Weather Models

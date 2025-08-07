@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict
-
 import customtkinter as ctk
+
 
 
 class ThemePreviewCard(ctk.CTkFrame):

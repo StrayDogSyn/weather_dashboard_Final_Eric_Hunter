@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-
 class ToastType(Enum):
     """Types of toast notifications."""
 
@@ -20,7 +19,6 @@ class ToastType(Enum):
     ERROR = "error"
     INFO = "info"
     WARNING = "warning"
-
 
 @dataclass
 class ToastConfig:
@@ -32,7 +30,6 @@ class ToastConfig:
     action_text: Optional[str] = None
     action_callback: Optional[Callable] = None
     dismissible: bool = True
-
 
 class ToastNotification:
     """Individual toast notification widget."""
@@ -61,15 +58,16 @@ class ToastNotification:
     def _setup_styling(self):
         """Setup styling based on toast type."""
         colors = {
-            ToastType.SUCCESS: {"bg": "#d4edda", "fg": "#155724", "border": "#c3e6cb"},
-            ToastType.ERROR: {"bg": "#f8d7da", "fg": "#721c24", "border": "#f5c6cb"},
-            ToastType.INFO: {"bg": "#d1ecf1", "fg": "#0c5460", "border": "#bee5eb"},
-            ToastType.WARNING: {"bg": "#fff3cd", "fg": "#856404", "border": "#ffeaa7"},
+            ToastType.SUCCESS: {"bg": "#28a745", "fg": "#ffffff", "border": "#1e7e34"},
+            ToastType.ERROR: {"bg": "#dc3545", "fg": "#ffffff", "border": "#bd2130"},
+            ToastType.INFO: {"bg": "#17a2b8", "fg": "#ffffff", "border": "#117a8b"},
+            ToastType.WARNING: {"bg": "#ffc107", "fg": "#212529", "border": "#e0a800"},
         }
 
         style = colors[self.config.type]
         self.frame.configure(
-            bg=style["bg"], highlightbackground=style["border"], highlightthickness=1
+            bg=style["bg"], highlightbackground=style["border"], highlightthickness=2,
+            relief="raised", bd=2
         )
         self.colors = style
 
@@ -170,7 +168,6 @@ class ToastNotification:
         except tk.TclError:
             pass  # Widget already destroyed
 
-
 class ToastManager:
     """Manages multiple toast notifications."""
 
@@ -181,7 +178,8 @@ class ToastManager:
 
         # Create container for toasts
         self.container = tk.Frame(parent)
-        self.container.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
+        # Position toasts in top-center for better visibility
+        self.container.place(relx=0.5, rely=0.0, anchor="n", x=0, y=60)
 
         # Default durations
         self.default_durations = {

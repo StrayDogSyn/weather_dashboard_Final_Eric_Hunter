@@ -1,12 +1,21 @@
 import json
 import os
 from typing import Any, Callable, Dict, Optional
-
 import customtkinter as ctk
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
+from src.services.logging_config import get_logger
+from src.services.error_handler import safe_execute
+
 
 
 class ThemeManager:
-    """Manages multiple themes for the weather dashboard with live switching capability."""
+    """Manages multiple themes for the weather dashboard with live switching
+    capability."""
 
     THEMES = {
         "matrix": {
@@ -77,9 +86,58 @@ class ThemeManager:
             "secondary": "#7209B7",
             "text": "#E0B1FF",
             "accent": "#F72585",
-            "error": "FF006E",
+            "error": "#FF006E",
             "chart_color": "#BD00FF",
             "chart_bg": "#0A0119",
+        },
+        "data_terminal": {
+            "name": "Data Terminal",
+            "bg": "#1a1a1a",
+            "card": "#2a2a2a",
+            "primary": "#00ff88",
+            "secondary": "#00cc66",
+            "text": "#ffffff",
+            "accent": "#00d4ff",
+            "error": "#ff4444",
+            "chart_color": "#00ff88",
+            "chart_bg": "#1a1a1a",
+        },
+        "neon_blue": {
+            "name": "Neon Blue",
+            "bg": "#0A0A1A",
+            "card": "#1A1A2E",
+            "primary": "#0F3460",
+            "secondary": "#16213E",
+            "text": "#E94560",
+            "accent": "#0F3460",
+            "error": "#E94560",
+            "chart_color": "#0F3460",
+            "chart_bg": "#0A0A1A",
+        },
+        "retro_amber": {
+            "name": "Retro Amber",
+            "bg": "#1A1000",
+            "card": "#2A1F00",
+            "primary": "#FFB000",
+            "secondary": "#CC8800",
+            "text": "#FFCC66",
+            "accent": "#FF8C00",
+            "error": "#FF4500",
+            "chart_color": "#FFB000",
+            "chart_bg": "#1A1000",
+        },
+        # Special default theme - not selectable in UI
+        "default_system": {
+            "name": "System Default",
+            "bg": "#0D1117",
+            "card": "#161B22",
+            "primary": "#58A6FF",
+            "secondary": "#1F6FEB",
+            "text": "#F0F6FC",
+            "accent": "#7C3AED",
+            "error": "#F85149",
+            "chart_color": "#58A6FF",
+            "chart_bg": "#0D1117",
         },
     }
 
@@ -87,6 +145,7 @@ class ThemeManager:
         self.current_theme = "matrix"  # Default theme
         self.observers = []  # For notifying components of theme changes
         self.config_path = os.path.join("config", "theme_config.json")
+        self.logger = get_logger(__name__)
         self._load_saved_theme()
 
     def add_observer(self, callback: Callable[[Dict[str, Any]], None]):
@@ -101,10 +160,11 @@ class ThemeManager:
     def _notify_observers(self, theme_data: Dict[str, Any]):
         """Notify all observers of theme change."""
         for callback in self.observers:
-            try:
-                callback(theme_data)
-            except Exception as e:
-                print(f"Error notifying theme observer: {e}")
+            safe_execute(
+                callback, theme_data,
+                exception_types=(Exception,),
+                log_errors=True
+            )
 
     def get_current_theme(self) -> Dict[str, Any]:
         """Get the current theme data."""
@@ -118,7 +178,7 @@ class ThemeManager:
         """Apply a theme to the application."""
         theme = self.THEMES.get(theme_name)
         if not theme:
-            print(f"Theme '{theme_name}' not found")
+            self.logger.warning(f"Theme '{theme_name}' not found")
             return False
 
         self.current_theme = theme_name
@@ -143,27 +203,28 @@ class ThemeManager:
         """Update the DataTerminalTheme class with new colors."""
         try:
             from src.ui.theme import DataTerminalTheme
-
             DataTerminalTheme.set_active_theme(theme)
         except ImportError:
-            print("DataTerminalTheme not found, skipping theme update")
+            self.logger.debug("DataTerminalTheme not found, skipping theme update")
 
     def _update_colors(self, app, theme: Dict[str, Any]):
         """Update all UI element colors."""
-        try:
+        def update_colors_impl():
             # Update main window background
             if hasattr(app, "configure"):
                 app.configure(fg_color=theme["bg"])
-
             # Update all frames and widgets recursively
             self._update_widget_colors(app, theme)
-
-        except Exception as e:
-            print(f"Error updating colors: {e}")
+        
+        safe_execute(
+            update_colors_impl,
+            exception_types=(Exception,),
+            log_errors=True
+        )
 
     def _update_widget_colors(self, widget, theme: Dict[str, Any]):
         """Recursively update widget colors."""
-        try:
+        def update_widget_impl():
             # Update current widget if it's a CTk widget
             if isinstance(widget, (ctk.CTkFrame, ctk.CTkScrollableFrame)):
                 widget.configure(fg_color=theme["card"])
@@ -184,52 +245,65 @@ class ThemeManager:
             if hasattr(widget, "winfo_children"):
                 for child in widget.winfo_children():
                     self._update_widget_colors(child, theme)
-
-        except Exception as e:
-            print(f"Error updating widget colors: {e}")
+        
+        safe_execute(
+            update_widget_impl,
+            exception_types=(Exception,),
+            log_errors=True
+        )
 
     def _update_charts(self, app, theme: Dict[str, Any]):
         """Update chart colors."""
-        try:
+        def update_charts_impl():
             # Update temperature chart if it exists
             if hasattr(app, "temp_chart"):
                 app.temp_chart.update_theme(theme)
 
-            # Update any matplotlib charts
-            import matplotlib.pyplot as plt
-
-            plt.style.use("dark_background")
-            plt.rcParams["figure.facecolor"] = theme["chart_bg"]
-            plt.rcParams["axes.facecolor"] = theme["chart_bg"]
-            plt.rcParams["text.color"] = theme["text"]
-            plt.rcParams["axes.labelcolor"] = theme["text"]
-            plt.rcParams["xtick.color"] = theme["text"]
-            plt.rcParams["ytick.color"] = theme["text"]
-
-        except Exception as e:
-            print(f"Error updating charts: {e}")
+            # Update any matplotlib charts if available
+            if plt is not None:
+                plt.style.use("dark_background")
+                plt.rcParams["figure.facecolor"] = theme["chart_bg"]
+                plt.rcParams["axes.facecolor"] = theme["chart_bg"]
+                plt.rcParams["text.color"] = theme["text"]
+                plt.rcParams["axes.labelcolor"] = theme["text"]
+                plt.rcParams["xtick.color"] = theme["text"]
+                plt.rcParams["ytick.color"] = theme["text"]
+        
+        safe_execute(
+            update_charts_impl,
+            exception_types=(Exception,),
+            log_errors=True
+        )
 
     def _save_preference(self, theme_name: str):
         """Save theme preference to config file."""
-        try:
+        def save_impl():
             os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
             config = {"current_theme": theme_name}
             with open(self.config_path, "w") as f:
                 json.dump(config, f, indent=2)
-        except Exception as e:
-            print(f"Error saving theme preference: {e}")
+        
+        safe_execute(
+            save_impl,
+            exception_types=(Exception,),
+            log_errors=True
+        )
 
     def _load_saved_theme(self):
         """Load saved theme preference."""
-        try:
+        def load_impl():
             if os.path.exists(self.config_path):
                 with open(self.config_path, "r") as f:
                     config = json.load(f)
                     saved_theme = config.get("current_theme", "matrix")
                     if saved_theme in self.THEMES:
                         self.current_theme = saved_theme
-        except Exception as e:
-            print(f"Error loading theme preference: {e}")
+        
+        safe_execute(
+            load_impl,
+            exception_types=(Exception,),
+            log_errors=True
+        )
 
     def get_theme_list(self) -> list:
         """Get list of available theme names."""

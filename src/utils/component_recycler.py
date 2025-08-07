@@ -61,7 +61,6 @@ class ComponentPool:
                 self._stats.recycled_count += 1
                 self._stats.active_count += 1
 
-                self.logger.debug(f"Recycled {self.component_type.__name__} from pool")
                 return component
 
             # Create new component
@@ -74,7 +73,6 @@ class ComponentPool:
                 if self._stats.active_count > self._stats.peak_count:
                     self._stats.peak_count = self._stats.active_count
 
-                self.logger.debug(f"Created new {self.component_type.__name__}")
                 return component
 
             except Exception as e:
@@ -105,11 +103,9 @@ class ComponentPool:
             # Add to pool if not full
             if len(self._pool) < self.max_size:
                 self._pool.append(component)
-                self.logger.debug(f"Released {self.component_type.__name__} to pool")
                 return True
             else:
                 # Pool is full, let component be garbage collected
-                self.logger.debug(f"Pool full, discarding {self.component_type.__name__}")
                 return False
 
     def cleanup(self, force: bool = False) -> int:
@@ -154,7 +150,9 @@ class ComponentPool:
         with self._lock:
             cleared_count = len(self._pool)
             self._pool.clear()
-            self.logger.debug(f"Cleared {cleared_count} {self.component_type.__name__} components")
+            self.logger.debug(
+                f"Cleared {cleared_count} {self.component_type.__name__} components"
+            )
             return cleared_count
 
 
@@ -171,7 +169,9 @@ class ComponentRecycler:
         self.logger = logging.getLogger(__name__)
 
         # Start background cleanup thread
-        self._cleanup_thread = threading.Thread(target=self._background_cleanup, daemon=True)
+        self._cleanup_thread = threading.Thread(
+            target=self._background_cleanup, daemon=True
+        )
         self._cleanup_thread.start()
 
         # Track memory usage
@@ -188,7 +188,9 @@ class ComponentRecycler:
         """Register a component type for recycling."""
         with self._lock:
             if component_type in self._pools:
-                self.logger.warning(f"Component type {component_type.__name__} already registered")
+                self.logger.warning(
+                    f"Component type {component_type.__name__} already registered"
+                )
                 return
 
             pool = ComponentPool(
@@ -200,7 +202,10 @@ class ComponentRecycler:
             )
 
             self._pools[component_type] = pool
-            self.logger.info(f"Registered component type {component_type.__name__} for recycling")
+            self.logger.info(
+                f"Registered component type {component_type.__name__} "
+                f"for recycling"
+            )
 
     def acquire_component(self, component_type: Type) -> Any:
         """Acquire a component of the specified type."""
@@ -216,7 +221,9 @@ class ComponentRecycler:
         component_type = type(component)
 
         if component_type not in self._pools:
-            self.logger.warning(f"No pool found for component type {component_type.__name__}")
+            self.logger.warning(
+                f"No pool found for component type {component_type.__name__}"
+            )
             return False
 
         success = self._pools[component_type].release(component)
@@ -231,11 +238,16 @@ class ComponentRecycler:
         """Get statistics for component pools."""
         if component_type:
             if component_type in self._pools:
-                return {component_type.__name__: self._pools[component_type].get_stats()}
+                return {
+                    component_type.__name__: self._pools[component_type].get_stats()
+                }
             else:
                 return {}
 
-        return {pool_type.__name__: pool.get_stats() for pool_type, pool in self._pools.items()}
+        return {
+            pool_type.__name__: pool.get_stats()
+            for pool_type, pool in self._pools.items()
+        }
 
     def cleanup_pools(self, force: bool = False) -> Dict[str, int]:
         """Clean up all component pools."""
@@ -256,21 +268,22 @@ class ComponentRecycler:
         return self._memory_tracker.get_stats()
 
     def _background_cleanup(self) -> None:
-        """Background thread for periodic cleanup."""
+        """Background cleanup thread function."""
         while True:
             try:
-                time.sleep(60)  # Check every minute
-
+                time.sleep(self._global_cleanup_interval)
                 current_time = time.time()
-                if (current_time - self._last_global_cleanup) >= self._global_cleanup_interval:
+                
+                if current_time - self._last_global_cleanup >= self._global_cleanup_interval:
                     self.cleanup_pools()
                     self._last_global_cleanup = current_time
-
-                    # Force garbage collection
+                    
+                    # Force garbage collection periodically
                     gc.collect()
-
+                    
             except Exception as e:
-                self.logger.error(f"Background cleanup error: {e}")
+                self.logger.error(f"Error in background cleanup: {e}")
+                time.sleep(60)  # Wait before retrying
 
     def shutdown(self) -> None:
         """Shutdown the recycler and clean up all pools."""

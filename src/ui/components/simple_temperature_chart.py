@@ -1,9 +1,7 @@
-import tkinter as tk
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-
+import tkinter as tk
 import customtkinter as ctk
-
 
 class SimpleTemperatureChart(ctk.CTkFrame):
     """A professional interactive temperature chart widget with advanced features."""
@@ -34,6 +32,9 @@ class SimpleTemperatureChart(ctk.CTkFrame):
         self.tooltip_window = None
         self.hover_index = -1
 
+        # Track scheduled calls for cleanup
+        self.scheduled_calls = set()
+
         # Initialize theme colors
         self.chart_color = "#00FF41"
         self.bg_color = "#0D0D0D"
@@ -59,6 +60,39 @@ class SimpleTemperatureChart(ctk.CTkFrame):
         self.canvas.bind("<ButtonRelease-1>", self._on_mouse_release)
         self.canvas.bind("<MouseWheel>", self._on_mouse_wheel)
         self.canvas.bind("<Leave>", self._on_mouse_leave)
+
+        # Initial draw
+        self.safe_after(100, self._draw_chart)
+
+    def safe_after(self, delay_ms: int, callback, *args):
+        """Safely schedule an after() call with error handling and tracking."""
+        try:
+            if not self.winfo_exists():
+                return None
+            
+            if args:
+                call_id = self.after(delay_ms, callback, *args)
+            else:
+                call_id = self.after(delay_ms, callback)
+            self.scheduled_calls.add(call_id)
+            return call_id
+        except Exception as e:
+            print(f"Error scheduling after() call: {e}")
+            return None
+
+    def _cleanup_scheduled_calls(self):
+        """Cancel all scheduled calls to prevent TclError."""
+        for call_id in self.scheduled_calls.copy():
+            try:
+                self.after_cancel(call_id)
+            except Exception:
+                pass
+        self.scheduled_calls.clear()
+
+    def destroy(self):
+        """Override destroy to cleanup scheduled calls."""
+        self._cleanup_scheduled_calls()
+        super().destroy()
 
     def update_data(
         self, temperatures: List[float], timestamps: Optional[List[datetime]] = None
@@ -176,7 +210,7 @@ class SimpleTemperatureChart(ctk.CTkFrame):
             b = min(255, max(0, int(b * factor)))
 
             return f"#{r:02x}{g:02x}{b:02x}"
-        except:
+        except Exception:
             return hex_color
 
     def _start_animation(self) -> None:
@@ -201,7 +235,7 @@ class SimpleTemperatureChart(ctk.CTkFrame):
         self._draw_chart(eased_t)
 
         self.animation_progress += 1.0 / (self.animation_duration / 16)  # ~60fps
-        self.animation_id = self.after(16, self._animate_step)
+        self.animation_id = self.safe_after(16, self._animate_step)
 
     def _interpolate_temperatures(self, progress: float) -> List[float]:
         """Interpolate between old and new temperatures for animation."""

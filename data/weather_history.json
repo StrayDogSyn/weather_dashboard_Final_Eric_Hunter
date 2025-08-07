@@ -1,0 +1,131 @@
+{
+  "entries": [
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 28.51,
+      "condition": "clear",
+      "timestamp": "2025-07-18T19:08:08"
+    },
+    {
+      "city": "San Francisco",
+      "country": "US",
+      "temperature": 18.06,
+      "condition": "clouds",
+      "timestamp": "2025-07-18T19:11:39"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 26.65,
+      "condition": "clear",
+      "timestamp": "2025-07-18T20:42:20"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 26.65,
+      "condition": "clear",
+      "timestamp": "2025-07-18T20:42:20"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 25.31,
+      "condition": "clouds",
+      "timestamp": "2025-07-19T09:15:15"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 25.53,
+      "condition": "clouds",
+      "timestamp": "2025-07-19T09:20:19"
+    },
+    {
+      "city": "Reykjavik",
+      "country": "IS",
+      "temperature": 13.81,
+      "condition": "haze",
+      "timestamp": "2025-07-19T09:20:00"
+    },
+    {
+      "city": "Bangkok",
+      "country": "TH",
+      "temperature": 26.15,
+      "condition": "clouds",
+      "timestamp": "2025-07-19T09:21:25"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 25.53,
+      "condition": "clouds",
+      "timestamp": "2025-07-19T09:20:19"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 25.63,
+      "condition": "clouds",
+      "timestamp": "2025-07-19T09:23:09"
+    },
+    {
+      "city": "Copenhagen",
+      "country": "DK",
+      "temperature": 27.13,
+      "condition": "clear",
+      "timestamp": "2025-07-19T09:21:01"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 24.63,
+      "condition": "haze",
+      "timestamp": "2025-07-26T20:03:15"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 24.59,
+      "condition": "haze",
+      "timestamp": "2025-07-26T20:04:22"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 24.33,
+      "condition": "haze",
+      "timestamp": "2025-07-26T20:39:06"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 24.33,
+      "condition": "haze",
+      "timestamp": "2025-07-26T20:46:07"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 24.33,
+      "condition": "haze",
+      "timestamp": "2025-07-26T20:46:07"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 23.98,
+      "condition": "haze",
+      "timestamp": "2025-07-27T00:01:25"
+    },
+    {
+      "city": "New York",
+      "country": "US",
+      "temperature": 26.26,
+      "condition": "clouds",
+      "timestamp": "2025-08-02T15:59:47"
+    }
+  ],
+  "last_updated": "2025-08-02T16:04:42.937226"
+}

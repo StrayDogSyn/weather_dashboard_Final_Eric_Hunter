@@ -5,13 +5,11 @@ Reusable component for displaying weather forecast with chart and cards.
 
 from datetime import datetime, timedelta
 
-import customtkinter as ctk
-
 from src.ui.components.forecast_day_card import ForecastDayCard
+from src.ui.safe_widgets import SafeCTkFrame, SafeCTkLabel
 from src.ui.theme import DataTerminalTheme
 
-
-class ForecastSection(ctk.CTkFrame):
+class ForecastSection(SafeCTkFrame):
     """Reusable forecast section component with chart and cards."""
 
     def __init__(self, parent, temp_unit="C", on_card_click=None, **kwargs):
@@ -44,7 +42,7 @@ class ForecastSection(ctk.CTkFrame):
     def _create_ui(self):
         """Create the forecast section UI components."""
         # Title
-        forecast_title = ctk.CTkLabel(
+        forecast_title = SafeCTkLabel(
             self,
             text="📊 Temperature Forecast",
             font=(DataTerminalTheme.FONT_FAMILY, 18, "bold"),
@@ -60,7 +58,7 @@ class ForecastSection(ctk.CTkFrame):
             self.temp_chart.pack(fill="both", expand=True, padx=15, pady=(0, 10))
         except ImportError:
             # Fallback if chart component is not available
-            chart_placeholder = ctk.CTkLabel(
+            chart_placeholder = SafeCTkLabel(
                 self,
                 text="Temperature Chart\n(Chart component not available)",
                 font=(DataTerminalTheme.FONT_FAMILY, 14),
@@ -74,7 +72,7 @@ class ForecastSection(ctk.CTkFrame):
 
     def _create_forecast_cards(self):
         """Create 5-day forecast cards using enhanced ForecastDayCard component."""
-        forecast_frame = ctk.CTkFrame(self, fg_color="transparent")
+        forecast_frame = SafeCTkFrame(self, fg_color="transparent")
         forecast_frame.pack(fill="x", padx=15, pady=(0, 15))
 
         # Configure grid for equal distribution
@@ -113,6 +111,7 @@ class ForecastSection(ctk.CTkFrame):
                 day_card.animate_in(delay=i * 100)
             except AttributeError:
                 # Animation method not available
+
                 pass
 
     def _on_forecast_card_click(self, card):
@@ -175,6 +174,7 @@ class ForecastSection(ctk.CTkFrame):
                     low=day_data.get("low", 15),
                     precipitation=day_data.get("precipitation", 0.0),
                     wind_speed=day_data.get("wind_speed", 0.0),
+                    is_fallback=False,  # Real forecast data
                 )
 
     def _update_cards_with_sample_data(self, base_temp):
@@ -197,6 +197,7 @@ class ForecastSection(ctk.CTkFrame):
                 low=low_temp,
                 precipitation=random.uniform(0, 30),
                 wind_speed=random.uniform(5, 25),
+                is_fallback=True,  # Mark as fallback data
             )
 
     def _parse_daily_forecasts(self, forecast_data):

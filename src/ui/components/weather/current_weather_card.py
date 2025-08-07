@@ -3,10 +3,10 @@
 Reusable component for displaying current weather information.
 """
 
-import customtkinter as ctk
 
 from src.ui.components import MicroInteractions
 from src.ui.theme import DataTerminalTheme
+import customtkinter as ctk
 
 
 class CurrentWeatherCard(ctk.CTkFrame):
@@ -39,6 +39,10 @@ class CurrentWeatherCard(ctk.CTkFrame):
         self.temp_label = None
         self.condition_label = None
         self.temp_toggle_btn = None
+        self.data_source_indicator = None
+        
+        # Data source tracking
+        self.is_fallback_data = False
 
         self._create_ui()
 
@@ -69,7 +73,10 @@ class CurrentWeatherCard(ctk.CTkFrame):
             font=(DataTerminalTheme.FONT_FAMILY, 16),
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.condition_label.pack(pady=(0, 20))
+        self.condition_label.pack(pady=(0, 10))
+        
+        # Data source indicator
+        self._create_data_source_indicator()
 
         # Temperature conversion toggle button
         self._create_temperature_toggle()
@@ -108,20 +115,34 @@ class CurrentWeatherCard(ctk.CTkFrame):
         # Add micro-interactions to temperature toggle button
         self.micro_interactions.add_hover_effect(self.temp_toggle_btn)
         self.micro_interactions.add_click_effect(self.temp_toggle_btn)
+    
+    def _create_data_source_indicator(self):
+        """Create data source transparency indicator."""
+        self.data_source_indicator = ctk.CTkLabel(
+            self,
+            text="",  # Initially hidden
+            font=(DataTerminalTheme.FONT_FAMILY, 9),
+            text_color=DataTerminalTheme.WARNING if hasattr(DataTerminalTheme, 'WARNING') else "#FFA500",
+        )
+        self.data_source_indicator.pack(pady=(5, 10))
+        self.data_source_indicator.pack_forget()  # Hide initially
 
     def _on_temp_toggle_clicked(self):
         """Handle temperature toggle button click."""
         if self.on_temp_toggle:
             self.on_temp_toggle()
 
-    def update_weather_data(self, weather_data):
+    def update_weather_data(self, weather_data, is_fallback=False):
         """Update the weather card with new data.
 
         Args:
             weather_data: Dictionary containing weather information
+            is_fallback: Whether this is fallback/simulated data
         """
         if not weather_data:
             return
+
+        self.is_fallback_data = is_fallback
 
         # Update city
         city = weather_data.get("city", "Unknown Location")
@@ -138,6 +159,22 @@ class CurrentWeatherCard(ctk.CTkFrame):
         # Update condition
         condition = weather_data.get("condition", "--")
         self.condition_label.configure(text=condition)
+        
+        # Update data source indicator
+        self._update_data_source_indicator()
+    
+    def _update_data_source_indicator(self):
+        """Update data source indicator based on data type."""
+        if not self.data_source_indicator:
+            return
+            
+        if self.is_fallback_data:
+            # Show indicator for fallback/simulated data
+            self.data_source_indicator.configure(text="⚠️ Simulated Data")
+            self.data_source_indicator.pack(pady=(5, 10))
+        else:
+            # Hide indicator for real data
+            self.data_source_indicator.pack_forget()
 
     def update_temperature_unit(self, new_unit):
         """Update the temperature unit display.

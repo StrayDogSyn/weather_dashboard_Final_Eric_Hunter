@@ -21,7 +21,6 @@ from enum import Enum
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Callable, Dict, List
 
-
 class LogLevel(Enum):
     """Log levels for user-friendly display."""
 
@@ -30,7 +29,6 @@ class LogLevel(Enum):
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
-
 
 @dataclass
 class ErrorReport:
@@ -45,7 +43,6 @@ class ErrorReport:
     steps_to_reproduce: str = ""
     user_email: str = ""
     logs: List[str] = None
-
 
 class UserFriendlyLogger:
     """Logger that provides user-friendly error messages."""
@@ -105,7 +102,6 @@ class UserFriendlyLogger:
         )
 
         return user_message
-
 
 class NetworkDiagnostics:
     """Network diagnostics and testing tools."""
@@ -225,7 +221,6 @@ class NetworkDiagnostics:
             info["local_ip"] = "unknown"
 
         return info
-
 
 class BugReportDialog:
     """Dialog for collecting bug reports from users."""
@@ -407,7 +402,6 @@ System Information:
 
         self.dialog.geometry(f"+{x}+{y}")
 
-
 class DiagnosticsManager:
     """Main diagnostics and error handling manager."""
 
@@ -546,8 +540,9 @@ class DiagnosticsManager:
                         0, lambda: self._show_diagnostics_results(results, progress_dialog)
                     )
                 except Exception as e:
+                    error_msg = str(e)
                     self.parent.after(
-                        0, lambda: self._show_diagnostics_error(str(e), progress_dialog)
+                        0, lambda: self._show_diagnostics_error(error_msg, progress_dialog)
                     )
 
             threading.Thread(target=run_tests, daemon=True).start()
@@ -597,9 +592,10 @@ class DiagnosticsManager:
         try:
             # Log the error for diagnostics
             self.logger.log_user_error(
-                Exception(error_info.get('message', 'Unknown error')),
-                error_info.get('type', 'Unknown')
+                Exception(error_info.get("message", "Unknown error")),
+                error_info.get("type", "Unknown"),
             )
         except Exception:
             # Silently ignore if logging fails
+
             pass

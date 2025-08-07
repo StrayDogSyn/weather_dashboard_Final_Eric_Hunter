@@ -2,16 +2,25 @@
 """
 Error State Components for Weather Dashboard
 Provides visual error states for different scenarios with user-friendly interfaces.
+
+NOTE: Most error display functionality has been moved to:
+- src/ui/components/common/error_display.py (ErrorDisplay, InlineErrorDisplay)
+- src/ui/components/common/loading_spinner.py (LoadingSpinner, ShimmerLoader)
+
+This file maintains legacy components for backward compatibility.
 """
 
 import logging
 import socket
 import threading
-import time
 import tkinter as tk
+import time
 from enum import Enum
-from tkinter import ttk
 from typing import Callable, Optional
+
+from ..theme_manager import theme_manager
+from .common.error_display import ErrorDisplay, InlineErrorDisplay
+from .common.loading_spinner import LoadingSpinner, ShimmerLoader
 
 
 class NetworkStatus(Enum):
@@ -59,11 +68,18 @@ class OfflineIndicator(ErrorStateComponent):
 
     def _create_frame(self):
         """Create the offline indicator frame."""
-        self.frame = tk.Frame(self.parent, bg="#fff3cd", relief="solid", bd=1)
+        # Get current theme colors
+        current_theme = theme_manager.get_current_theme()
+        warning_bg = current_theme.get("WARNING", "#ffc107")
+        warning_text = current_theme.get("BACKGROUND", "#2b2b2b")
+
+        self.frame = tk.Frame(self.parent, bg=warning_bg, relief="solid", bd=1)
         self.frame.pack(fill="x", padx=5, pady=2)
 
         # Offline icon
-        icon_label = tk.Label(self.frame, text="📡", font=("Arial", 12), bg="#fff3cd", fg="#856404")
+        icon_label = tk.Label(
+            self.frame, text="📡", font=("Arial", 12), bg=warning_bg, fg=warning_text
+        )
         icon_label.pack(side="left", padx=(8, 4), pady=4)
 
         # Status message
@@ -73,7 +89,7 @@ class OfflineIndicator(ErrorStateComponent):
             message = "You're offline. Some features may be unavailable."
 
         status_label = tk.Label(
-            self.frame, text=message, font=("Arial", 9), bg="#fff3cd", fg="#856404"
+            self.frame, text=message, font=("Arial", 9), bg=warning_bg, fg=warning_text
         )
         status_label.pack(side="left", padx=(0, 8), pady=4)
 
@@ -82,8 +98,8 @@ class OfflineIndicator(ErrorStateComponent):
             self.frame,
             text="Check Connection",
             font=("Arial", 8),
-            bg="#856404",
-            fg="#fff3cd",
+            bg=warning_text,
+            fg=warning_bg,
             relief="flat",
             padx=8,
             pady=2,
@@ -154,11 +170,17 @@ class APIErrorDisplay(ErrorStateComponent):
 
     def _create_frame(self):
         """Create the API error frame."""
-        self.frame = tk.Frame(self.parent, bg="#f8d7da", relief="solid", bd=1)
+        # Get current theme colors
+        current_theme = theme_manager.get_current_theme()
+        error_bg = current_theme.get("ERROR", "#dc3545")
+        bg_color = current_theme.get("BACKGROUND", "#2b2b2b")
+        text_color = current_theme.get("TEXT", "#ffffff")
+
+        self.frame = tk.Frame(self.parent, bg=bg_color, relief="solid", bd=1)
         self.frame.pack(fill="both", expand=True, padx=5, pady=5)
 
         # Error icon
-        icon_label = tk.Label(self.frame, text="⚠️", font=("Arial", 24), bg="#f8d7da", fg="#721c24")
+        icon_label = tk.Label(self.frame, text="⚠️", font=("Arial", 24), bg=bg_color, fg=error_bg)
         icon_label.pack(pady=(20, 10))
 
         # Error title
@@ -166,8 +188,8 @@ class APIErrorDisplay(ErrorStateComponent):
             self.frame,
             text="Oops! Something went wrong",
             font=("Arial", 14, "bold"),
-            bg="#f8d7da",
-            fg="#721c24",
+            bg=bg_color,
+            fg=text_color,
         )
         title_label.pack(pady=(0, 10))
 
@@ -176,15 +198,15 @@ class APIErrorDisplay(ErrorStateComponent):
             self.frame,
             text=self._get_user_friendly_message(),
             font=("Arial", 10),
-            bg="#f8d7da",
-            fg="#721c24",
+            bg=bg_color,
+            fg=text_color,
             wraplength=300,
             justify="center",
         )
         message_label.pack(pady=(0, 20))
 
         # Action buttons
-        button_frame = tk.Frame(self.frame, bg="#f8d7da")
+        button_frame = tk.Frame(self.frame, bg=bg_color)
         button_frame.pack(pady=(0, 20))
 
         if self.retry_callback and self.retry_count < self.max_retries:
@@ -192,8 +214,8 @@ class APIErrorDisplay(ErrorStateComponent):
                 button_frame,
                 text=f"Try Again ({self.max_retries - self.retry_count} left)",
                 font=("Arial", 10),
-                bg="#721c24",
-                fg="#f8d7da",
+                bg=error_bg,
+                fg=text_color,
                 relief="flat",
                 padx=15,
                 pady=5,
@@ -205,8 +227,8 @@ class APIErrorDisplay(ErrorStateComponent):
             button_frame,
             text="Dismiss",
             font=("Arial", 10),
-            bg="#6c757d",
-            fg="white",
+            bg=current_theme.get("SECONDARY", "#6c757d"),
+            fg=text_color,
             relief="flat",
             padx=15,
             pady=5,
@@ -247,162 +269,41 @@ class APIErrorDisplay(ErrorStateComponent):
                 self.parent.after(1000, self.show)
 
 
+# LoadingState class moved to src/ui/components/common/loading_spinner.py
+# Use LoadingSpinner or ShimmerLoader components instead
 class LoadingState(ErrorStateComponent):
-    """Shows loading state with skeleton screens and progress."""
-
-    def __init__(self, parent: tk.Widget, message: str = "Loading...", show_progress: bool = False):
+    """Legacy loading state - use LoadingSpinner instead."""
+    
+    def __init__(self, parent, message: str = "Loading...", show_progress: bool = False):
         super().__init__(parent)
-        self.message = message
-        self.show_progress = show_progress
-        self.progress_value = 0
-        self.animation_running = False
-
-    def _create_frame(self):
-        """Create the loading state frame."""
-        self.frame = tk.Frame(self.parent, bg="#f8f9fa")
-        self.frame.pack(fill="both", expand=True, padx=5, pady=5)
-
-        # Loading animation
-        self.spinner_label = tk.Label(
-            self.frame, text="⟳", font=("Arial", 24), bg="#f8f9fa", fg="#6c757d"
-        )
-        self.spinner_label.pack(pady=(30, 10))
-
-        # Loading message
-        self.message_label = tk.Label(
-            self.frame, text=self.message, font=("Arial", 12), bg="#f8f9fa", fg="#6c757d"
-        )
-        self.message_label.pack(pady=(0, 20))
-
-        # Progress bar (if enabled)
-        if self.show_progress:
-            self.progress_bar = ttk.Progressbar(self.frame, mode="determinate", length=200)
-            self.progress_bar.pack(pady=(0, 20))
-
-        # Skeleton content
-        self._create_skeleton()
-
-        # Start animation
-        self._start_animation()
-
-    def _create_skeleton(self):
-        """Create skeleton loading content."""
-        skeleton_frame = tk.Frame(self.frame, bg="#f8f9fa")
-        skeleton_frame.pack(fill="x", padx=20, pady=10)
-
-        # Skeleton lines
-        for i in range(3):
-            skeleton_line = tk.Frame(skeleton_frame, bg="#e9ecef", height=15)
-            skeleton_line.pack(fill="x", pady=2)
-
-            # Animate skeleton
-            self._animate_skeleton_line(skeleton_line)
-
-    def _animate_skeleton_line(self, line_frame):
-        """Animate skeleton line with shimmer effect."""
-
-        def shimmer():
-            colors = ["#e9ecef", "#dee2e6", "#ced4da", "#dee2e6", "#e9ecef"]
-            color_index = 0
-
-            while self.animation_running:
-                try:
-                    line_frame.configure(bg=colors[color_index % len(colors)])
-                    color_index += 1
-                    time.sleep(0.3)
-                except tk.TclError:
-                    break
-
-        threading.Thread(target=shimmer, daemon=True).start()
-
-    def _start_animation(self):
-        """Start loading animations."""
-        self.animation_running = True
-
-        def spin_animation():
-            spinner_chars = ["⟳", "⟲", "⟳", "⟲"]
-            char_index = 0
-
-            while self.animation_running:
-                try:
-                    self.spinner_label.configure(
-                        text=spinner_chars[char_index % len(spinner_chars)]
-                    )
-                    char_index += 1
-                    time.sleep(0.5)
-                except tk.TclError:
-                    break
-
-        threading.Thread(target=spin_animation, daemon=True).start()
-
+        self.spinner = LoadingSpinner(parent, text=message)
+        
+    def show(self):
+        self.spinner.start()
+        
+    def hide(self):
+        self.spinner.stop()
+        
     def update_progress(self, value: float, message: str = None):
-        """Update progress bar and message."""
-        if self.show_progress and hasattr(self, "progress_bar"):
-            try:
-                self.progress_bar["value"] = value
-                if message:
-                    self.message_label.configure(text=message)
-            except tk.TclError:
-                pass
-
-    def hide(self):
-        """Hide the loading state and stop animations."""
-        self.animation_running = False
-        super().hide()
+        if message:
+            self.spinner.set_text(message)
 
 
+# InputValidationError class moved to src/ui/components/common/error_display.py
+# Use InlineErrorDisplay component instead
 class InputValidationError(ErrorStateComponent):
-    """Shows inline validation errors with helpful hints."""
-
-    def __init__(
-        self, parent: tk.Widget, target_widget: tk.Widget, error_message: str, hint: str = None
-    ):
+    """Legacy validation error - use InlineErrorDisplay instead."""
+    
+    def __init__(self, parent, target_widget, error_message: str, hint: str = None):
         super().__init__(parent)
-        self.target_widget = target_widget
-        self.error_message = error_message
-        self.hint = hint
-
-    def _create_frame(self):
-        """Create the validation error frame."""
-        # Position error below target widget
-        self.frame = tk.Frame(self.parent, bg="#f8d7da")
-
-        # Error message
-        error_label = tk.Label(
-            self.frame,
-            text=f"⚠ {self.error_message}",
-            font=("Arial", 8),
-            bg="#f8d7da",
-            fg="#721c24",
-            anchor="w",
-        )
-        error_label.pack(fill="x", padx=5, pady=2)
-
-        # Helpful hint
-        if self.hint:
-            hint_label = tk.Label(
-                self.frame,
-                text=f"💡 {self.hint}",
-                font=("Arial", 8),
-                bg="#f8d7da",
-                fg="#856404",
-                anchor="w",
-            )
-            hint_label.pack(fill="x", padx=5, pady=(0, 2))
-
-        # Highlight target widget
-        try:
-            self.target_widget.configure(highlightbackground="#dc3545", highlightthickness=2)
-        except tk.TclError:
-            pass
-
+        message = f"{error_message}. {hint}" if hint else error_message
+        self.error_display = InlineErrorDisplay(parent, message, "error")
+        
+    def show(self):
+        self.error_display.show()
+        
     def hide(self):
-        """Hide validation error and remove highlight."""
-        try:
-            self.target_widget.configure(highlightthickness=0)
-        except tk.TclError:
-            pass
-        super().hide()
+        self.error_display.hide()
 
 
 class ErrorStateManager:
@@ -422,32 +323,38 @@ class ErrorStateManager:
 
     def show_api_error(
         self, error_message: str, retry_callback: Callable = None
-    ) -> APIErrorDisplay:
-        """Show API error."""
+    ) -> ErrorDisplay:
+        """Show API error using new ErrorDisplay component."""
         self.clear_error("api_error")  # Clear existing API error
-        api_error = APIErrorDisplay(self.parent, error_message, retry_callback)
+        api_error = ErrorDisplay(
+            self.parent, 
+            "API Error", 
+            error_message, 
+            retry_callback=retry_callback
+        )
         api_error.show()
         self.active_errors["api_error"] = api_error
         return api_error
 
     def show_loading(
         self, message: str = "Loading...", show_progress: bool = False
-    ) -> LoadingState:
-        """Show loading state."""
+    ) -> LoadingSpinner:
+        """Show loading state using new LoadingSpinner component."""
         self.clear_error("loading")  # Clear existing loading state
-        loading_state = LoadingState(self.parent, message, show_progress)
-        loading_state.show()
+        loading_state = LoadingSpinner(self.parent, text=message)
+        loading_state.start()
         self.active_errors["loading"] = loading_state
         return loading_state
 
     def show_validation_error(
-        self, target_widget: tk.Widget, error_message: str, hint: str = None
-    ) -> InputValidationError:
-        """Show input validation error."""
+        self, target_widget, error_message: str, hint: str = None
+    ) -> InlineErrorDisplay:
+        """Show input validation error using new InlineErrorDisplay component."""
         error_key = f"validation_{id(target_widget)}"
         self.clear_error(error_key)  # Clear existing validation error
 
-        validation_error = InputValidationError(self.parent, target_widget, error_message, hint)
+        message = f"{error_message}. {hint}" if hint else error_message
+        validation_error = InlineErrorDisplay(self.parent, message, "error")
         validation_error.show()
         self.active_errors[error_key] = validation_error
         return validation_error

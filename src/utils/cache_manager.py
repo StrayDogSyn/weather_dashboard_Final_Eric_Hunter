@@ -284,7 +284,9 @@ class CacheManager:
                 "total_size_mb": self._stats.total_size_mb,
                 "total_entries": len(self._cache),
                 "max_size_mb": self.max_size_bytes / (1024 * 1024),
-                "utilization": (self._stats.total_size_bytes / self.max_size_bytes) * 100,
+                "utilization": (
+                    self._stats.total_size_bytes / self.max_size_bytes
+                ) * 100,
             }
 
     def get_by_tags(self, tags: List[str]) -> Dict[str, Any]:
@@ -328,7 +330,10 @@ class CacheManager:
             return removed_count
 
     def bulk_set(
-        self, items: Dict[str, Any], ttl: Optional[int] = None, tags: Optional[List[str]] = None
+        self,
+        items: Dict[str, Any],
+        ttl: Optional[int] = None,
+        tags: Optional[List[str]] = None,
     ) -> int:
         """Set multiple items efficiently."""
         success_count = 0

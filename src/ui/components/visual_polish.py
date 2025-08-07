@@ -4,13 +4,14 @@ Provides glass morphism effects, shadows, consistent spacing,
 loading skeletons, and keyboard shortcuts for enhanced UI.
 """
 
-import tkinter as tk
 from enum import Enum
 from typing import Callable, Dict, Optional
-
+import tkinter as tk
 import customtkinter as ctk
 
+
 from .animation_manager import AnimationManager
+from .glassmorphic import GlassmorphicFrame
 
 
 class SpacingGrid(Enum):
@@ -24,81 +25,8 @@ class SpacingGrid(Enum):
     XXL = 48  # 6 units
 
 
-class GlassMorphism:
-    """Glass morphism effects for modern UI."""
-
-    def __init__(self, theme_colors: Optional[Dict[str, str]] = None):
-        self.theme_colors = theme_colors or {
-            "glass_bg": "#FFFFFF",
-            "glass_border": "#E0E0E0",
-            "glass_shadow": "#000000",
-            "glass_highlight": "#FFFFFF",
-        }
-
-    def apply_glass_effect(
-        self,
-        widget: ctk.CTkFrame,
-        opacity: float = 0.1,
-        blur_radius: int = 10,
-        border_opacity: float = 0.2,
-        add_highlight: bool = True,
-    ) -> ctk.CTkFrame:
-        """Apply glass morphism effect to widget."""
-
-        # Calculate glass colors with opacity
-        glass_bg = self._apply_opacity(self.theme_colors["glass_bg"], opacity)
-        glass_border = self._apply_opacity(self.theme_colors["glass_border"], border_opacity)
-
-        # Configure widget with glass properties
-        widget.configure(
-            fg_color=glass_bg, border_color=glass_border, border_width=1, corner_radius=12
-        )
-
-        # Add highlight effect
-        if add_highlight:
-            self._add_glass_highlight(widget)
-
-        return widget
-
-    def create_glass_card(
-        self, parent: ctk.CTkBaseClass, width: int = 300, height: int = 200, opacity: float = 0.1
-    ) -> ctk.CTkFrame:
-        """Create glass morphism card."""
-
-        card = ctk.CTkFrame(parent, width=width, height=height)
-
-        return self.apply_glass_effect(card, opacity=opacity)
-
-    def _apply_opacity(self, color: str, opacity: float) -> str:
-        """Apply opacity to hex color."""
-        try:
-            # Remove # if present
-            color = color.lstrip("#")
-
-            # Convert to RGB
-            r = int(color[0:2], 16)
-            g = int(color[2:4], 16)
-            b = int(color[4:6], 16)
-
-            # Apply opacity (blend with white for glass effect)
-            r = int(r + (255 - r) * (1 - opacity))
-            g = int(g + (255 - g) * (1 - opacity))
-            b = int(b + (255 - b) * (1 - opacity))
-
-            return f"#{r:02x}{g:02x}{b:02x}"
-        except (ValueError, IndexError):
-            return color
-
-    def _add_glass_highlight(self, widget: ctk.CTkFrame):
-        """Add subtle highlight to glass element."""
-        # Create highlight frame
-        highlight = ctk.CTkFrame(
-            widget,
-            height=2,
-            fg_color=self._apply_opacity(self.theme_colors["glass_highlight"], 0.3),
-            corner_radius=0,
-        )
-        highlight.place(relx=0, rely=0, relwidth=1.0)
+# GlassMorphism class moved to src/ui/components/glassmorphic/
+# Use GlassmorphicFrame, GlassButton, or GlassPanel instead
 
 
 class ShadowSystem:
@@ -106,9 +34,9 @@ class ShadowSystem:
 
     def __init__(self, theme_colors: Optional[Dict[str, str]] = None):
         self.theme_colors = theme_colors or {
-            "shadow_light": "#00000010",
-            "shadow_medium": "#00000020",
-            "shadow_heavy": "#00000040",
+            "shadow_light": "#E0E0E0",
+            "shadow_medium": "#C0C0C0",
+            "shadow_heavy": "#A0A0A0",
             "shadow_color": "#000000",
         }
 
@@ -174,16 +102,20 @@ class ShadowSystem:
         return glow_frame
 
     def _apply_shadow_opacity(self, color: str, opacity: float) -> str:
-        """Apply opacity to shadow color."""
+        """Apply opacity to shadow color by blending with background."""
         try:
             color = color.lstrip("#")
             r = int(color[0:2], 16)
             g = int(color[2:4], 16)
             b = int(color[4:6], 16)
 
-            # Convert to RGBA-like representation
-            alpha = int(255 * opacity)
-            return f"#{r:02x}{g:02x}{b:02x}{alpha:02x}"
+            # Blend with dark background to simulate opacity
+            bg_r, bg_g, bg_b = 13, 13, 13  # Dark background
+            new_r = int(r * opacity + bg_r * (1 - opacity))
+            new_g = int(g * opacity + bg_g * (1 - opacity))
+            new_b = int(b * opacity + bg_b * (1 - opacity))
+            
+            return f"#{new_r:02x}{new_g:02x}{new_b:02x}"
         except (ValueError, IndexError):
             return color
 
@@ -323,36 +255,9 @@ class LoadingSkeleton:
         return skeleton_frame
 
     def _add_shimmer_effect(self, widget: ctk.CTkFrame):
-        """Add shimmer animation to skeleton element."""
-
-        def shimmer_animation(alpha: float = 0.3):
-            try:
-                # Pulse between normal and highlight colors
-                if alpha >= 1.0:
-                    direction = -0.05
-                elif alpha <= 0.3:
-                    direction = 0.05
-                else:
-                    direction = getattr(shimmer_animation, "direction", 0.05)
-
-                shimmer_animation.direction = direction
-                new_alpha = alpha + direction
-
-                # Apply shimmer color
-                shimmer_color = self._blend_colors(
-                    self.theme_colors["skeleton_bg"],
-                    self.theme_colors["skeleton_shimmer"],
-                    new_alpha,
-                )
-
-                widget.configure(fg_color=shimmer_color)
-
-                # Continue animation
-                widget.after(100, lambda: shimmer_animation(new_alpha))
-            except tk.TclError:
-                pass  # Widget destroyed
-
-        shimmer_animation()
+        """Add shimmer animation - use ShimmerLoader from common/loading_spinner.py instead."""
+        # Legacy method - shimmer effects moved to ShimmerLoader component
+        pass
 
     def _blend_colors(self, color1: str, color2: str, factor: float) -> str:
         """Blend two colors with given factor."""
@@ -567,7 +472,7 @@ class VisualPolishManager:
         self.theme_colors = theme_colors or {}
 
         # Initialize subsystems
-        self.glass_morphism = GlassMorphism(theme_colors)
+        self.glass_morphism = GlassmorphicFrame(self.parent)
         self.shadow_system = ShadowSystem(theme_colors)
         self.loading_skeleton = LoadingSkeleton(theme_colors)
         self.keyboard_shortcuts = KeyboardShortcuts(parent, theme_colors)

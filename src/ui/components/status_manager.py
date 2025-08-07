@@ -6,14 +6,16 @@ and smooth transitions for better user experience.
 
 import random
 import threading
-import tkinter as tk
 from enum import Enum
 from typing import Dict, Optional
-
+import tkinter as tk
 import customtkinter as ctk
 
-from .animation_manager import AnimationManager
-
+from src.ui.safe_widgets import (
+    SafeCTkFrame,
+    SafeCTkLabel,
+    SafeCTkProgressBar,
+)
 
 class StatusType(Enum):
     """Status message types."""
@@ -25,7 +27,6 @@ class StatusType(Enum):
     INFO = "info"
     TIP = "tip"
     FACT = "fact"
-
 
 class StatusMessageManager:
     """Enhanced status message manager with dynamic content."""
@@ -94,7 +95,7 @@ class StatusMessageManager:
     def create_status_bar(self, width: int = 400, height: int = 40) -> ctk.CTkFrame:
         """Create enhanced status bar with animations."""
 
-        self.status_frame = ctk.CTkFrame(
+        self.status_frame = SafeCTkFrame(
             self.parent,
             width=width,
             height=height,
@@ -103,17 +104,17 @@ class StatusMessageManager:
         )
 
         # Content container
-        content_frame = ctk.CTkFrame(self.status_frame, fg_color="transparent")
+        content_frame = SafeCTkFrame(self.status_frame, fg_color="transparent")
         content_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         # Icon label
-        self.icon_label = ctk.CTkLabel(
+        self.icon_label = SafeCTkLabel(
             content_frame, text="🌤️", font=("JetBrains Mono", 16), width=30
         )
         self.icon_label.pack(side="left", padx=(0, 10))
 
         # Status text
-        self.status_label = ctk.CTkLabel(
+        self.status_label = SafeCTkLabel(
             content_frame,
             text="Ready",
             font=("JetBrains Mono", 12),
@@ -123,7 +124,7 @@ class StatusMessageManager:
         self.status_label.pack(side="left", fill="both", expand=True)
 
         # Progress bar (hidden by default)
-        self.progress_bar = ctk.CTkProgressBar(
+        self.progress_bar = SafeCTkProgressBar(
             content_frame, width=60, height=8, progress_color=self.theme_colors["accent"]
         )
 
@@ -168,8 +169,8 @@ class StatusMessageManager:
         else:
             self.status_label.configure(text=message)
 
-        # Add subtle animation
-        AnimationManager.fade_in(self.status_frame, duration=200)
+        # Animation disabled to prevent lag
+        # AnimationManager.fade_in(self.status_frame, duration=200)
 
         # Auto-clear timer
         if auto_clear:
@@ -201,13 +202,13 @@ class StatusMessageManager:
         self.set_status(
             message=message,
             status_type=StatusType.LOADING,
-            show_progress=show_progress,
-            typing_effect=True,
+            show_progress=False,  # Disable progress bar to prevent lag
+            typing_effect=False,  # Disable typing effect to prevent lag
         )
 
-        # Start progress animation
-        if show_progress:
-            self._animate_progress()
+        # Progress animation disabled to prevent lag
+        # if show_progress:
+        #     self._animate_progress()
 
     def set_success_state(self, message: str, auto_clear: int = 3000):
         """Set success state."""
@@ -235,8 +236,12 @@ class StatusMessageManager:
         """Show random weather fact."""
         fact = random.choice(self.weather_facts)
         self.set_status(
-            message=fact, status_type=StatusType.FACT, auto_clear=10000, typing_effect=True
+            message=fact, status_type=StatusType.FACT, auto_clear=10000, typing_effect=False
         )
+
+    def show_info(self, message: str, auto_clear: int = 5000):
+        """Show info message."""
+        self.set_status(message=message, status_type=StatusType.INFO, auto_clear=auto_clear)
 
     def show_contextual_help(self, context: str):
         """Show contextual help message."""
@@ -278,7 +283,10 @@ class StatusMessageManager:
     def _type_message(self, message: str, delay: int = 50):
         """Create typing effect for message."""
         if self.typing_timer:
-            self.parent.after_cancel(self.typing_timer)
+            try:
+                self.parent.after_cancel(self.typing_timer)
+            except (tk.TclError, ValueError):
+                pass
 
         def type_char(index: int = 0):
             try:
@@ -295,26 +303,10 @@ class StatusMessageManager:
         type_char()
 
     def _animate_progress(self):
-        """Animate progress bar for loading states."""
-        try:
-            if not self.parent.winfo_exists():
-                return
-            if (
-                self.current_status == StatusType.LOADING
-                and self.progress_bar
-                and self.progress_bar.winfo_viewable()
-            ):
-
-                # Indeterminate progress animation
-                current_value = self.progress_bar.get()
-                new_value = (current_value + 0.02) % 1.0
-                self.progress_bar.set(new_value)
-
-                # Continue animation
-                self.safe_after(50, self._animate_progress)
-        except tk.TclError:
-            # Widget has been destroyed
-            return
+        """Animate progress bar for loading states - DISABLED to prevent lag."""
+        # Animation disabled to prevent performance issues
+        # This method is kept for compatibility but does nothing
+        return
 
     def _start_auto_cycle(self):
         """Start auto-cycling through tips and facts."""
@@ -398,7 +390,6 @@ class StatusMessageManager:
                 pass
         self.scheduled_calls.clear()
 
-
 class TooltipManager:
     """Contextual tooltip system for enhanced user experience."""
 
@@ -437,6 +428,7 @@ class TooltipManager:
                     return
 
             try:
+                # Use widget's after method directly since this is in TooltipManager
                 tooltip_data["show_timer"] = widget.after(delay, show_tooltip)
             except tk.TclError:
                 pass
@@ -475,7 +467,7 @@ class TooltipManager:
         tooltip_window.configure(bg=self.theme_colors["tooltip_shadow"])
 
         # Create tooltip frame
-        tooltip_frame = ctk.CTkFrame(
+        tooltip_frame = SafeCTkFrame(
             tooltip_window,
             fg_color=self.theme_colors["tooltip_bg"],
             border_color=self.theme_colors["tooltip_border"],
@@ -485,7 +477,7 @@ class TooltipManager:
         tooltip_frame.pack(padx=1, pady=1)
 
         # Tooltip text
-        tooltip_label = ctk.CTkLabel(
+        tooltip_label = SafeCTkLabel(
             tooltip_frame,
             text=tooltip_data["text"],
             font=("JetBrains Mono", 11),

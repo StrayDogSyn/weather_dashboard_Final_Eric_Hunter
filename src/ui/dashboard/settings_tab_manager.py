@@ -1,5 +1,5 @@
-import customtkinter as ctk
 
+import customtkinter as ctk
 from src.ui.theme import DataTerminalTheme
 
 
@@ -286,24 +286,91 @@ class SettingsTabManager:
         units_menu.grid(row=3, column=1, sticky="w", padx=(8, 15), pady=6)
 
     def _create_theme_selector(self):
-        """Create theme selector with preview cards."""
+        """Create theme selector with preview cards for all 9 themes in 3x3 grid."""
+
+        # Get all available themes from theme manager - 9 themes for 3x3 grid
         themes = [
-            ("Data Terminal", "#00ff41", "#0a0a0a"),
-            ("Ocean Blue", "#4fc3f7", "#1a237e"),
-            ("Sunset Orange", "#ff7043", "#bf360c"),
+            ("Matrix", "#00FF41", "#0A0A0A", "matrix"),
+            ("Cyberpunk 2077", "#FF006E", "#0F0F23", "cyberpunk"),
+            ("Arctic Terminal", "#00D9FF", "#0A0E27", "arctic"),
+            ("Solar Flare", "#FFA500", "#1A0F0A", "solar"),
+            ("Classic Terminal", "#00FF00", "#000000", "terminal"),
+            ("Midnight Purple", "#BD00FF", "#0D0221", "midnight"),
+            ("Data Terminal", "#00ff88", "#1a1a1a", "data_terminal"),
+            ("Neon Blue", "#0F3460", "#0A0A1A", "neon_blue"),
+            ("Retro Amber", "#FFB000", "#1A1000", "retro_amber"),
         ]
 
-        for i, (name, primary, bg) in enumerate(themes):
+        # Configure grid for 3x3 layout plus restore button row
+        for i in range(7):  # 3 theme rows + 3 palette rows + 1 restore button row
+            self.theme_grid.grid_rowconfigure(i, weight=1)
+        for i in range(3):  # 3 columns
+            self.theme_grid.grid_columnconfigure(i, weight=1)
+
+        for i, (name, primary, bg, theme_key) in enumerate(themes):
+            row = i // 3  # 0, 1, 2 for rows
+            col = i % 3  # 0, 1, 2 for columns
+
+            # Create theme button
             theme_btn = ctk.CTkButton(
                 self.theme_grid,
                 text=name,
-                width=120,
+                width=140,
                 height=40,
                 fg_color=primary,
                 hover_color=bg,
-                command=lambda n=name: self._change_theme(n),
+                command=lambda key=theme_key: self._change_theme(key),
             )
-            theme_btn.grid(row=0, column=i, padx=5, pady=5)
+            theme_btn.grid(row=row * 2, column=col, padx=8, pady=(5, 2), sticky="ew")
+
+            # Create color palette hint with actual color squares
+            palette_frame = ctk.CTkFrame(self.theme_grid, height=20, fg_color="transparent")
+            palette_frame.grid(row=row * 2 + 1, column=col, padx=8, pady=(0, 5), sticky="ew")
+
+            # Primary color square
+            primary_square = ctk.CTkLabel(
+                palette_frame,
+                text="■",
+                font=("Arial", 12, "bold"),
+                text_color=primary,
+                width=15,
+                height=15,
+            )
+            primary_square.pack(side="left", padx=(0, 2))
+
+            # Background color square
+            bg_square = ctk.CTkLabel(
+                palette_frame,
+                text="■",
+                font=("Arial", 12, "bold"),
+                text_color=bg,
+                width=15,
+                height=15,
+            )
+            bg_square.pack(side="left", padx=(0, 5))
+
+            # Color codes text
+            color_text = ctk.CTkLabel(
+                palette_frame,
+                text=f"{primary[:4]} {bg[:4]}",
+                font=("Courier", 9),
+                text_color=DataTerminalTheme.TEXT_SECONDARY,
+                height=15,
+            )
+            color_text.pack(side="left")
+
+        # Add restore to default button
+        restore_btn = ctk.CTkButton(
+            self.theme_grid,
+            text="🔄 Restore to System Default",
+            width=200,
+            height=35,
+            fg_color=DataTerminalTheme.ACCENT,
+            hover_color=DataTerminalTheme.PRIMARY,
+            text_color=DataTerminalTheme.TEXT,
+            command=self._restore_default_theme,
+        )
+        restore_btn.grid(row=6, column=0, columnspan=3, padx=8, pady=(15, 5), sticky="ew")
 
     def _create_data_settings(self, parent):
         """Create data management settings."""
@@ -436,19 +503,37 @@ class SettingsTabManager:
         # Version info
         version_label = ctk.CTkLabel(
             about_frame,
-            text="Weather Dashboard v2.1.0",
+            text="PROJECT CODEFRONT v3.5",
             font=(DataTerminalTheme.FONT_FAMILY, 14, "bold"),
         )
         version_label.grid(row=1, column=0, sticky="w", padx=15, pady=5)
 
-        # Description
-        desc_label = ctk.CTkLabel(
+        # Subtitle
+        subtitle_label = ctk.CTkLabel(
             about_frame,
-            text="Professional weather monitoring with advanced analytics",
-            font=(DataTerminalTheme.FONT_FAMILY, 12),
+            text="Advanced Weather Intelligence System",
+            font=(DataTerminalTheme.FONT_FAMILY, 12, "bold"),
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        desc_label.grid(row=2, column=0, sticky="w", padx=15, pady=(0, 15))
+        subtitle_label.grid(row=2, column=0, sticky="w", padx=15, pady=2)
+
+        # Program info
+        program_label = ctk.CTkLabel(
+            about_frame,
+            text="Justice Through Code - Tech Pathways Capstone",
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
+        )
+        program_label.grid(row=3, column=0, sticky="w", padx=15, pady=2)
+
+        # Developer info
+        dev_label = ctk.CTkLabel(
+            about_frame,
+            text="Developer: E. Hunter Petross | Year: 2025",
+            font=(DataTerminalTheme.FONT_FAMILY, 10),
+            text_color=DataTerminalTheme.TEXT_SECONDARY,
+        )
+        dev_label.grid(row=4, column=0, sticky="w", padx=15, pady=(2, 15))
 
     # Event handlers
     def _toggle_api_visibility(self, entry):
@@ -478,6 +563,45 @@ class SettingsTabManager:
         """Change application theme."""
         if hasattr(self.parent, "apply_theme"):
             self.parent.apply_theme(theme_name)
+
+    def _restore_default_theme(self):
+        """Restore theme to unique system default and reset all theme configurations."""
+        import json
+        import os
+
+        from src.ui.theme_manager import theme_manager
+
+        default_theme = "default_system"  # Unique system default theme
+
+        try:
+            # Apply the System Default theme
+            if hasattr(self.parent, "apply_theme"):
+                self.parent.apply_theme(default_theme)
+
+            # Update theme manager
+            theme_manager.apply_theme(default_theme, self.parent)
+
+            # Reset theme config file to system default
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+                "config",
+                "theme_config.json",
+            )
+            if os.path.exists(config_path):
+                with open(config_path, "w") as f:
+                    json.dump({"current_theme": default_theme}, f, indent=2)
+
+            # Show success message
+            if hasattr(self.parent, "status_message_manager"):
+                self.parent.status_message_manager.show_message(
+                    "Theme restored to System Default (unique theme)", "success"
+                )
+        except Exception as e:
+            # Show error message if restoration fails
+            if hasattr(self.parent, "status_message_manager"):
+                self.parent.status_message_manager.show_message(
+                    f"Failed to restore default theme: {str(e)}", "error"
+                )
 
     def _change_units(self, unit):
         """Change temperature units."""

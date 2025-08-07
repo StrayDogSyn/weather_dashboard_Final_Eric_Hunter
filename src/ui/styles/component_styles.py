@@ -55,6 +55,7 @@ class ComponentStyles:
     SEARCH_ENTRY = {
         "corner_radius": 8,
         "height": 35,
+        "width": 450,
         "font": ("Segoe UI", 12),
         "placeholder_text_color": ("#999999", "#666666"),
         "border_width": 1,
@@ -70,18 +71,30 @@ class ComponentStyles:
     }
 
     # Label Styles
-    TITLE_LABEL = {"font": ("Segoe UI", 18, "bold"), "text_color": ("#333333", "#ffffff")}
+    TITLE_LABEL = {
+        "font": ("Segoe UI", 18, "bold"),
+        "text_color": ("#333333", "#ffffff")
+    }
 
-    SUBTITLE_LABEL = {"font": ("Segoe UI", 14, "bold"), "text_color": ("#555555", "#cccccc")}
+    SUBTITLE_LABEL = {
+        "font": ("Segoe UI", 14, "bold"),
+        "text_color": ("#555555", "#cccccc")
+    }
 
     BODY_LABEL = {"font": ("Segoe UI", 12), "text_color": ("#666666", "#aaaaaa")}
 
     SMALL_LABEL = {"font": ("Segoe UI", 10), "text_color": ("#888888", "#888888")}
 
     # Temperature Labels
-    TEMPERATURE_LARGE = {"font": ("Segoe UI", 36, "bold"), "text_color": ("#1f538d", "#4a9eff")}
+    TEMPERATURE_LARGE = {
+        "font": ("Segoe UI", 36, "bold"),
+        "text_color": ("#1f538d", "#4a9eff")
+    }
 
-    TEMPERATURE_MEDIUM = {"font": ("Segoe UI", 18, "bold"), "text_color": ("#1f538d", "#4a9eff")}
+    TEMPERATURE_MEDIUM = {
+        "font": ("Segoe UI", 18, "bold"),
+        "text_color": ("#1f538d", "#4a9eff")
+    }
 
     TEMPERATURE_SMALL = {"font": ("Segoe UI", 14), "text_color": ("#1f538d", "#4a9eff")}
 

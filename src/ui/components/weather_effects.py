@@ -10,8 +10,8 @@ import time
 import tkinter as tk
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
-
 import customtkinter as ctk
+
 
 
 @dataclass
@@ -73,7 +73,9 @@ class TemperatureGradient:
 
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    def get_gradient_colors(self, temperature: float, time_of_day: str) -> Tuple[str, str]:
+    def get_gradient_colors(
+        self, temperature: float, time_of_day: str
+    ) -> Tuple[str, str]:
         """Get gradient colors for background based on temperature and time."""
         base_color = self.get_temperature_color(temperature)
 
@@ -187,11 +189,18 @@ class ParticleSystem:
         self.is_running = False
         self.particles.clear()
 
-        # Clear canvas
+        # Clear all particle types from canvas
         try:
-            self.canvas.delete("particle")
+            self.canvas.delete("rain_particle")
+            self.canvas.delete("snow_particle")
+            self.canvas.delete("fog_particle")
+            self.canvas.delete("particle")  # Fallback for any generic particles
         except tk.TclError:
             pass
+        
+        # Wait for animation thread to finish
+        if self.animation_thread and self.animation_thread.is_alive():
+            self.animation_thread.join(timeout=0.1)
 
     def _animate_rain(self):
         """Animate rain particles."""
@@ -313,7 +322,9 @@ class ParticleSystem:
 class WeatherBackgroundManager:
     """Manages dynamic weather-based backgrounds."""
 
-    def __init__(self, parent: ctk.CTkBaseClass, theme_colors: Optional[Dict[str, str]] = None):
+    def __init__(
+        self, parent: ctk.CTkBaseClass, theme_colors: Optional[Dict[str, str]] = None
+    ):
         self.parent = parent
         self.theme_colors = theme_colors or {}
         self.gradient_generator = TemperatureGradient()
@@ -332,7 +343,11 @@ class WeatherBackgroundManager:
 
         # Create particle canvas
         self.particle_canvas = tk.Canvas(
-            self.background_frame, width=width, height=height, highlightthickness=0, bg="#1a1a1a"
+            self.background_frame,
+            width=width,
+            height=height,
+            highlightthickness=0,
+            bg="#1a1a1a"
         )
         self.particle_canvas.place(x=0, y=0)
 
@@ -363,45 +378,66 @@ class WeatherBackgroundManager:
             return
 
         try:
-            # Clear existing background
+            # Clear existing background elements
             self.particle_canvas.delete("background")
+            self.particle_canvas.delete("gradient_strip")  # Clear any leftover gradient strips
 
-            # Create gradient effect using rectangles
+            # Get current canvas dimensions
+            self.particle_canvas.update_idletasks()  # Ensure dimensions are current
             height = self.particle_canvas.winfo_height()
             width = self.particle_canvas.winfo_width()
 
             if height <= 1 or width <= 1:
+                # Set a default background color if canvas is too small
+                self.particle_canvas.configure(bg=primary)
                 return
 
-            # Parse colors
-            r1 = int(primary[1:3], 16)
-            g1 = int(primary[3:5], 16)
-            b1 = int(primary[5:7], 16)
+            # Parse colors with validation
+            try:
+                r1 = int(primary[1:3], 16)
+                g1 = int(primary[3:5], 16)
+                b1 = int(primary[5:7], 16)
 
-            r2 = int(secondary[1:3], 16)
-            g2 = int(secondary[3:5], 16)
-            b2 = int(secondary[5:7], 16)
+                r2 = int(secondary[1:3], 16)
+                g2 = int(secondary[3:5], 16)
+                b2 = int(secondary[5:7], 16)
+            except (ValueError, IndexError):
+                # Fallback to solid color if parsing fails
+                self.particle_canvas.configure(bg=primary)
+                return
 
-            # Create gradient strips
-            strips = 50
+            # Create gradient strips with reduced count for better performance
+            strips = min(30, height // 2)  # Adaptive strip count
+            if strips <= 0:
+                strips = 1
+                
             for i in range(strips):
-                ratio = i / (strips - 1)
+                ratio = i / (strips - 1) if strips > 1 else 0
 
-                r = int(r1 + (r2 - r1) * ratio)
-                g = int(g1 + (g2 - g1) * ratio)
-                b = int(b1 + (b2 - b1) * ratio)
+                r = max(0, min(255, int(r1 + (r2 - r1) * ratio)))
+                g = max(0, min(255, int(g1 + (g2 - g1) * ratio)))
+                b = max(0, min(255, int(b1 + (b2 - b1) * ratio)))
 
                 color = f"#{r:02x}{g:02x}{b:02x}"
 
                 y1 = int(height * i / strips)
                 y2 = int(height * (i + 1) / strips)
 
-                self.particle_canvas.create_rectangle(
-                    0, y1, width, y2, fill=color, outline="", tags="background"
-                )
+                # Ensure coordinates are valid
+                if y2 > y1 and y1 >= 0 and y2 <= height:
+                    self.particle_canvas.create_rectangle(
+                        0, y1, width, y2, 
+                        fill=color, 
+                        outline="", 
+                        tags=("background", "gradient_strip")
+                    )
 
-        except (tk.TclError, ValueError):
-            pass
+        except (tk.TclError, ValueError, ZeroDivisionError) as e:
+            # Fallback to solid background color on any error
+            try:
+                self.particle_canvas.configure(bg=primary)
+            except tk.TclError:
+                pass
 
     def _update_particle_effects(self, weather_condition: WeatherCondition):
         """Update particle effects based on weather condition."""
@@ -448,121 +484,4 @@ class WeatherBackgroundManager:
             self.particle_system = None
 
 
-class StatusMessageManager:
-    """Manages dynamic status messages and tips."""
-
-    def __init__(self, status_label: ctk.CTkLabel):
-        self.status_label = status_label
-        self.current_message = ""
-        self.message_queue = []
-        self.is_cycling = False
-
-        # Weather tips and facts
-        self.weather_tips = [
-            "💡 Tip: High humidity can make temperatures feel warmer",
-            "🌡️ Fact: Wind chill can make it feel 10°F colder",
-            "☀️ Tip: UV index above 6 requires sun protection",
-            "🌧️ Fact: Light rain is less than 2.5mm per hour",
-            "❄️ Tip: Snow is most likely when temperature is 28-32°F",
-            "🌪️ Fact: Tornadoes are most common in late afternoon",
-            "🌈 Tip: Rainbows appear when sun shines through rain",
-            "⚡ Fact: Lightning can reach 30,000°C - hotter than the sun",
-            "🌊 Tip: Coastal areas have more stable temperatures",
-            "🏔️ Fact: Temperature drops ~2°C per 1000ft elevation",
-        ]
-
-        self.loading_messages = [
-            "🔍 Analyzing weather patterns...",
-            "📡 Fetching latest data...",
-            "🌍 Connecting to weather stations...",
-            "📊 Processing meteorological data...",
-            "🛰️ Receiving satellite updates...",
-            "🌡️ Calibrating sensors...",
-            "📈 Generating forecasts...",
-            "🔄 Synchronizing data...",
-        ]
-
-    def show_loading_message(self):
-        """Show random loading message."""
-        message = random.choice(self.loading_messages)
-        self._update_status(message)
-
-    def show_weather_tip(self):
-        """Show random weather tip."""
-        tip = random.choice(self.weather_tips)
-        self._update_status(tip)
-
-    def show_contextual_message(self, weather_condition: WeatherCondition):
-        """Show message based on current weather."""
-        condition = weather_condition.condition.lower()
-        temp = weather_condition.temperature
-
-        if "rain" in condition:
-            message = "☔ Don't forget your umbrella!"
-        elif "snow" in condition:
-            message = "❄️ Bundle up - it's snowy out there!"
-        elif temp > 30:
-            message = "🌡️ Stay hydrated - it's hot today!"
-        elif temp < 0:
-            message = "🧥 Dress warmly - freezing temperatures!"
-        elif "clear" in condition and weather_condition.time_of_day == "day":
-            message = "☀️ Perfect weather for outdoor activities!"
-        elif "cloud" in condition:
-            message = "☁️ Overcast skies - great for photography!"
-        else:
-            message = "🌤️ Have a great day!"
-
-        self._update_status(message)
-
-    def start_tip_cycling(self, interval: int = 10000):
-        """Start cycling through weather tips."""
-        if self.is_cycling:
-            return
-
-        self.is_cycling = True
-
-        def cycle_tips():
-            while self.is_cycling:
-                try:
-                    self.show_weather_tip()
-                    time.sleep(interval / 1000)
-                except Exception:
-                    break
-
-        threading.Thread(target=cycle_tips, daemon=True).start()
-
-    def stop_tip_cycling(self):
-        """Stop cycling tips."""
-        self.is_cycling = False
-
-    def _update_status(self, message: str):
-        """Update status label with smooth transition."""
-        if self.current_message == message:
-            return
-
-        self.current_message = message
-
-        try:
-            # Fade out current message
-            self.status_label.master.after(0, lambda: self.status_label.configure(text=""))
-
-            # Fade in new message after short delay
-            self.status_label.master.after(100, lambda: self.status_label.configure(text=message))
-        except tk.TclError:
-            pass
-
-    def cleanup(self):
-        """Clean up resources and stop cycling."""
-        self.stop_tip_cycling()
-        self.message_queue.clear()
-        self.current_message = ""
-
-    def update_theme(self, theme_data: Dict = None):
-        """Update theme colors for status message manager."""
-        if theme_data and hasattr(self.status_label, "configure"):
-            # Update status label colors based on theme
-            text_color = theme_data.get("text_color", "#FFFFFF")
-            try:
-                self.status_label.configure(text_color=text_color)
-            except Exception:
-                pass  # Ignore if configuration fails
+# StatusMessageManager has been moved to status_manager.py to avoid conflicts
