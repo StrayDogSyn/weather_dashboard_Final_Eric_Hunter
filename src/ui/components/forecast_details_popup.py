@@ -397,24 +397,13 @@ class ForecastDetailsPopup:
         chart_frame = ctk.CTkFrame(parent, fg_color=DataTerminalTheme.CARD_BG, corner_radius=8)
         chart_frame.pack(fill="x", padx=20, pady=(0, 15))
 
-        # Enhanced hourly data with more realistic weather patterns
+        # Enhanced hourly data with intelligent weather pattern algorithms
         if self.hourly_data:
             # Use actual hourly data if available
             hours_data = self.hourly_data[:8]  # Show 8 hours
         else:
-            # Generate realistic sample data based on daily forecast
-            base_temp = self.forecast_data.get('high_temp', 20)
-            low_temp = self.forecast_data.get('low_temp', 15)
-            hours_data = [
-                {"time": "6AM", "temp": low_temp + 1, "condition": "Clear", "precip": 0, "wind": 5},
-                {"time": "9AM", "temp": low_temp + 3, "condition": "Sunny", "precip": 0, "wind": 8},
-                {"time": "12PM", "temp": base_temp - 2, "condition": "Partly Cloudy", "precip": 5, "wind": 12},
-                {"time": "3PM", "temp": base_temp, "condition": "Cloudy", "precip": 15, "wind": 15},
-                {"time": "6PM", "temp": base_temp - 3, "condition": "Light Rain", "precip": 25, "wind": 10},
-                {"time": "9PM", "temp": low_temp + 2, "condition": "Overcast", "precip": 10, "wind": 7},
-                {"time": "12AM", "temp": low_temp, "condition": "Clear", "precip": 0, "wind": 5},
-                {"time": "3AM", "temp": low_temp - 1, "condition": "Clear", "precip": 0, "wind": 3}
-            ]
+            # Generate intelligent hourly data using weather patterns
+            hours_data = self._generate_intelligent_hourly_data(8)
 
         # Create detailed hourly display
         header_text = f"{'Time':>6} | {'Temp':>5} | {'Condition':>15} | {'Rain':>5} | {'Wind':>6}\n"
@@ -445,34 +434,41 @@ class ForecastDetailsPopup:
         hourly_frame = ctk.CTkFrame(parent, fg_color=DataTerminalTheme.CARD_BG, corner_radius=12)
         hourly_frame.pack(fill="x", pady=(0, 15))
 
-        # Title
+        # Title with data source indicator
+        title_container = ctk.CTkFrame(hourly_frame, fg_color="transparent")
+        title_container.pack(fill="x", pady=(15, 10))
+        
         title_label = ctk.CTkLabel(
-            hourly_frame,
+            title_container,
             text="⏰ Hourly Breakdown",
             font=("Consolas", 18, "bold"),
             text_color=DataTerminalTheme.PRIMARY,
         )
-        title_label.pack(pady=(15, 10))
+        title_label.pack(side="left", padx=(20, 10))
+        
+        # Data source transparency indicator
+        is_simulated = not self.hourly_data or len(self.hourly_data) == 0
+        if is_simulated:
+            source_indicator = ctk.CTkLabel(
+                title_container,
+                text="⚠️ Simulated Data",
+                font=("Consolas", 12, "bold"),
+                text_color=DataTerminalTheme.WARNING,
+                fg_color=DataTerminalTheme.CARD_BG,
+                corner_radius=6
+            )
+            source_indicator.pack(side="right", padx=(10, 20), pady=2)
 
         # Hourly data (sample for now)
         hourly_container = ctk.CTkFrame(hourly_frame, fg_color="transparent")
         hourly_container.pack(fill="x", padx=20, pady=(0, 15))
 
-        # Enhanced hourly entries with more comprehensive data
+        # Enhanced hourly entries with intelligent weather pattern algorithms
         if self.hourly_data:
             sample_hours = self.hourly_data[:6]  # Show 6 key hours
         else:
-            # Generate realistic hourly data
-            base_temp = self.forecast_data.get('high_temp', 20)
-            low_temp = self.forecast_data.get('low_temp', 15)
-            sample_hours = [
-                {"time": "6:00 AM", "temp": low_temp + 1, "condition": "Clear", "precip": 0, "humidity": 75, "uv": 1},
-                {"time": "9:00 AM", "temp": low_temp + 4, "condition": "Sunny", "precip": 0, "humidity": 65, "uv": 4},
-                {"time": "12:00 PM", "temp": base_temp - 1, "condition": "Partly Cloudy", "precip": 10, "humidity": 60, "uv": 7},
-                {"time": "3:00 PM", "temp": base_temp, "condition": "Cloudy", "precip": 20, "humidity": 70, "uv": 5},
-                {"time": "6:00 PM", "temp": base_temp - 3, "condition": "Light Rain", "precip": 35, "humidity": 85, "uv": 2},
-                {"time": "9:00 PM", "temp": low_temp + 2, "condition": "Overcast", "precip": 15, "humidity": 80, "uv": 0},
-            ]
+            # Generate intelligent hourly data with comprehensive details
+            sample_hours = self._generate_intelligent_hourly_data(6, include_details=True)
 
         for hour_data in sample_hours:
             hour_frame = ctk.CTkFrame(
@@ -556,14 +552,30 @@ class ForecastDetailsPopup:
         accuracy_frame = ctk.CTkFrame(parent, fg_color=DataTerminalTheme.CARD_BG, corner_radius=12)
         accuracy_frame.pack(fill="x", pady=(0, 15))
 
-        # Title
+        # Title with data source indicator
+        title_container = ctk.CTkFrame(accuracy_frame, fg_color="transparent")
+        title_container.pack(fill="x", pady=(15, 10))
+        
         title_label = ctk.CTkLabel(
-            accuracy_frame,
+            title_container,
             text="🎯 Forecast Accuracy",
             font=("Consolas", 18, "bold"),
             text_color=DataTerminalTheme.PRIMARY,
         )
-        title_label.pack(pady=(15, 10))
+        title_label.pack(side="left", padx=(20, 10))
+        
+        # Check if this is fallback/simulated forecast data
+        is_fallback_forecast = self._detect_fallback_forecast_data()
+        if is_fallback_forecast:
+            forecast_indicator = ctk.CTkLabel(
+                title_container,
+                text="⚠️ Fallback Data",
+                font=("Consolas", 12, "bold"),
+                text_color=DataTerminalTheme.WARNING,
+                fg_color=DataTerminalTheme.CARD_BG,
+                corner_radius=6
+            )
+            forecast_indicator.pack(side="right", padx=(10, 20), pady=2)
 
         # Accuracy info
         accuracy_container = ctk.CTkFrame(accuracy_frame, fg_color="transparent")
@@ -614,6 +626,160 @@ class ForecastDetailsPopup:
             )
             info_label.pack(pady=8)
             self.font_widgets.append(info_label)
+
+    def _generate_intelligent_hourly_data(self, num_hours: int, include_details: bool = False) -> List[Dict[str, Any]]:
+        """Generate intelligent hourly data using weather patterns and seasonal variations.
+        
+        Args:
+            num_hours: Number of hours to generate data for
+            include_details: Whether to include additional details like humidity and UV
+            
+        Returns:
+            List of hourly weather data dictionaries
+        """
+        import math
+        from datetime import datetime, timedelta
+        
+        # Get base temperatures and conditions
+        high_temp = self.forecast_data.get('high_temp', 20)
+        low_temp = self.forecast_data.get('low_temp', 15)
+        condition = self.forecast_data.get('condition', 'Partly Cloudy')
+        humidity = self.forecast_data.get('humidity', 65)
+        wind_speed = self.forecast_data.get('wind_speed', 5)
+        
+        # Determine season and time of year for realistic patterns
+        now = datetime.now()
+        month = now.month
+        is_summer = month in [6, 7, 8]
+        is_winter = month in [12, 1, 2]
+        
+        # Generate hourly data with intelligent patterns
+        hourly_data = []
+        
+        for i in range(num_hours):
+            # Calculate time (starting from current hour or 6 AM)
+            if num_hours <= 8:
+                start_hour = 6  # Start from morning for detailed view
+            else:
+                start_hour = now.hour
+            
+            hour = (start_hour + i * (24 // num_hours)) % 24
+            time_str = f"{hour:02d}:00"
+            if hour == 0:
+                time_str = "12:00 AM"
+            elif hour < 12:
+                time_str = f"{hour}:00 AM"
+            elif hour == 12:
+                time_str = "12:00 PM"
+            else:
+                time_str = f"{hour-12}:00 PM"
+            
+            # Calculate temperature using sinusoidal pattern (realistic daily curve)
+            temp_range = high_temp - low_temp
+            # Peak temperature around 2-3 PM (hour 14-15)
+            temp_factor = math.sin((hour - 6) * math.pi / 12)
+            temp = low_temp + (temp_range * max(0, temp_factor))
+            
+            # Add some realistic variation
+            temp += (i % 3 - 1) * 0.5  # Small random-like variation
+            temp = round(temp, 1)
+            
+            # Determine condition based on base condition and time patterns
+            conditions_map = {
+                'Clear': ['Clear', 'Sunny', 'Clear', 'Clear', 'Clear', 'Clear'],
+                'Sunny': ['Clear', 'Sunny', 'Sunny', 'Sunny', 'Partly Cloudy', 'Clear'],
+                'Partly Cloudy': ['Clear', 'Partly Cloudy', 'Partly Cloudy', 'Cloudy', 'Partly Cloudy', 'Clear'],
+                'Cloudy': ['Cloudy', 'Cloudy', 'Overcast', 'Cloudy', 'Partly Cloudy', 'Cloudy'],
+                'Overcast': ['Overcast', 'Overcast', 'Overcast', 'Light Rain', 'Overcast', 'Cloudy'],
+                'Light Rain': ['Cloudy', 'Light Rain', 'Light Rain', 'Rain', 'Light Rain', 'Cloudy'],
+                'Rain': ['Light Rain', 'Rain', 'Heavy Rain', 'Rain', 'Light Rain', 'Cloudy'],
+                'Heavy Rain': ['Rain', 'Heavy Rain', 'Heavy Rain', 'Rain', 'Light Rain', 'Cloudy']
+            }
+            
+            base_conditions = conditions_map.get(condition, ['Partly Cloudy'] * 6)
+            hour_condition = base_conditions[i % len(base_conditions)]
+            
+            # Calculate precipitation probability
+            rain_conditions = ['Light Rain', 'Rain', 'Heavy Rain', 'Drizzle']
+            if hour_condition in rain_conditions:
+                precip = min(95, 30 + (i * 10) % 60)
+            elif 'Cloudy' in hour_condition:
+                precip = min(40, 5 + (i * 5) % 25)
+            else:
+                precip = max(0, 5 - i)
+            
+            # Calculate wind speed with daily patterns
+            wind_variation = 1 + 0.3 * math.sin((hour - 12) * math.pi / 12)  # Peak in afternoon
+            calculated_wind = round(wind_speed * wind_variation, 1)
+            
+            hour_data = {
+                'time': time_str,
+                'temp': int(temp),
+                'condition': hour_condition,
+                'precip': precip,
+                'wind': calculated_wind
+            }
+            
+            # Add detailed information if requested
+            if include_details:
+                # Calculate humidity (higher at night, lower during day)
+                humidity_factor = 1 + 0.2 * math.cos((hour - 14) * math.pi / 12)
+                calculated_humidity = min(95, max(30, int(humidity * humidity_factor)))
+                
+                # Calculate UV index (0 at night, peak at noon)
+                if 6 <= hour <= 18:
+                    uv_factor = math.sin((hour - 6) * math.pi / 12)
+                    uv_index = max(0, int(8 * uv_factor)) if not is_winter else max(0, int(5 * uv_factor))
+                else:
+                    uv_index = 0
+                
+                hour_data.update({
+                    'humidity': calculated_humidity,
+                    'uv': uv_index
+                })
+            
+            hourly_data.append(hour_data)
+        
+        return hourly_data
+
+    def _detect_fallback_forecast_data(self) -> bool:
+        """Detect if forecast data is from fallback/simulated sources."""
+        try:
+            # Check for common fallback indicators in forecast data
+            
+            # Check for default/placeholder values
+            high_temp = self.forecast_data.get('high_temp', 0)
+            low_temp = self.forecast_data.get('low_temp', 0)
+            condition = self.forecast_data.get('condition', '')
+            
+            # Check for fallback descriptions
+            if any(keyword in condition.lower() for keyword in ['offline', 'simulated', 'fallback', 'unavailable', 'sample']):
+                return True
+            
+            # Check for default temperature ranges that indicate sample data
+            if high_temp == 25 and low_temp == 15:  # Common sample values
+                return True
+            
+            # Check for missing or placeholder dates
+            date = self.forecast_data.get('date', '')
+            if not date or date in ['--/--', '01/01'] or date.strip() == '':
+                return True
+            
+            # Check for missing provider information (real data usually has provider)
+            provider = self.forecast_data.get('provider', '')
+            if not provider or provider == 'Sample':
+                return True
+            
+            # Check if confidence level is exactly 85% (common fallback value)
+            confidence = self.forecast_data.get('confidence_level', '')
+            if confidence == '85%':
+                return True
+                
+            return False
+            
+        except Exception as e:
+            # Default to assuming real data on error
+            return False
 
     def close(self):
         """Close the popup window."""

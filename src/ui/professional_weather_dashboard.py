@@ -466,7 +466,19 @@ class ProfessionalWeatherDashboard(SafeCTk):
             font=(DataTerminalTheme.FONT_FAMILY, 20),
             text_color=DataTerminalTheme.TEXT_SECONDARY,
         )
-        self.condition_label.pack(pady=(0, 20))
+        self.condition_label.pack(pady=(0, 5))
+        
+        # Data source indicator for transparency
+        self.data_source_indicator = ctk.CTkLabel(
+            self.weather_card,
+            text="",
+            font=(DataTerminalTheme.FONT_FAMILY, 11),
+            text_color="#FF6B6B",  # Warning color
+        )
+        self.data_source_indicator.pack(pady=(0, 15))
+        
+        # Initialize fallback data tracking
+        self.is_fallback_data = False
 
         # Weather metrics grid
         self._create_weather_metrics()
@@ -996,6 +1008,7 @@ class ProfessionalWeatherDashboard(SafeCTk):
                         precipitation=daily_data.get("precipitation", 0.0),
                         wind_speed=daily_data.get("wind_speed", 0.0),
                         temp_unit=self.temp_unit,
+                        is_fallback=False,
                     )
 
                     # Store additional data for popup details
@@ -1041,6 +1054,7 @@ class ProfessionalWeatherDashboard(SafeCTk):
                     precipitation=precipitations[i % len(precipitations)],
                     wind_speed=wind_speeds[i % len(wind_speeds)],
                     temp_unit=self.temp_unit,
+                    is_fallback=True,
                 )
 
         except Exception as e:
@@ -2067,6 +2081,9 @@ class ProfessionalWeatherDashboard(SafeCTk):
                     self._show_data_unavailable_state()
                     return
 
+                # Detect if this is fallback/simulated data
+                self._detect_fallback_data(weather_data)
+
                 # Store current weather data for activity suggestions
                 self.current_weather_data = weather_data
                 # Track when weather data was last updated
@@ -2288,10 +2305,81 @@ class ProfessionalWeatherDashboard(SafeCTk):
                 self.condition_label.configure(text=condition_text)
             elif hasattr(self, "condition_label"):
                 self.condition_label.configure(text=condition_text)
+            
+            # Update data source indicator
+            self._update_data_source_indicator()
         except Exception as e:
             self.logger.error(f"Error updating condition display: {e}")
             if hasattr(self, "condition_label"):
                 self.condition_label.configure(text="Unknown condition")
+
+    def _detect_fallback_data(self, weather_data):
+        """Detect if weather data is from fallback/simulated sources."""
+        try:
+            self.is_fallback_data = False
+            
+            # Check for various fallback indicators
+            if hasattr(weather_data, 'raw_data') and isinstance(weather_data.raw_data, dict):
+                raw_data = weather_data.raw_data
+                # Check for offline flag
+                if raw_data.get('offline', False):
+                    self.is_fallback_data = True
+                    self.logger.info("Detected offline fallback data")
+                    return
+                # Check for cache_used flag without real API data
+                if raw_data.get('cache_used', False) and raw_data.get('stale', False):
+                    self.is_fallback_data = True
+                    self.logger.info("Detected stale cached data")
+                    return
+            
+            # Check for specific fallback descriptions
+            description = getattr(weather_data, 'description', '')
+            if any(keyword in description.lower() for keyword in ['offline', 'simulated', 'fallback', 'unavailable']):
+                self.is_fallback_data = True
+                self.logger.info(f"Detected fallback data from description: {description}")
+                return
+            
+            # Check for default/placeholder values that indicate fallback
+            temp = getattr(weather_data, 'temperature', None)
+            humidity = getattr(weather_data, 'humidity', None)
+            pressure = getattr(weather_data, 'pressure', None)
+            
+            # Common fallback values: temp=20, humidity=50, pressure=1013
+            if (temp == 20.0 and humidity == 50 and pressure in [1013, 1013.25]):
+                # Additional check to avoid false positives - check if location is "Unknown"
+                location_name = "Unknown"
+                if hasattr(weather_data, 'location') and weather_data.location:
+                    if hasattr(weather_data.location, 'name'):
+                        location_name = weather_data.location.name
+                    elif hasattr(weather_data.location, 'city'):
+                        location_name = weather_data.location.city
+                
+                if location_name in ['Unknown', 'Unknown Location']:
+                    self.is_fallback_data = True
+                    self.logger.info("Detected fallback data from default values")
+                    return
+            
+            self.logger.debug("Using real weather data")
+            
+        except Exception as e:
+            self.logger.error(f"Error detecting fallback data: {e}")
+            # Default to assuming real data on error
+            self.is_fallback_data = False
+
+    def _update_data_source_indicator(self):
+        """Update data source indicator based on data type."""
+        try:
+            if not hasattr(self, "data_source_indicator"):
+                return
+                
+            if self.is_fallback_data:
+                # Show indicator for fallback/simulated data
+                self.data_source_indicator.configure(text="⚠️ Simulated Data")
+            else:
+                # Hide indicator for real data
+                self.data_source_indicator.configure(text="")
+        except Exception as e:
+            self.logger.error(f"Error updating data source indicator: {e}")
 
     @ensure_main_thread
     @profile_memory("weather_metrics_update", threshold_mb=5)

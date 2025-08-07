@@ -24,6 +24,7 @@ from .models import (
     ForecastData,
     Location,
 )
+from ...models.weather.alert_models import AlertType, WeatherAlert as AlertModel
 from ..config.config_service import ConfigService
 
 
@@ -1552,16 +1553,15 @@ class EnhancedWeatherService:
             sunset = datetime.fromtimestamp(data["sys"]["sunset"])
             day_length = sunset - sunrise
 
-            # Simulate moon phase (in real app, use astronomy API)
-            import random
-
-            moon_phase = random.random()
+            # Calculate accurate moon phase using astronomical formulas
+            moon_phase = self._calculate_moon_phase()
+            moonrise, moonset = self._calculate_moon_times(lat, lon, sunrise, sunset)
 
             astronomical = AstronomicalData(
                 sunrise=sunrise,
                 sunset=sunset,
-                moonrise=None,  # Would need astronomy API
-                moonset=None,  # Would need astronomy API
+                moonrise=moonrise,
+                moonset=moonset,
                 moon_phase=moon_phase,
                 day_length=day_length,
             )
@@ -1576,11 +1576,339 @@ class EnhancedWeatherService:
         """Get weather alerts for coordinates."""
         try:
             # This would use the One Call API alerts endpoint
-            # For now, return empty list as alerts require special API access
-            return []
+            # For now, generate intelligent condition-based alerts
+            return self._generate_condition_based_alerts(lat, lon)
 
         except Exception as e:
             self.logger.warning(f"Weather alerts fetch failed: {e}")
+            return []
+
+    def _calculate_moon_phase(self) -> float:
+        """Calculate accurate moon phase using astronomical formulas.
+        
+        Returns:
+            float: Moon phase (0.0 = new moon, 0.5 = full moon, 1.0 = new moon)
+        """
+        import math
+        
+        # Get current date
+        now = datetime.now()
+        
+        # Known new moon date: January 6, 2000, 18:14 UTC
+        known_new_moon = datetime(2000, 1, 6, 18, 14)
+        
+        # Average lunar cycle length in days
+        lunar_cycle = 29.53058867
+        
+        # Calculate days since known new moon
+        days_since = (now - known_new_moon).total_seconds() / (24 * 3600)
+        
+        # Calculate current phase (0-1)
+        phase = (days_since % lunar_cycle) / lunar_cycle
+        
+        return phase
+    
+    def _calculate_moon_times(self, lat: float, lon: float, sunrise: datetime, sunset: datetime) -> tuple[Optional[datetime], Optional[datetime]]:
+        """Calculate moonrise and moonset times using simplified astronomical calculations.
+        
+        Args:
+            lat: Latitude in degrees
+            lon: Longitude in degrees
+            sunrise: Sunrise time for the location
+            sunset: Sunset time for the location
+            
+        Returns:
+            tuple: (moonrise, moonset) as datetime objects or None if not visible
+        """
+        import math
+        
+        try:
+            # Get moon phase for calculations
+            moon_phase = self._calculate_moon_phase()
+            
+            # Simplified calculation based on moon phase and location
+            # Full moon rises around sunset, new moon rises around sunrise
+            
+            # Calculate base times
+            day_length = (sunset - sunrise).total_seconds() / 3600  # hours
+            
+            # Moon phase affects rise/set times
+            # New moon (0.0): rises ~sunrise, sets ~sunset
+            # Full moon (0.5): rises ~sunset, sets ~sunrise+1day
+            # Waxing (0.0-0.5): rises between sunrise and sunset
+            # Waning (0.5-1.0): rises between sunset and sunrise+1day
+            
+            if moon_phase < 0.5:  # Waxing moon
+                # Moonrise shifts from sunrise toward sunset
+                rise_offset_hours = moon_phase * day_length
+                moonrise = sunrise + timedelta(hours=rise_offset_hours)
+                
+                # Moonset occurs later in the day/night
+                set_offset_hours = 12 + (moon_phase * 12)
+                moonset = sunrise + timedelta(hours=set_offset_hours)
+            else:  # Waning moon
+                # Moonrise shifts from sunset toward next sunrise
+                phase_in_waning = (moon_phase - 0.5) * 2  # 0-1 in waning phase
+                rise_offset_hours = day_length + (phase_in_waning * (24 - day_length))
+                moonrise = sunrise + timedelta(hours=rise_offset_hours)
+                
+                # Moonset occurs in early morning
+                set_offset_hours = 24 + (phase_in_waning * 12)
+                moonset = sunrise + timedelta(hours=set_offset_hours)
+            
+            # Adjust for latitude (simplified)
+            lat_factor = abs(lat) / 90.0  # 0-1
+            
+            # At higher latitudes, moon times can be more extreme
+            if lat_factor > 0.6:  # High latitude
+                # Sometimes moon doesn't rise or set
+                if moon_phase < 0.1 or moon_phase > 0.9:  # Near new moon
+                    if abs(lat) > 70:  # Very high latitude
+                        return None, None  # Moon may not be visible
+            
+            # Ensure moonrise/moonset are within reasonable bounds
+            today = sunrise.date()
+            tomorrow = today + timedelta(days=1)
+            
+            # Keep moonrise within today or tomorrow
+            if moonrise.date() > tomorrow:
+                moonrise = moonrise - timedelta(days=1)
+            
+            # Keep moonset within today or tomorrow
+            if moonset.date() > tomorrow:
+                moonset = moonset - timedelta(days=1)
+            
+            return moonrise, moonset
+            
+        except Exception as e:
+            self.logger.warning(f"Moon time calculation failed: {e}")
+            # Fallback to simple estimates
+            moonrise = sunrise + timedelta(hours=6)
+            moonset = sunset + timedelta(hours=6)
+            return moonrise, moonset
+
+    def _generate_condition_based_alerts(self, lat: float, lon: float) -> List[AlertModel]:
+        """Generate intelligent weather alerts based on current conditions."""
+        alerts = []
+        
+        try:
+            # Get current weather data for the location
+            current_data = self._make_request("weather", {"lat": lat, "lon": lon})
+            if not current_data:
+                return alerts
+            
+            now = datetime.now()
+            
+            # Extract weather parameters
+            temp = current_data.get("main", {}).get("temp", 0)
+            feels_like = current_data.get("main", {}).get("feels_like", 0)
+            humidity = current_data.get("main", {}).get("humidity", 0)
+            pressure = current_data.get("main", {}).get("pressure", 1013)
+            wind_speed = current_data.get("wind", {}).get("speed", 0)
+            visibility = current_data.get("visibility", 10000) / 1000  # Convert to km
+            weather_main = current_data.get("weather", [{}])[0].get("main", "")
+            weather_desc = current_data.get("weather", [{}])[0].get("description", "")
+            
+            # Temperature-based alerts
+            if temp >= 35:  # Extreme heat (95°F)
+                alerts.append(AlertModel(
+                    title="Extreme Heat Warning",
+                    description=f"Dangerous heat conditions with temperature at {temp:.1f}°C. Stay hydrated, avoid prolonged outdoor exposure, and seek air conditioning.",
+                    severity="extreme",
+                    start_time=now,
+                    end_time=now + timedelta(hours=6),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.HEAT,
+                    urgency="immediate",
+                    certainty="observed",
+                    instructions="Stay indoors during peak hours, drink plenty of water, wear light clothing."
+                ))
+            elif temp >= 30:  # High heat (86°F)
+                alerts.append(AlertModel(
+                    title="Heat Advisory",
+                    description=f"High temperature of {temp:.1f}°C. Take precautions when outdoors.",
+                    severity="moderate",
+                    start_time=now,
+                    end_time=now + timedelta(hours=4),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.HEAT,
+                    urgency="expected",
+                    certainty="likely"
+                ))
+            
+            if temp <= -20:  # Extreme cold (-4°F)
+                alerts.append(AlertModel(
+                    title="Extreme Cold Warning",
+                    description=f"Dangerously cold conditions at {temp:.1f}°C. Risk of frostbite and hypothermia.",
+                    severity="extreme",
+                    start_time=now,
+                    end_time=now + timedelta(hours=8),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.COLD,
+                    urgency="immediate",
+                    certainty="observed",
+                    instructions="Limit outdoor exposure, dress in layers, cover exposed skin."
+                ))
+            elif temp <= -10:  # Severe cold (14°F)
+                alerts.append(AlertModel(
+                    title="Cold Weather Advisory",
+                    description=f"Very cold temperature of {temp:.1f}°C. Dress warmly and limit outdoor exposure.",
+                    severity="moderate",
+                    start_time=now,
+                    end_time=now + timedelta(hours=6),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.COLD,
+                    urgency="expected",
+                    certainty="likely"
+                ))
+            
+            # Wind-based alerts
+            if wind_speed >= 25:  # 90+ km/h (56+ mph)
+                alerts.append(AlertModel(
+                    title="High Wind Warning",
+                    description=f"Dangerous winds at {wind_speed:.1f} m/s. Secure loose objects and avoid driving high-profile vehicles.",
+                    severity="severe",
+                    start_time=now,
+                    end_time=now + timedelta(hours=3),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.HIGH_WIND,
+                    urgency="immediate",
+                    certainty="observed",
+                    instructions="Secure outdoor furniture, avoid parking under trees, use caution while driving."
+                ))
+            elif wind_speed >= 15:  # 54+ km/h (34+ mph)
+                alerts.append(AlertModel(
+                    title="Wind Advisory",
+                    description=f"Strong winds at {wind_speed:.1f} m/s. Use caution outdoors.",
+                    severity="moderate",
+                    start_time=now,
+                    end_time=now + timedelta(hours=2),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.HIGH_WIND,
+                    urgency="expected",
+                    certainty="likely"
+                ))
+            
+            # Visibility-based alerts
+            if visibility <= 0.5:  # Less than 500m
+                alerts.append(AlertModel(
+                    title="Dense Fog Warning",
+                    description=f"Very low visibility at {visibility:.1f} km. Driving conditions are hazardous.",
+                    severity="severe",
+                    start_time=now,
+                    end_time=now + timedelta(hours=4),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.FOG,
+                    urgency="immediate",
+                    certainty="observed",
+                    instructions="Use fog lights, reduce speed, increase following distance."
+                ))
+            elif visibility <= 2:  # Less than 2km
+                alerts.append(AlertModel(
+                    title="Fog Advisory",
+                    description=f"Reduced visibility at {visibility:.1f} km. Drive with caution.",
+                    severity="minor",
+                    start_time=now,
+                    end_time=now + timedelta(hours=2),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.FOG,
+                    urgency="expected",
+                    certainty="likely"
+                ))
+            
+            # Weather condition-based alerts
+            if "thunderstorm" in weather_main.lower() or "thunderstorm" in weather_desc.lower():
+                severity = "severe" if "heavy" in weather_desc.lower() else "moderate"
+                alerts.append(AlertModel(
+                    title="Thunderstorm Alert",
+                    description=f"Thunderstorm conditions detected: {weather_desc}. Seek shelter indoors.",
+                    severity=severity,
+                    start_time=now,
+                    end_time=now + timedelta(hours=2),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.SEVERE_THUNDERSTORM,
+                    urgency="immediate",
+                    certainty="observed",
+                    instructions="Stay indoors, avoid windows, unplug electronics, avoid water."
+                ))
+            
+            if "snow" in weather_main.lower() and temp <= 0:
+                if "heavy" in weather_desc.lower():
+                    alerts.append(AlertModel(
+                        title="Heavy Snow Warning",
+                        description=f"Heavy snowfall in progress: {weather_desc}. Travel may be dangerous.",
+                        severity="severe",
+                        start_time=now,
+                        end_time=now + timedelta(hours=6),
+                        source="Weather Dashboard - Condition Analysis",
+                        alert_type=AlertType.WINTER_STORM,
+                        urgency="immediate",
+                        certainty="observed",
+                        instructions="Avoid unnecessary travel, keep emergency supplies, clear snow from vehicle exhaust."
+                    ))
+                else:
+                    alerts.append(AlertModel(
+                        title="Snow Advisory",
+                        description=f"Snow conditions: {weather_desc}. Use caution while traveling.",
+                        severity="moderate",
+                        start_time=now,
+                        end_time=now + timedelta(hours=4),
+                        source="Weather Dashboard - Condition Analysis",
+                        alert_type=AlertType.WINTER_STORM,
+                        urgency="expected",
+                        certainty="likely"
+                    ))
+            
+            # Pressure-based alerts (rapid changes indicate severe weather)
+            if pressure < 980:  # Very low pressure
+                alerts.append(AlertModel(
+                    title="Severe Weather Potential",
+                    description=f"Very low atmospheric pressure ({pressure} hPa) indicates potential for severe weather development.",
+                    severity="moderate",
+                    start_time=now,
+                    end_time=now + timedelta(hours=6),
+                    source="Weather Dashboard - Condition Analysis",
+                    alert_type=AlertType.OTHER,
+                    urgency="expected",
+                    certainty="possible",
+                    instructions="Monitor weather conditions closely, be prepared for rapid changes."
+                ))
+            
+            # Feels-like temperature alerts
+            if abs(feels_like - temp) > 10:  # Significant difference
+                if feels_like > temp + 10:
+                    alerts.append(AlertModel(
+                        title="Heat Index Warning",
+                        description=f"Heat index makes it feel like {feels_like:.1f}°C (actual: {temp:.1f}°C). High humidity increases heat stress.",
+                        severity="moderate",
+                        start_time=now,
+                        end_time=now + timedelta(hours=4),
+                        source="Weather Dashboard - Condition Analysis",
+                        alert_type=AlertType.HEAT,
+                        urgency="expected",
+                        certainty="likely"
+                    ))
+                elif feels_like < temp - 10:
+                    alerts.append(AlertModel(
+                        title="Wind Chill Advisory",
+                        description=f"Wind chill makes it feel like {feels_like:.1f}°C (actual: {temp:.1f}°C). Increased risk of frostbite.",
+                        severity="moderate",
+                        start_time=now,
+                        end_time=now + timedelta(hours=4),
+                        source="Weather Dashboard - Condition Analysis",
+                        alert_type=AlertType.COLD,
+                        urgency="expected",
+                        certainty="likely"
+                    ))
+            
+            # Log generated alerts
+            if alerts:
+                self.logger.info(f"Generated {len(alerts)} condition-based alerts for coordinates ({lat}, {lon})")
+            
+            return alerts
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to generate condition-based alerts: {e}")
             return []
 
     def get_enhanced_weather(self, location: str) -> EnhancedWeatherData:

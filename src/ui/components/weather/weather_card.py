@@ -41,6 +41,7 @@ class WeatherCard(GlassmorphicFrame):
         self.condition = ""
         self.icon = ""
         self.temp_unit = "C"
+        self.is_fallback_data = False  # Track if using fallback/simulated data
         
         # Forecast-specific properties
         self.day = ""
@@ -82,6 +83,7 @@ class WeatherCard(GlassmorphicFrame):
         self.temp_label = None
         self.condition_label = None
         self.details_labels = []
+        self.data_source_indicator = None  # Data source transparency indicator
         
         self._create_widgets()
         self._setup_interactions()
@@ -133,7 +135,10 @@ class WeatherCard(GlassmorphicFrame):
             font=ctk.CTkFont(family="Consolas", size=12),
             text_color=current_theme.get("secondary", "#008F11"),
         )
-        self.condition_label.pack(pady=(0, 20))
+        self.condition_label.pack(pady=(0, 10))
+        
+        # Data source indicator
+        self._create_data_source_indicator()
     
     def _create_forecast_widgets(self):
         """Create widgets for forecast display."""
@@ -176,6 +181,9 @@ class WeatherCard(GlassmorphicFrame):
         
         # Additional details
         self._create_forecast_details()
+        
+        # Data source indicator
+        self._create_data_source_indicator()
     
     def _create_forecast_details(self):
         """Create additional forecast details."""
@@ -202,6 +210,19 @@ class WeatherCard(GlassmorphicFrame):
             )
             wind_label.pack(pady=(1, 8))
             self.details_labels.append(wind_label)
+    
+    def _create_data_source_indicator(self):
+        """Create data source transparency indicator."""
+        current_theme = theme_manager.get_current_theme()
+        
+        self.data_source_indicator = SafeCTkLabel(
+            self,
+            text="",  # Initially hidden
+            font=ctk.CTkFont(family="Consolas", size=8),
+            text_color=current_theme.get("warning", "#FFA500"),
+        )
+        self.data_source_indicator.pack(pady=(5, 10))
+        self.data_source_indicator.pack_forget()  # Hide initially
     
     def _setup_interactions(self):
         """Setup hover and click interactions."""
@@ -259,13 +280,14 @@ class WeatherCard(GlassmorphicFrame):
         else:
             return f"{self.temperature}°{self.temp_unit}"
     
-    def update_current_weather(self, city: str, temperature: int, condition: str, icon: str, temp_unit: str = "C"):
+    def update_current_weather(self, city: str, temperature: int, condition: str, icon: str, temp_unit: str = "C", is_fallback: bool = False):
         """Update current weather data."""
         self.city = city
         self.temperature = temperature
         self.condition = condition
         self.icon = icon
         self.temp_unit = temp_unit
+        self.is_fallback_data = is_fallback
         
         if self.card_type == "current":
             if self.main_label:
@@ -276,9 +298,11 @@ class WeatherCard(GlassmorphicFrame):
                 self.condition_label.configure(text=condition)
             if self.icon_label:
                 self.icon_label.configure(text=self._get_icon_emoji(icon))
+        
+        self._update_data_source_indicator()
     
     def update_forecast_data(self, day: str, date: str, icon: str, high: int, low: int, 
-                           precipitation: float = 0.0, wind_speed: float = 0.0, temp_unit: str = "C"):
+                           precipitation: float = 0.0, wind_speed: float = 0.0, temp_unit: str = "C", is_fallback: bool = False):
         """Update forecast data."""
         self.day = day
         self.date = date
@@ -288,6 +312,7 @@ class WeatherCard(GlassmorphicFrame):
         self.precipitation = precipitation
         self.wind_speed = wind_speed
         self.temp_unit = temp_unit
+        self.is_fallback_data = is_fallback
         
         if self.card_type == "forecast":
             if self.main_label:
@@ -298,6 +323,22 @@ class WeatherCard(GlassmorphicFrame):
                 self.temp_label.configure(text=self._format_temperature_range())
             if self.icon_label:
                 self.icon_label.configure(text=self._get_icon_emoji(icon))
+        
+        self._update_data_source_indicator()
+    
+    def _update_data_source_indicator(self):
+        """Update data source indicator based on data type."""
+        if not self.data_source_indicator:
+            return
+            
+        if self.is_fallback_data:
+            # Show indicator for fallback/simulated data
+            indicator_text = "⚠️ Simulated" if self.card_type == "current" else "⚠️ Est."
+            self.data_source_indicator.configure(text=indicator_text)
+            self.data_source_indicator.pack(pady=(2, 8))
+        else:
+            # Hide indicator for real data
+            self.data_source_indicator.pack_forget()
     
     def _on_theme_changed(self):
         """Handle theme change events."""

@@ -174,6 +174,7 @@ class ForecastSection(SafeCTkFrame):
                     low=day_data.get("low", 15),
                     precipitation=day_data.get("precipitation", 0.0),
                     wind_speed=day_data.get("wind_speed", 0.0),
+                    is_fallback=False,  # Real forecast data
                 )
 
     def _update_cards_with_sample_data(self, base_temp):
@@ -196,6 +197,7 @@ class ForecastSection(SafeCTkFrame):
                 low=low_temp,
                 precipitation=random.uniform(0, 30),
                 wind_speed=random.uniform(5, 25),
+                is_fallback=True,  # Mark as fallback data
             )
 
     def _parse_daily_forecasts(self, forecast_data):

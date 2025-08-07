@@ -60,6 +60,7 @@ class ForecastDayCard(SafeCTkFrame):
         self.wind_speed = wind_speed
         self.temp_unit = temp_unit
         self.on_click = on_click
+        self.is_fallback_data = False  # Track if using fallback/simulated data
 
         # Animation and interaction state
         self._is_hovered = False
@@ -167,6 +168,9 @@ class ForecastDayCard(SafeCTkFrame):
         else:
             # Add padding if no wind info
             SafeCTkLabel(self, text="", height=8).pack()
+        
+        # Data source indicator
+        self._create_data_source_indicator()
 
     def _get_icon_emoji(self, icon_id: str) -> str:
         """Convert icon identifier to emoji.
@@ -197,6 +201,32 @@ class ForecastDayCard(SafeCTkFrame):
         }
 
         return icon_map.get(str(icon_id).lower(), "🌤️")
+    
+    def _create_data_source_indicator(self):
+        """Create data source transparency indicator."""
+        current_theme = theme_manager.get_current_theme()
+        
+        self.data_source_indicator = SafeCTkLabel(
+            self,
+            text="",  # Initially hidden
+            font=ctk.CTkFont(family="Consolas", size=8),
+            text_color=current_theme.get("warning", "#FFA500"),
+        )
+        self.data_source_indicator.pack(pady=(2, 5))
+        self.data_source_indicator.pack_forget()  # Hide initially
+    
+    def _update_data_source_indicator(self):
+        """Update data source indicator based on data type."""
+        if not hasattr(self, 'data_source_indicator') or not self.data_source_indicator:
+            return
+            
+        if self.is_fallback_data:
+            # Show indicator for fallback/simulated data
+            self.data_source_indicator.configure(text="⚠️ Est.")
+            self.data_source_indicator.pack(pady=(2, 5))
+        else:
+            # Hide indicator for real data
+            self.data_source_indicator.pack_forget()
 
     def _format_temperature(self) -> str:
         """Format temperature with proper unit conversion."""
@@ -317,6 +347,7 @@ class ForecastDayCard(SafeCTkFrame):
         precipitation: Optional[float] = None,
         wind_speed: Optional[float] = None,
         temp_unit: Optional[str] = None,
+        is_fallback: bool = False,
     ):
         """Update the card data with enhanced parameters.
 
@@ -329,7 +360,9 @@ class ForecastDayCard(SafeCTkFrame):
             precipitation: New precipitation probability
             wind_speed: New wind speed
             temp_unit: New temperature unit
+            is_fallback: Whether this is fallback/simulated data
         """
+        self.is_fallback_data = is_fallback
         if day is not None:
             self.day = day
             self.day_label.configure(text=day)
@@ -369,6 +402,9 @@ class ForecastDayCard(SafeCTkFrame):
                     self.wind_label.configure(text=f"💨 {wind_speed:.1f} m/s")
                 else:
                     self.wind_label.configure(text="")
+        
+        # Update data source indicator
+        self._update_data_source_indicator()
 
     def set_highlight(self, highlighted: bool = True):
         """Set the card highlight state.
